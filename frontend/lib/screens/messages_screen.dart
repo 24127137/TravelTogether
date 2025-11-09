@@ -2,8 +2,9 @@
 /// Mô tả: Widget nội dung tin nhắn. Đã dịch sang tiếng Việt.
 
 import 'package:flutter/material.dart';
-import '../models/message.dart';
 import '../data/mock_messages.dart';
+import 'chatbox_screen.dart';
+import 'main_app_screen.dart';
 
 class MessagesScreen extends StatelessWidget {
   final VoidCallback? onBack;
@@ -12,25 +13,19 @@ class MessagesScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Tin nhắn'),
-        leading: onBack != null
-            ? IconButton(
-                icon: const Icon(Icons.arrow_back),
-                onPressed: onBack,
-              )
-            : null,
-      ),
+      backgroundColor: const Color(0xFFF7F7F7), // Thêm màu nền cho đẹp hơn
+      // Removed default AppBar to use the custom header inside the body
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _buildHeader(context),
+            const SizedBox(height: 20), // move search bar down slightly
             _buildSearchBar(),
             const SizedBox(height: 16),
             Expanded(
               child: ListView.separated(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
+                padding: const EdgeInsets.only(left: 12, right: 20),
                 itemCount: mockMessages.length,
                 separatorBuilder: (_, __) => const SizedBox(height: 20),
                 itemBuilder: (context, index) {
@@ -39,7 +34,7 @@ class MessagesScreen extends StatelessWidget {
                     sender: m.sender,
                     message: m.message,
                     time: m.time,
-                    isOnline: m.isOnline,
+                    isOnline: m.isOnline == true,
                   );
                 },
               ),
@@ -53,16 +48,27 @@ class MessagesScreen extends StatelessWidget {
   // ---------- HEADER ----------
   Widget _buildHeader(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      // remove left padding so back button sits at the screen edge
+      padding: const EdgeInsets.only(top: 12, right: 16),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        mainAxisAlignment: MainAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
+          // Back button aligned to the far left
           IconButton(
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
             icon: const Icon(Icons.arrow_back, color: Color(0xFFB99668)),
             onPressed: () {
-              if (onBack != null) onBack!(); else Navigator.pop(context);
+              // Navigate back to the app's homepage (MainAppScreen index 0)
+              Navigator.of(context).pushAndRemoveUntil(
+                MaterialPageRoute(builder: (_) => const MainAppScreen(initialIndex: 0)),
+                (route) => false,
+              );
             },
           ),
+          const SizedBox(width: 12),
+          // Cream-colored title pushed to the left (next to back button)
           const Text(
             'Tin nhắn',
             style: TextStyle(
@@ -70,11 +76,6 @@ class MessagesScreen extends StatelessWidget {
               fontSize: 20,
               fontWeight: FontWeight.w600,
             ),
-          ),
-          IconButton(
-            icon: const Icon(Icons.edit_outlined,
-                color: Color(0xFFB99668), size: 26),
-            onPressed: () {},
           ),
         ],
       ),
@@ -84,13 +85,13 @@ class MessagesScreen extends StatelessWidget {
   // ---------- SEARCH BAR ----------
   Widget _buildSearchBar() {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
+      padding: const EdgeInsets.only(left: 12, right: 20),
       child: TextField(
         decoration: InputDecoration(
-          hintText: 'Tìm kiếm cuộc trò chuyện & tin nhắn',
+          hintText: 'Tìm kiếm cuộc trò chuyện',
           hintStyle: const TextStyle(
             color: Color(0xFF7C838D),
-            fontSize: 16,
+            fontSize: 15,
           ),
           prefixIcon: const Icon(Icons.search, color: Color(0xFF7C838D)),
           filled: true,
@@ -129,7 +130,15 @@ class _MessageTile extends StatelessWidget {
     return InkWell(
       borderRadius: BorderRadius.circular(12),
       onTap: () {
-        // TODO: Navigate to chat detail
+        // **********************************************
+        // 2. THỰC HIỆN NAVIGATION ĐẾN CHATBOXSCREEN
+        // **********************************************
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => const ChatboxScreen(),
+          ),
+        );
       },
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,

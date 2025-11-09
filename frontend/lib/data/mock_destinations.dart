@@ -5,7 +5,7 @@
 /// về địa điểm, hình ảnh, đánh giá và mô tả. Dữ liệu này được sử dụng để hiển thị
 /// trong ứng dụng du lịch và không thay thế cho dữ liệu thực tế từ API.
 
-import 'package:my_travel_app/models/destination.dart';
+import '../models/destination.dart';
 
 final List<Destination> mockDestinations = [
   Destination(

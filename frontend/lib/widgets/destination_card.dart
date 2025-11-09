@@ -6,7 +6,7 @@
 /// image, name, and province.
 
 import 'package:flutter/material.dart';
-import 'package:my_travel_app/models/destination.dart';
+import '../models/destination.dart';
 
 class DestinationCard extends StatelessWidget {
   final Destination destination;

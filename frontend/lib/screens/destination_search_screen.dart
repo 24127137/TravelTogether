@@ -2,8 +2,8 @@
 /// Mô tả: Màn hình tìm kiếm và chọn điểm đến, giao diện tiếng Việt.
 
 import 'package:flutter/material.dart';
-import 'package:my_travel_app/data/mock_explore_items.dart';
-import 'package:my_travel_app/models/destination_explore_item.dart';
+import '../data/mock_explore_items.dart';
+import '../models/destination_explore_item.dart';
 
 class DestinationSearchScreen extends StatefulWidget {
   final String cityId;
@@ -260,4 +260,3 @@ class _DestinationSearchScreenState extends State<DestinationSearchScreen> {
    }
 
 } // end of _DestinationSearchScreenState
-
