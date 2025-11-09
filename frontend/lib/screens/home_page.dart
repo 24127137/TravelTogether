@@ -3,9 +3,10 @@
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:my_travel_app/data/mock_destinations.dart';
-import 'package:my_travel_app/models/destination.dart';
+import '../data/mock_destinations.dart';
+import '../models/destination.dart';
 import 'package:table_calendar/table_calendar.dart';
+import '../widgets/destination_search_modal.dart';
 
 class HomePage extends StatefulWidget {
   final void Function(Destination)? onDestinationTap;
@@ -102,10 +103,10 @@ class _HomePageState extends State<HomePage> {
                       const Text(
                         "Danh sách gợi ý",
                         style: TextStyle(
-                          color: Color(0xFFE3D1B4),
+                          color: Color(0xFFFFFFFF),
                           fontSize: 19,
-                          fontFamily: 'Montserrat',
-                          fontWeight: FontWeight.w700,
+                          fontFamily: 'Alegreya',
+                          fontWeight: FontWeight.w900,
                         ),
                       ),
                       const SizedBox(height: 20),
@@ -203,7 +204,7 @@ class _CustomAppBar extends StatelessWidget {
         ),
         const SizedBox(width: 12),
         const Text(
-          'Xin chào, Toàn Handsome',
+          'Xin chào, Toàn',
           style: TextStyle(
               fontFamily: 'Poppins', fontSize: 16, fontWeight: FontWeight.w600),
         ),
@@ -215,7 +216,7 @@ class _CustomAppBar extends StatelessWidget {
             color: Color(0xFFF7F3E8),
             shape: OvalBorder(),
           ),
-          child: const Icon(Icons.notifications_none, size: 20, color: Color(0xFF3E3322),),
+          child: const Icon(Icons.settings, size: 20, color: Color(0xFF3E3322),),
         ),
       ],
     );
@@ -233,6 +234,14 @@ class _SelectionButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDefaultHint = hint == 'Thời gian du lịch (ngày)' || hint == 'Điểm đến';
     const accentColor = Color(0xFFA15C20);
+
+    // Detect if the hint contains a date (e.g. "dd/MM" or a date range with '-').
+    final isDateHint = RegExp(r'\d{2}/\d{2}').hasMatch(hint) || hint.contains('-');
+
+    final textColor = isDefaultHint
+        ? accentColor
+        : (isDateHint ? accentColor : Colors.black);
+
     return Material(
       color: const Color(0xFFF7F3E8),
       borderRadius: BorderRadius.circular(10),
@@ -254,7 +263,7 @@ class _SelectionButton extends StatelessWidget {
               Text(
                 hint,
                 style: TextStyle(
-                  color: isDefaultHint ? accentColor : Colors.black,
+                  color: textColor,
                   fontSize: 16,
                   fontFamily: 'Poppins',
                   fontWeight: isDefaultHint ? FontWeight.w400 : FontWeight.w500,
@@ -284,48 +293,59 @@ class _RecommendedCard extends StatelessWidget {
       child: Container(
         height: 200,
         margin: const EdgeInsets.only(bottom: 20),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(25),
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              Image.asset(destination.imagePath, fit: BoxFit.cover),
-              Positioned.fill(
-                child: Container(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [
-                        Colors.black.withAlpha((0.1 * 255).toInt()),
-                        Colors.black.withAlpha((0.3 * 255).toInt()),
-                      ],
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            return ClipRRect(
+              borderRadius: BorderRadius.circular(25),
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  Image.asset(destination.imagePath, fit: BoxFit.cover),
+                  Positioned.fill(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [
+                            Colors.black.withAlpha((0.1 * 255).toInt()),
+                            Colors.black.withAlpha((0.3 * 255).toInt()),
+                          ],
+                        ),
+                      ),
                     ),
                   ),
-                ),
-              ),
-              Positioned(
-                top: 15,
-                right: 20,
-                child: Text(
-                  destination.name.toUpperCase(),
-                  style: const TextStyle(
-                    fontFamily: 'Bangers',
-                    fontSize: 30,
-                    color: Colors.white,
-                    shadows: [
-                      Shadow(
-                        blurRadius: 5.0,
-                        color: Colors.black,
-                        offset: Offset(1.0, 1.0),
+                  Positioned(
+                    top: 10,
+                    right: 15,
+                    child: SizedBox(
+                      width: constraints.maxWidth - 30,
+                      child: Text(
+                        destination.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.right,
+                        style: const TextStyle(
+                          fontFamily: 'AlumniSans',
+                          fontSize: 32,
+                          color: Colors.white,
+                          fontWeight: FontWeight.w700,
+                          shadows: [
+                            Shadow(
+                              blurRadius: 5.0,
+                              color: Colors.black,
+                              offset: Offset(1.0, 1.0),
+                            ),
+                          ],
+                        ),
                       ),
-                    ],
+                    ),
                   ),
-                ),
+                  // rating pill removed per request
+                ],
               ),
-              // rating pill removed per request
-            ],
-          ),
+            );
+          },
         ),
       ),
     );
@@ -421,6 +441,7 @@ class _CalendarCard extends StatelessWidget {
                 rangeEndDecoration: BoxDecoration(
                     color: accentColor, shape: BoxShape.circle),
                 rangeHighlightColor: accentColor.withAlpha((0.5 * 255).toInt()),
+                // Keep default text colors for days but ensure header/selected visuals are clear.
               ),
               headerStyle: const HeaderStyle(
                   formatButtonVisible: false, titleCentered: true),
@@ -451,128 +472,3 @@ class _CalendarCard extends StatelessWidget {
   }
 }
 
-// ------------------ Widget Modal Search ------------------
-class DestinationSearchModal extends StatefulWidget {
-  final ValueChanged<Destination> onSelect;
-  const DestinationSearchModal({Key? key, required this.onSelect}) : super(key: key);
-
-  @override
-  _DestinationSearchModalState createState() => _DestinationSearchModalState();
-}
-
-class _DestinationSearchModalState extends State<DestinationSearchModal> {
-  String _query = '';
-  late List<Destination> _results;
-  final TextEditingController _controller = TextEditingController();
-
-  @override
-  void initState() {
-    super.initState();
-    _results = List<Destination>.from(mockDestinations);
-  }
-
-  void _onChanged(String v) {
-    setState(() {
-      _query = v.trim().toLowerCase();
-      if (_query.isEmpty) {
-        _results = List<Destination>.from(mockDestinations);
-      } else {
-        final q = _query;
-        _results = mockDestinations.where((d) {
-          return d.name.toLowerCase().contains(q)
-              || d.province.toLowerCase().contains(q)
-              || d.location.toLowerCase().contains(q)
-              || d.description.toLowerCase().contains(q);
-        }).toList();
-      }
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final mq = MediaQuery.of(context);
-    return Material(
-      borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-      color: Colors.white,
-      child: SafeArea(
-        top: false,
-        child: Padding(
-          padding: EdgeInsets.only(bottom: mq.viewInsets.bottom),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const SizedBox(height: 12),
-              Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade300,
-                  borderRadius: BorderRadius.circular(4),
-                ),
-              ),
-              const SizedBox(height: 12),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        controller: _controller,
-                        autofocus: true,
-                        onChanged: _onChanged,
-                        decoration: InputDecoration(
-                          hintText: 'Tìm địa điểm',
-                          prefixIcon: const Icon(Icons.search),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide.none,
-                          ),
-                          filled: true,
-                          fillColor: const Color(0xFFF2F2F2),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    TextButton(
-                      onPressed: () {
-                        Navigator.of(context).pop();
-                      },
-                      child: const Text('Hủy'),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 12),
-              Expanded(
-                child: _results.isEmpty
-                    ? const Center(child: Text('Không tìm thấy kết quả'))
-                    : ListView.separated(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  itemBuilder: (ctx, i) {
-                    final d = _results[i];
-                    return ListTile(
-                      onTap: () => widget.onSelect(d),
-                      leading: ClipRRect(
-                        borderRadius: BorderRadius.circular(8),
-                        child: Image.asset(
-                          d.imagePath,
-                          width: 64,
-                          height: 64,
-                          fit: BoxFit.cover,
-                        ),
-                      ),
-                      title: Text(d.name),
-                      subtitle: Text(d.province),
-                    );
-                  },
-                  separatorBuilder: (_, __) => const Divider(),
-                  itemCount: _results.length,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
