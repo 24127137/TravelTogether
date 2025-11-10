@@ -1,12 +1,14 @@
 from fastapi import FastAPI
 from contextlib import asynccontextmanager
-from api import router as api_router # <-- Import router từ file api.py
-from fastapi.middleware.cors import CORSMiddleware # <-- Import CORS
+from api import router as api_router # <-- Import router CŨ (profile, recommend)
+from auth_api import router as auth_router # <-- Import router CŨ (signin, refresh)
+from profile_api import router as profile_router # <-- Import router MỚI (users/me)
+from fastapi.middleware.cors import CORSMiddleware 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Sự kiện chạy khi server khởi động"""
-    print("Server đang khởi động (Phiênbản 4.5 - Luồng Email)...")
+    print("Server đang khởi động (Phiênbản 5.0 - Đăng ký Trực tiếp + Bảo vệ)...")
     print("Đã sẵn sàng kết nối database...")
     yield
     print("Server đang tắt...")
@@ -14,8 +16,8 @@ async def lifespan(app: FastAPI):
 # 1. Tạo app
 app = FastAPI(
     title="Travel Recommender API",
-    description="API cho Ứng dụng Du lịch (Phiênbản 4.5 - Luồng Email)",
-    version="4.5.0",
+    description="API cho Ứng dụng Du lịch (Phiênbản 5.0 - Đăng ký Trực tiếp + Bảo vệ)",
+    version="5.0.0",
     lifespan=lifespan
 )
 
@@ -29,8 +31,10 @@ app.add_middleware(
 )
 # =================================================
 
-# 2. "Bao gồm" tất cả các API endpoints từ file api.py
-app.include_router(api_router)
+# 2. "Bao gồm" (Cắm) tất cả các API endpoints
+app.include_router(api_router) # Cắm API (profile, recommend)
+app.include_router(auth_router) # CẮM API (signin, refresh)
+app.include_router(profile_router) # <-- CẮM API MỚI (users/me, profiles/me)
 
 # Hoàn thành!
 # Để chạy, dùng: uvicorn main:app --reload
