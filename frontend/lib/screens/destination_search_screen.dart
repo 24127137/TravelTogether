@@ -2,6 +2,7 @@
 /// Mô tả: Màn hình tìm kiếm và chọn điểm đến, giao diện tiếng Việt.
 
 import 'package:flutter/material.dart';
+import 'package:easy_localization/easy_localization.dart';
 import '../data/mock_explore_items.dart';
 import '../models/destination_explore_item.dart';
 
@@ -38,7 +39,7 @@ class _DestinationSearchScreenState extends State<DestinationSearchScreen> {
             child: Padding(
               padding: const EdgeInsets.only(left: 24.0, top: 16.0, bottom: 0.0),
               child: Text(
-                'Địa điểm',
+                'place'.tr(),
                 style: const TextStyle(
                   fontFamily: 'Alumni Sans',
                   fontWeight: FontWeight.w800,
@@ -112,7 +113,7 @@ class _DestinationSearchScreenState extends State<DestinationSearchScreen> {
           });
         },
         decoration: InputDecoration(
-          hintText: 'Tìm kiếm địa điểm...',
+          hintText: 'search_place'.tr(),
           filled: true,
           fillColor: const Color(0xFFEDE2CC),
           border: OutlineInputBorder(
@@ -258,5 +259,5 @@ class _DestinationSearchScreenState extends State<DestinationSearchScreen> {
        ],
      );
    }
+}
 
-} // end of _DestinationSearchScreenState

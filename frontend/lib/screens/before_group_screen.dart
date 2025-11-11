@@ -1,6 +1,7 @@
 /// File: before_group_screen.dart
 
 import 'package:flutter/material.dart';
+import 'package:easy_localization/easy_localization.dart';
 // Removed CustomBottomNavBar import so this screen doesn't create its own bottom bar
 
 // Chuyển thành StatefulWidget để quản lý trạng thái của icon trái tim

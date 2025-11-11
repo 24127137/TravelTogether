@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:easy_localization/easy_localization.dart';
 import '../data/mock_messages.dart';
 import '../models/message.dart';
 
@@ -151,9 +152,9 @@ class _ChatboxScreenState extends State<ChatboxScreen> {
                                 color: const Color(0xFFEBE3D7),
                                 borderRadius: BorderRadius.circular(20),
                               ),
-                              child: const Text(
-                                'Hôm nay',
-                                style: TextStyle(color: Colors.black54, fontSize: 12),
+                              child: Text(
+                                'today'.tr(),
+                                style: const TextStyle(color: Colors.black54, fontSize: 12),
                               ),
                             ),
                           ),
@@ -205,10 +206,10 @@ class _ChatboxScreenState extends State<ChatboxScreen> {
                             child: TextField(
                               controller: _controller,
                               focusNode: _focusNode,
-                              decoration: const InputDecoration(
-                                contentPadding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-                                hintText: 'Nhập tin nhắn',
-                                hintStyle: TextStyle(color: Colors.black38),
+                              decoration: InputDecoration(
+                                contentPadding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                                hintText: 'enter_message'.tr(),
+                                hintStyle: const TextStyle(color: Colors.black38),
                                 border: InputBorder.none,
                               ),
                               onSubmitted: (_) => _sendMessage(),
