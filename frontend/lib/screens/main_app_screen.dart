@@ -12,6 +12,8 @@ import 'destination_explore_screen.dart';
 import 'before_group_screen.dart';
 import 'destination_search_screen.dart';
 import 'settings_screen.dart';
+import 'private_screen.dart';
+import 'travel_plan_screen.dart';
 
 class MainAppScreen extends StatefulWidget {
   final int initialIndex;
@@ -131,7 +133,7 @@ class _MainAppScreenState extends State<MainAppScreen> {
         ),
         Center(child: Text('notification'.tr(), style: const TextStyle(fontSize: 24))),
         MessagesScreen(),
-        Center(child: Text('account'.tr(), style: const TextStyle(fontSize: 24))),
+        const PrivateScreen(),
       ];
       mainContent = IndexedStack(
         index: _selectedIndex,
