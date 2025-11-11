@@ -2,6 +2,7 @@
 /// Mô tả: Màn hình khám phá địa điểm theo thành phố, giao diện tiếng Việt.
 
 import 'package:flutter/material.dart';
+import 'package:easy_localization/easy_localization.dart';
 import '../data/mock_explore_items.dart';
 
 class DestinationExploreScreen extends StatelessWidget {
@@ -47,9 +48,9 @@ class DestinationExploreScreen extends StatelessWidget {
       body: ListView(
         padding: EdgeInsets.fromLTRB(16,16,16, kBottomNavigationBarHeight + MediaQuery.of(context).padding.bottom + 16),
         children: [
-          const Text(
-            'Khám phá Việt Nam',
-            style: TextStyle(
+          Text(
+            'explore_vietnam'.tr(),
+            style: const TextStyle(
               color: Color(0xFF3E3322),
               fontSize: 20,
               fontFamily: 'Inter',
@@ -69,9 +70,9 @@ class DestinationExploreScreen extends StatelessWidget {
               ),
               alignment: Alignment.centerLeft,
               padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: const Text(
-                'Tìm kiếm địa điểm',
-                style: TextStyle(
+              child: Text(
+                'search_place'.tr(),
+                style: const TextStyle(
                   color: Color(0xFF3E3322),
                   fontSize: 16,
                   fontFamily: 'Roboto',
@@ -81,9 +82,9 @@ class DestinationExploreScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 24),
-          const Text(
-            'Địa điểm nổi bật',
-            style: TextStyle(
+          Text(
+            'featured_places'.tr(),
+            style: const TextStyle(
               color: Color(0xFFB99668),
               fontSize: 16,
               fontFamily: 'Poppins',
@@ -135,9 +136,9 @@ class DestinationExploreScreen extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(width: 22),
-                    const Text(
-                      'Bấm xác nhận',
-                      style: TextStyle(
+                    Text(
+                      'press_confirm'.tr(),
+                      style: const TextStyle(
                         color: Color(0xFFF7F3E8),
                         fontSize: 13,
                         fontFamily: 'Climate Crisis',

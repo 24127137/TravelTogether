@@ -3,6 +3,7 @@
 
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:easy_localization/easy_localization.dart';
 import '../models/destination.dart';
 import '../data/mock_destinations.dart';
 import '../screens/destination_explore_screen.dart';
@@ -128,9 +129,9 @@ class DestinationDetailScreen extends StatelessWidget {
                       const SizedBox(height: 20),
 
                       // Mô tả
-                      const Text(
-                        'Mô tả',
-                        style: TextStyle(
+                      Text(
+                        'description'.tr(),
+                        style: const TextStyle(
                           color: Colors.white,
                           fontSize: 16,
                           fontFamily: 'Poppins',
@@ -180,9 +181,9 @@ class DestinationDetailScreen extends StatelessWidget {
                           ));
                         });
                       },
-                      child: const Text(
-                        'Tiếp tục',
-                        style: TextStyle(
+                      child: Text(
+                        'continue'.tr(),
+                        style: const TextStyle(
                           color: Color(0xFFF7F3E8),
                           fontSize: 16,
                           fontFamily: 'Climate Crisis',

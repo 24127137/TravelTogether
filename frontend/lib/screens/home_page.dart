@@ -3,6 +3,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:easy_localization/easy_localization.dart';
 import '../data/mock_destinations.dart';
 import '../models/destination.dart';
 import 'package:table_calendar/table_calendar.dart';
@@ -10,7 +11,8 @@ import '../widgets/destination_search_modal.dart';
 
 class HomePage extends StatefulWidget {
   final void Function(Destination)? onDestinationTap;
-  const HomePage({Key? key, this.onDestinationTap}) : super(key: key);
+  final VoidCallback? onSettingsTap;
+  const HomePage({Key? key, this.onDestinationTap, this.onSettingsTap}) : super(key: key);
 
   @override
   _HomePageState createState() => _HomePageState();
@@ -24,7 +26,7 @@ class _HomePageState extends State<HomePage> {
   DateTime _focusedDay = DateTime.now();
 
   String get _durationText {
-    if (_rangeStart == null) return 'Thời gian du lịch (ngày)';
+    if (_rangeStart == null) return 'travel_time'.tr();
     final format = DateFormat('dd/MM');
     if (_rangeEnd == null) return format.format(_rangeStart!);
     return '${format.format(_rangeStart!)} - ${format.format(_rangeEnd!)}';
@@ -93,6 +95,7 @@ class _HomePageState extends State<HomePage> {
                   durationText: _durationText,
                   onDestinationTap: _openDestinationScreen,
                   onDurationTap: _showCalendar,
+                  onSettingsTap: widget.onSettingsTap,
                 ),
                 // Hiển thị 5 thẻ thành phố rating cao nhất
                 Padding(
@@ -100,9 +103,9 @@ class _HomePageState extends State<HomePage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      const Text(
-                        "Danh sách gợi ý",
-                        style: TextStyle(
+                      Text(
+                        "top_destinations".tr(),
+                        style: const TextStyle(
                           color: Color(0xFFFFFFFF),
                           fontSize: 19,
                           fontFamily: 'Alegreya',
@@ -139,11 +142,13 @@ class _TopSection extends StatelessWidget {
   final String durationText;
   final VoidCallback onDestinationTap;
   final VoidCallback onDurationTap;
+  final VoidCallback? onSettingsTap;
 
   const _TopSection({
     required this.durationText,
     required this.onDestinationTap,
     required this.onDurationTap,
+    this.onSettingsTap,
   });
 
   @override
@@ -159,10 +164,10 @@ class _TopSection extends StatelessWidget {
           )),
       child: Column(
         children: [
-          const _CustomAppBar(),
+          _CustomAppBar(onSettingsTap: onSettingsTap),
           const SizedBox(height: 24),
           _SelectionButton(
-            hint: 'Điểm đến',
+            hint: 'destination'.tr(),
             icon: Icons.search,
             onTap: onDestinationTap,
           ),
@@ -179,7 +184,9 @@ class _TopSection extends StatelessWidget {
 }
 
 class _CustomAppBar extends StatelessWidget {
-  const _CustomAppBar();
+  final VoidCallback? onSettingsTap;
+
+  const _CustomAppBar({this.onSettingsTap});
 
   @override
   Widget build(BuildContext context) {
@@ -203,20 +210,23 @@ class _CustomAppBar extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 12),
-        const Text(
-          'Xin chào, Toàn',
-          style: TextStyle(
+        Text(
+          'hello_user'.tr(),
+          style: const TextStyle(
               fontFamily: 'Poppins', fontSize: 16, fontWeight: FontWeight.w600),
         ),
         const Spacer(),
-        Container(
-          width: 36,
-          height: 36,
-          decoration: const ShapeDecoration(
-            color: Color(0xFFF7F3E8),
-            shape: OvalBorder(),
+        GestureDetector(
+          onTap: onSettingsTap,
+          child: Container(
+            width: 36,
+            height: 36,
+            decoration: const ShapeDecoration(
+              color: Color(0xFFF7F3E8),
+              shape: OvalBorder(),
+            ),
+            child: const Icon(Icons.settings, size: 20, color: Color(0xFF3E3322),),
           ),
-          child: const Icon(Icons.settings, size: 20, color: Color(0xFF3E3322),),
         ),
       ],
     );
@@ -232,11 +242,11 @@ class _SelectionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDefaultHint = hint == 'Thời gian du lịch (ngày)' || hint == 'Điểm đến';
     const accentColor = Color(0xFFA15C20);
 
     // Detect if the hint contains a date (e.g. "dd/MM" or a date range with '-').
-    final isDateHint = RegExp(r'\d{2}/\d{2}').hasMatch(hint) || hint.contains('-');
+    final isDateHint = RegExp(r'\d{2}/\d{2}').hasMatch(hint);
+    final isDefaultHint = hint == 'destination'.tr() || hint == 'travel_time'.tr();
 
     final textColor = isDefaultHint
         ? accentColor
@@ -421,8 +431,8 @@ class _CalendarCard extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text('Chọn ngày',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+            Text('select_date'.tr(),
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
             TableCalendar(
               firstDay: DateTime.utc(2020, 1, 1),
               lastDay: DateTime.utc(2030, 12, 31),
@@ -455,13 +465,13 @@ class _CalendarCard extends StatelessWidget {
                     borderRadius: BorderRadius.circular(25)),
               ),
               onPressed: onClose,
-              child: const Row(
+              child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text('Chọn ngày',
-                      style: TextStyle(color: Colors.white, fontSize: 16)),
-                  SizedBox(width: 8),
-                  Icon(Icons.arrow_forward, color: Colors.white, size: 20),
+                  Text('select_date'.tr(),
+                      style: const TextStyle(color: Colors.white, fontSize: 16)),
+                  const SizedBox(width: 8),
+                  const Icon(Icons.arrow_forward, color: Colors.white, size: 20),
                 ],
               ),
             ),

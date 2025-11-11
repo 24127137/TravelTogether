@@ -2,6 +2,7 @@
 /// Mô tả: Modal tìm kiếm điểm đến
 
 import 'package:flutter/material.dart';
+import 'package:easy_localization/easy_localization.dart';
 import '../data/mock_destinations.dart';
 import '../models/destination.dart';
 
@@ -71,9 +72,9 @@ class _DestinationSearchModalState extends State<DestinationSearchModal> {
               ),
             ),
             const SizedBox(height: 13),
-            const Text(
-              'Search thành phố',
-              style: TextStyle(
+            Text(
+              'search_city'.tr(),
+              style: const TextStyle(
                 color: kCardColor,
                 fontSize: 22,
                 fontFamily: 'Alegreya',
@@ -93,7 +94,7 @@ class _DestinationSearchModalState extends State<DestinationSearchModal> {
                   fontSize: 16,
                 ),
                 decoration: InputDecoration(
-                  hintText: 'Địa điểm',
+                  hintText: 'location'.tr(),
                   hintStyle: const TextStyle(
                     color: kSubtleColor,
                     fontFamily: 'Alegreya',
@@ -145,7 +146,7 @@ class _DestinationSearchModalState extends State<DestinationSearchModal> {
                     hasScrollBody: false,
                     child: Center(
                       child: Text(
-                        'Không tìm thấy kết quả',
+                        'no_results'.tr(),
                         style: const TextStyle(
                           color: kCardColor,
                           fontSize: 16,

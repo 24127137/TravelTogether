@@ -2,6 +2,7 @@
 /// Mô tả: Widget nội dung tin nhắn. Đã dịch sang tiếng Việt.
 
 import 'package:flutter/material.dart';
+import 'package:easy_localization/easy_localization.dart';
 import '../data/mock_messages.dart';
 import 'chatbox_screen.dart';
 import 'main_app_screen.dart';
@@ -69,9 +70,9 @@ class MessagesScreen extends StatelessWidget {
           ),
           const SizedBox(width: 12),
           // Cream-colored title pushed to the left (next to back button)
-          const Text(
-            'Tin nhắn',
-            style: TextStyle(
+          Text(
+            'messages'.tr(),
+            style: const TextStyle(
               color: Color(0xFF8A724C),
               fontSize: 20,
               fontWeight: FontWeight.w600,
@@ -88,7 +89,7 @@ class MessagesScreen extends StatelessWidget {
       padding: const EdgeInsets.only(left: 12, right: 20),
       child: TextField(
         decoration: InputDecoration(
-          hintText: 'Tìm kiếm cuộc trò chuyện',
+          hintText: 'search_conversation'.tr(),
           hintStyle: const TextStyle(
             color: Color(0xFF7C838D),
             fontSize: 15,

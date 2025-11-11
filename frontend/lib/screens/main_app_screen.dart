@@ -2,6 +2,7 @@
 /// Mô tả: Widget container chính quản lý các tab và bottom bar, giao diện tiếng Việt.
 
 import 'package:flutter/material.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'home_page.dart';
 import 'messages_screen.dart';
 import '../widgets/custom_bottom_nav_bar.dart';
@@ -10,6 +11,7 @@ import 'destination_detail_screen.dart';
 import 'destination_explore_screen.dart';
 import 'before_group_screen.dart';
 import 'destination_search_screen.dart';
+import 'settings_screen.dart';
 
 class MainAppScreen extends StatefulWidget {
   final int initialIndex;
@@ -25,6 +27,7 @@ class _MainAppScreenState extends State<MainAppScreen> {
   bool _showDetail = false;
   bool _showExplore = false;
   bool _showBeforeGroup = false;
+  bool _showSettings = false;
 
   @override
   void initState() {
@@ -38,6 +41,7 @@ class _MainAppScreenState extends State<MainAppScreen> {
       _showDetail = false;
       _showExplore = false;
       _showBeforeGroup = false;
+      _showSettings = false;
     });
   }
 
@@ -47,6 +51,7 @@ class _MainAppScreenState extends State<MainAppScreen> {
       _showDetail = true;
       _showExplore = false;
       _showBeforeGroup = false;
+      _showSettings = false;
     });
   }
 
@@ -55,6 +60,7 @@ class _MainAppScreenState extends State<MainAppScreen> {
       _showDetail = false;
       _showExplore = true;
       _showBeforeGroup = false;
+      _showSettings = false;
     });
   }
 
@@ -63,6 +69,7 @@ class _MainAppScreenState extends State<MainAppScreen> {
       _showDetail = false;
       _showExplore = false;
       _showBeforeGroup = true;
+      _showSettings = false;
     });
   }
 
@@ -71,6 +78,16 @@ class _MainAppScreenState extends State<MainAppScreen> {
       _showDetail = false;
       _showExplore = false;
       _showBeforeGroup = false;
+      _showSettings = false;
+    });
+  }
+
+  void _openSettings() {
+    setState(() {
+      _showDetail = false;
+      _showExplore = false;
+      _showBeforeGroup = false;
+      _showSettings = true;
     });
   }
 
@@ -87,7 +104,9 @@ class _MainAppScreenState extends State<MainAppScreen> {
   @override
   Widget build(BuildContext context) {
     Widget mainContent;
-    if (_showBeforeGroup) {
+    if (_showSettings) {
+      mainContent = SettingsScreen(onBack: _closeAllScreens);
+    } else if (_showBeforeGroup) {
       mainContent = BeforeGroup(onBack: _closeAllScreens);
     } else if (_showDetail && _selectedDestination != null) {
       mainContent = DestinationDetailScreen(
@@ -106,10 +125,13 @@ class _MainAppScreenState extends State<MainAppScreen> {
       );
     } else {
       final List<Widget> _screens = [
-        HomePage(onDestinationTap: _openDestinationDetail),
-        Center(child: Text('Thông báo', style: TextStyle(fontSize: 24))),
+        HomePage(
+          onDestinationTap: _openDestinationDetail,
+          onSettingsTap: _openSettings,
+        ),
+        Center(child: Text('notification'.tr(), style: const TextStyle(fontSize: 24))),
         MessagesScreen(),
-        Center(child: Text('Tài khoản', style: TextStyle(fontSize: 24))),
+        Center(child: Text('account'.tr(), style: const TextStyle(fontSize: 24))),
       ];
       mainContent = IndexedStack(
         index: _selectedIndex,
