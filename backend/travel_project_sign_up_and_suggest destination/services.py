@@ -1,37 +1,38 @@
 from sqlmodel import Session, select
-from typing import List
-from models import Profiles, Destination, ProfileCreate, RecommendationOutput, EmailStr
+from typing import List, Dict, Any
+# SỬA ĐỔI (GĐ 5): Import thêm ProfileUpdate
+from models import Profiles, Destination, ProfileCreate, RecommendationOutput, EmailStr, ProfileUpdate
 import ai_service # Import file AI service
 import traceback
 from config import settings # Import config để lấy Supabase keys
-from supabase import create_client, Client # <-- Import thư viện Supabase MỚI
+from supabase import create_client, Client
+from typing import Any # <-- Sửa lỗi GĐ 4.8
 
 # ====================================================================
 # KHỞI TẠO (GĐ 4.4): Tạo 1 client Supabase
-# Client này sẽ dùng để gọi API Auth
 # ====================================================================
 try:
     supabase: Client = create_client(settings.SUPABASE_URL, settings.SUPABASE_KEY)
-    print("Đã khởi tạo Supabase Auth client thành công.")
+    print("Đã khởi tạo Supabase Auth client (cho services.py) thành công.")
 except Exception as e:
-    print(f"LỖI: Không thể khởi tạo Supabase Auth client: {e}")
+    print(f"LỖI: Không thể khởi tạo Supabase Auth client (trong services.py): {e}")
     supabase = None
 
 # ====================================================================
-# SỬA ĐỔI (GĐ 4.5): Cập nhật hàm create_profile
+# SỬA ĐỔI (GĐ 4.6): Quay lui về logic GĐ 4.4 (Đăng ký Trực tiếp)
 # ====================================================================
 async def create_profile_service(session: Session, profile_data: ProfileCreate) -> Profiles:
     """
-    (Logic GĐ 4.5 - Luồng Đăng ký Chuẩn)
-    1. Nhận email/password/profile (đã có fullname).
-    2. Tạo user trong Supabase Auth.
+    (Logic GĐ 4.4 - Luồng Đăng ký Trực tiếp)
+    1. Nhận email/password/profile.
+    2. Tạo user trong Supabase Auth (và tự động xác nhận).
     3. Lấy UUID mới.
     4. Tạo user trong bảng 'profiles' (public).
     """
     if not supabase:
         raise Exception("Supabase Auth client chưa được khởi tạo.")
         
-    print(f"Đang tạo profile (GĐ 4.5) cho user: {profile_data.email}")
+    print(f"Đang tạo profile (GĐ 4.4 - Trực tiếp) cho: {profile_data.email}")
     
     auth_user_id = None
     
@@ -41,13 +42,15 @@ async def create_profile_service(session: Session, profile_data: ProfileCreate) 
         auth_response = supabase.auth.sign_up({
             "email": profile_data.email,
             "password": profile_data.password,
+            # Bỏ qua "options.data"
+            # Bỏ qua việc gửi email xác nhận (nếu bạn đã TẮT "Confirm email" trong Supabase)
         })
         
         # Lấy auth_user_id (UUID)
         auth_user_id = auth_response.user.id
         print(f"Việc A: Tạo Auth user thành công. UUID mới: {auth_user_id}")
 
-        # === VIỆC C: TẠO PROFILE ===
+        # === VIỆC C: TẠO PROFILE (Ngay lập tức) ===
         print(f"Việc C: Đang tạo profile trong bảng 'public.profiles'")
         
         # 1. Chuyển Pydantic sang dict, *loại bỏ* 'password'
@@ -67,7 +70,7 @@ async def create_profile_service(session: Session, profile_data: ProfileCreate) 
         return db_profile
         
     except Exception as e:
-        print(f"LỖI khi tạo profile GĐ 4.5: {e}")
+        print(f"LỖI khi tạo profile GĐ 4.4: {e}")
         traceback.print_exc()
         session.rollback()
         
@@ -83,7 +86,7 @@ async def create_profile_service(session: Session, profile_data: ProfileCreate) 
         raise e # Báo lỗi ra cho 'api.py' xử lý
 
 # ====================================================================
-# SỬA ĐỔI (GĐ 4.5): Tìm kiếm bằng EMAIL
+# LOGIC GĐ 4.5: Tìm kiếm bằng EMAIL (Vẫn giữ nguyên)
 # ====================================================================
 async def get_ranked_recommendations_service(session: Session, email: EmailStr) -> List[RecommendationOutput]:
     """
@@ -93,17 +96,17 @@ async def get_ranked_recommendations_service(session: Session, email: EmailStr) 
     try:
         # Bước 1: Tìm profile bằng EMAIL
         print(f"Bước 1: Tìm profile cho email '{email}'")
-        statement_profile = select(Profiles).where(Profiles.email == email) # <-- THAY ĐỔI
+        statement_profile = select(Profiles).where(Profiles.email == email)
         profile = session.exec(statement_profile).first()
         
         if not profile:
-            raise Exception(f"Email '{email}' not found.") # <-- THAY ĐỔI
+            raise Exception(f"Profile cho email '{email}' not found.")
             
         user_interests = profile.interests
         user_city_pref = profile.preferred_city
         
         if not user_city_pref or not user_interests:
-            raise Exception(f"Profile cho '{email}' is incomplete (missing interests or preferred_city).") # <-- THAY ĐỔI
+            raise Exception(f"Profile cho '{email}' is incomplete (missing interests or preferred_city).")
 
         print(f"Đã tìm thấy: Sở thích={user_interests}, Thành phố={user_city_pref}")
 
@@ -128,4 +131,87 @@ async def get_ranked_recommendations_service(session: Session, email: EmailStr) 
     except Exception as e:
         print(f"LỖI trong chuỗi logic gợi ý: {e}")
         traceback.print_exc()
+        raise e
+
+# ====================================================================
+# THÊM MỚI (GĐ 5): Logic Lấy Profile (để test "Bảo vệ")
+# ====================================================================
+async def get_profile_by_uuid_service(session: Session, auth_user_id: str) -> Profiles:
+    """
+    (Logic GĐ 5)
+    Tìm "tủ đồ" (profile) bằng "Số CCCD" (UUID).
+    """
+    print(f"Đang tìm profile cho auth_user_id: {auth_user_id}")
+    
+    statement = select(Profiles).where(Profiles.auth_user_id == auth_user_id)
+    profile = session.exec(statement).first()
+    
+    if not profile:
+        raise Exception("Profile không tồn tại (lỗi đồng bộ?)")
+        
+    return profile
+
+# ====================================================================
+# THÊM MỚI (GĐ 5): Logic Cập nhật Profile (tất tần tật)
+# ====================================================================
+async def update_profile_service(session: Session, auth_user_id: str, update_data: ProfileUpdate) -> Profiles:
+    """
+    (Logic GĐ 5)
+    Cập nhật "tất tần tật" cho user (cả Auth và Profile).
+    """
+    if not supabase:
+        raise Exception("Supabase Auth client chưa được khởi tạo.")
+        
+    print(f"Đang cập nhật profile (GĐ 5) cho auth_user_id: {auth_user_id}")
+
+    # 1. Chuyển Pydantic model (ProfileUpdate) thành dict
+    update_dict = update_data.model_dump(exclude_unset=True)
+    
+    if not update_dict:
+        raise Exception("Không có thông tin nào để cập nhật.")
+
+    # 2. Tách biệt 2 phần: Dữ liệu cho Auth và Dữ liệu cho Profile
+    auth_updates = {}
+    profile_updates = {}
+
+    if "email" in update_dict:
+        auth_updates["email"] = update_dict.pop("email")
+    if "password" in update_dict:
+        auth_updates["password"] = update_dict.pop("password")
+        
+    profile_updates = update_dict
+
+    try:
+        # === VIỆC A: CẬP NHẬT AUTH (Email/Password) ===
+        if auth_updates:
+            print(f"Đang cập nhật Auth (Email/Password) cho {auth_user_id}...")
+            supabase.auth.admin.update_user_by_id(
+                auth_user_id, 
+                auth_updates
+            )
+            print("Cập nhật Auth thành công.")
+
+        # === VIỆC B: CẬP NHẬT PROFILE (Fullname/Interests...) ===
+        statement = select(Profiles).where(Profiles.auth_user_id == auth_user_id)
+        profile_to_update = session.exec(statement).first()
+        
+        if not profile_to_update:
+            raise Exception("Không tìm thấy profile để cập nhật.")
+        
+        if profile_updates:
+            print(f"Đang cập nhật Profile (Fullname/Interests...) cho {auth_user_id}...")
+            for key, value in profile_updates.items():
+                setattr(profile_to_update, key, value)
+            
+            session.add(profile_to_update)
+            session.commit()
+            session.refresh(profile_to_update)
+            print("Cập nhật Profile thành công.")
+
+        return profile_to_update
+
+    except Exception as e:
+        print(f"LỖI khi cập nhật profile GĐ 5: {e}")
+        traceback.print_exc()
+        session.rollback()
         raise e
