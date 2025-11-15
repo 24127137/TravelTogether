@@ -1,12 +1,6 @@
-# Hướng dẫn Build GĐ 4.4 (Luồng Đăng ký Chuẩn)
-
-Chào bạn, đây là bản cập nhật Giai đoạn 4.4, sửa lại luồng "Đăng ký" (create-profile)
-cho đúng với logic thực tế (nhận password, không nhận UUID) như bạn yêu cầu.
-
 ### Bước 1: Cài đặt các thư viện (6 thư viện)
 
 Mở terminal của bạn và chạy 6 lệnh sau:
-
 ```bash
 # 1. Server FastAPI
 pip install fastapi "uvicorn[standard]"
