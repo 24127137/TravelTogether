@@ -1,4 +1,6 @@
 from pydantic import BaseModel, EmailStr, Field
+# === SỬA ĐỔI (GĐ 8.6): Import validator MỚI của Pydantic V2 ===
+from pydantic import field_validator, ValidationInfo
 from typing import Dict, Any, Optional, List
 
 # ====================================================================
@@ -6,7 +8,7 @@ from typing import Dict, Any, Optional, List
 # ====================================================================
 class ProfileCreate(BaseModel):
     """
-    (Đã di chuyển GĐ 8)
+    (Đã cập nhật GĐ 8.6: Sửa lỗi Pydantic V2)
     Dữ liệu (JSON) mà API /auth/signup mong đợi nhận vào
     """
     email: EmailStr
@@ -16,6 +18,17 @@ class ProfileCreate(BaseModel):
     gender: Optional[str] = None
     interests: List[str]
     preferred_city: str
+
+    # === SỬA ĐỔI (GĐ 8.6): Dùng cú pháp Pydantic V2 ===
+    @field_validator("email", "password")
+    @classmethod
+    def validate_no_spaces(cls, v: str, info: ValidationInfo):
+        """Kiểm tra xem email và password có chứa dấu cách không"""
+        if " " in v:
+            # Dùng info.field_name thay cho field.alias
+            raise ValueError(f"{info.field_name} không được phép chứa dấu cách")
+        return v
+    # ===============================================
 
     class Config:
         json_schema_extra = {
@@ -60,9 +73,15 @@ class SignInResponse(BaseModel):
 # ====================================================================
 class RefreshInput(BaseModel):
     """
+    (Đã cập nhật GĐ 8.5: Thêm validation độ dài)
     Dữ liệu (JSON) mà API /auth/refresh mong đợi nhận vào
     """
-    refresh_token: str
+    refresh_token: str = Field(
+        ..., 
+        min_length=1, 
+        max_length=4096, # Chặn lỗi rỗng và siêu dài
+        examples=["eyJ..."]
+    )
 
 class RefreshResponse(BaseModel):
     """
