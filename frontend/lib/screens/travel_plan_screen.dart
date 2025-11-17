@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../widgets/custom_bottom_nav_bar.dart';
+import 'main_app_screen.dart';
 
 class TravelPlanScreen extends StatefulWidget {
   const TravelPlanScreen({super.key});
@@ -9,9 +10,7 @@ class TravelPlanScreen extends StatefulWidget {
 }
 
 class _TravelPlanScreenState extends State<TravelPlanScreen> {
-  int _currentIndex = 3;
-  // Tab “Cá nhân” là index = 3 (theo custom_bottom_nav_bar),
-  // nhưng bạn có thể đổi nếu muốn.
+  int _currentIndex = 3; // Tab "Cá nhân"
 
   static const List<Map<String, String>> places = [
     {"image": "https://placehold.co/300x200", "name": "Đỉnh Langbiang"},
@@ -56,7 +55,7 @@ class _TravelPlanScreenState extends State<TravelPlanScreen> {
                   width: double.infinity,
                   height: frameHeight,
                   decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.40),
+                    color: Colors.black.withValues(alpha: 0.40),
                     border: Border.all(color: Colors.black, width: 2),
                     borderRadius: BorderRadius.circular(20),
                   ),
@@ -115,27 +114,17 @@ class _TravelPlanScreenState extends State<TravelPlanScreen> {
         ),
       ),
 
-      // ✅ THÊM THANH BAR DƯỚI ĐÂY
+      // Bottom Navigation Bar
       bottomNavigationBar: CustomBottomNavBar(
         currentIndex: _currentIndex,
         onTap: (newIndex) {
-          setState(() => _currentIndex = newIndex);
-
-          // Điều hướng giống MainAppScreen
-          switch (newIndex) {
-            case 0:
-              Navigator.pushReplacementNamed(context, '/home');
-              break;
-            case 1:
-              Navigator.pushReplacementNamed(context, '/notify');
-              break;
-            case 2:
-              Navigator.pushReplacementNamed(context, '/messages');
-              break;
-            case 3:
-              Navigator.pushReplacementNamed(context, '/personal');
-              break;
-          }
+          // Quay về MainAppScreen với tab tương ứng
+          Navigator.of(context).pushAndRemoveUntil(
+            MaterialPageRoute(
+              builder: (_) => MainAppScreen(initialIndex: newIndex),
+            ),
+            (route) => false,
+          );
         },
       ),
     );

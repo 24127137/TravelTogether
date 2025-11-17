@@ -39,10 +39,10 @@ class CustomBottomNavBar extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
           // Index phải khớp với vị trí trong List<Widget> _screens ở MainAppScreen
-          _buildNavItem(context, Icons.home, 'Trang chủ', 0),
-          _buildNavItem(context, Icons.notifications_none, 'Thông báo', 1, hasBadge: true), // Thêm hasBadge
-          _buildNavItem(context, Icons.message_outlined, 'Tin nhắn', 2),
-          _buildNavItem(context, Icons.person_outline, 'Cá nhân', 3),
+          _buildNavItem(context, Icons.home, 'home', 0),
+          _buildNavItem(context, Icons.notifications_none, 'notification', 1, hasBadge: true),
+          _buildNavItem(context, Icons.message_outlined, 'messages', 2),
+          _buildNavItem(context, Icons.person_outline, 'personal', 3),
         ],
       ),
     );
@@ -89,7 +89,7 @@ class CustomBottomNavBar extends StatelessWidget {
             ),
             const SizedBox(height: 4),
             Text(
-              label,
+              label.tr(),
               style: TextStyle(
                 color: color,
                 fontSize: 13,

@@ -140,7 +140,7 @@ class DestinationDetailScreen extends StatelessWidget {
                       ),
                       const SizedBox(height: 6),
                       Text(
-                        dest.description,
+                        dest.getDescription(context.locale.languageCode),
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 15,

@@ -1,11 +1,13 @@
+/// File: personal_section.dart
+/// Mô tả: Màn hình cá nhân với các tùy chọn Lộ Trình và Tình Trạng
 
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
-import '../screens/travel_plan_screen.dart';
+import 'travel_plan_screen.dart';
 
-class KhungCNhN extends StatelessWidget {
-  const KhungCNhN({Key? key}) : super(key: key);
+class PersonalSection extends StatelessWidget {
+  const PersonalSection({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -52,7 +54,7 @@ class KhungCNhN extends StatelessWidget {
                         height: tileHeight,
                         child: _buildTile(
                           context,
-                          'Lộ Trình',
+                          'itinerary'.tr(),
                           tileBg,
                           borderColor,
                               () {
@@ -60,7 +62,7 @@ class KhungCNhN extends StatelessWidget {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (_) => TravelPlanScreen(),
+                                builder: (_) => const TravelPlanScreen(),
                               ),
                             );
                           },
@@ -72,7 +74,7 @@ class KhungCNhN extends StatelessWidget {
                         height: tileHeight,
                         child: _buildTile(
                           context,
-                          'Tình Trạng',
+                          'status'.tr(),
                           tileBg,
                           borderColor,
                               () {
@@ -80,8 +82,8 @@ class KhungCNhN extends StatelessWidget {
                               context,
                               MaterialPageRoute(
                                 builder: (_) => Scaffold(
-                                  appBar: AppBar(title: const Text('Tình Trạng')),
-                                  body: const Center(child: Text('Trang Tình Trạng')),
+                                  appBar: AppBar(title: Text('status'.tr())),
+                                  body: Center(child: Text('status'.tr())),
                                 ),
                               ),
                             );
@@ -137,3 +139,4 @@ class KhungCNhN extends StatelessWidget {
     );
   }
 }
+

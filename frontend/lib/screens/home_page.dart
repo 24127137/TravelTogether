@@ -50,25 +50,27 @@ class _HomePageState extends State<HomePage> {
   }
 
   void _openDestinationScreen() {
-    // debug
-    // ignore: avoid_print
-    print('home_page._openDestinationScreen called');
-    // Mở modal tìm kiếm để người dùng gõ và chọn điểm đến từ mock data
+    print('Opening destination modal...');
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (ctx) => FractionallySizedBox(
-        heightFactor: 0.85,
-        child: DestinationSearchModal(
-          onSelect: (Destination dest) {
-            Navigator.of(ctx).pop(); // đóng modal
-            if (widget.onDestinationTap != null) {
-              widget.onDestinationTap!(dest);
-            }
-          },
-        ),
-      ),
+      isDismissible: true,
+      enableDrag: true,
+      builder: (ctx) {
+        return SizedBox(
+          height: MediaQuery.of(context).size.height * 0.85,
+          child: DestinationSearchModal(
+            onSelect: (Destination dest) {
+              print('Destination selected: ${dest.name}');
+              Navigator.of(ctx).pop();
+              if (widget.onDestinationTap != null) {
+                widget.onDestinationTap!(dest);
+              }
+            },
+          ),
+        );
+      },
     );
   }
 
@@ -481,4 +483,3 @@ class _CalendarCard extends StatelessWidget {
     );
   }
 }
-

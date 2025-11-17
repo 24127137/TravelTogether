@@ -104,7 +104,7 @@ class DestinationExploreScreen extends StatelessWidget {
                   item.imageUrl,
                   item.name,
                   '', // Không dùng namePart2
-                  item.subtitle, // Đúng là subtitle
+                  item.getSubtitle(context.locale.languageCode), // Dịch subtitle
                 );
               },
             ),
