@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException, Depends
-from typing import List
+from typing import List, Dict
 from models import ProfileCreate, RecommendationOutput, Profiles, EmailStr
 import services
 from database import get_session
@@ -9,22 +9,28 @@ import traceback
 # Tạo một "router" mới
 router = APIRouter()
 
-@router.post("/create-profile/", response_model=Profiles, tags=["GĐ 4.5 - Profiles"])
+# ====================================================================
+# API GĐ 4.6: Quay lui /create-profile về logic GĐ 4.4
+# ====================================================================
+@router.post("/create-profile/", response_model=Profiles, tags=["GĐ 5 - Profiles (Sign Up)"])
 async def create_profile_endpoint(
     profile_data: ProfileCreate, # <-- Tự động dùng ProfileCreate MỚI
-    session: Session = Depends(get_session)
+    session: Session = Depends(get_session) # <-- CẦN SESSION TRỞ LẠI
 ):
     """
-    (Đã cập nhật GĐ 4.5)
-    Tạo một profile người dùng mới.
-    Nhận email/password/fullname/profile, tạo Auth user VÀ Profile user.
+    (Đã cập nhật GĐ 4.6 - Rollback)
+    Tạo một profile người dùng mới (Đăng ký Trực tiếp).
+    Tạo Auth user VÀ Profile user ngay lập tức.
     """
     try:
+        # Gọi service MỚI (đã có logic 2-trong-1)
         new_profile = await services.create_profile_service(session, profile_data)
+        
+        # Trả về TOÀN BỘ profile đã tạo
         return new_profile
+        
     except Exception as e:
         error_str = str(e)
-        # Cập nhật thông báo lỗi
         if "duplicate key" in error_str or "already registered" in error_str or "UNIQUE constraint" in error_str:
              raise HTTPException(
                 status_code=400, 
@@ -40,20 +46,19 @@ async def create_profile_endpoint(
         raise HTTPException(status_code=500, detail=f"Lỗi máy chủ nội bộ: {e}")
 
 # ====================================================================
-# SỬA ĐỔI (GĐ 4.5): Thay đổi URL và tham số từ username -> email
+# API GĐ 4.5: /recommendations/{email} (KHÔNG THAY ĐỔI)
 # ====================================================================
-@router.get("/recommendations/{email}", response_model=List[RecommendationOutput], tags=["GĐ 4.5 - Recommendations"])
+@router.get("/recommendations/{email}", response_model=List[RecommendationOutput], tags=["GĐ 5 - Recommendations"])
 async def get_recommendations_endpoint(
-    email: EmailStr, # <-- THAY ĐỔI: Dùng email
+    email: EmailStr, 
     session: Session = Depends(get_session)
 ):
     """
     API chính để lấy danh sách gợi ý đã được AI xếp hạng.
-    (Đã cập nhật GĐ 4.5: Tìm kiếm bằng email)
+    (Tìm kiếm bằng email)
     """
     try:
-        # Gọi "bộ não" logic (truyền email thay vì username)
-        ranked_list = await services.get_ranked_recommendations_service(session, email) # <-- THAY ĐỔI
+        ranked_list = await services.get_ranked_recommendations_service(session, email)
         
         if not ranked_list:
             raise HTTPException(
@@ -78,4 +83,4 @@ def read_root():
     """
     Endpoint gốc để kiểm tra server
     """
-    return {"message": "Chào mừng bạn đến với API Du lịch (Phiênbản 4.5 - Luồng Email)"}
+    return {"message": "Chào mừng bạn đến với API Du lịch (GĐ 4.6 - Đăng ký Trực tiếp)"}
