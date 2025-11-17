@@ -13,7 +13,6 @@ import 'before_group_screen.dart';
 import 'destination_search_screen.dart';
 import 'settings_screen.dart';
 import 'private_screen.dart';
-import 'travel_plan_screen.dart';
 
 class MainAppScreen extends StatefulWidget {
   final int initialIndex;

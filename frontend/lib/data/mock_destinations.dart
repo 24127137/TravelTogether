@@ -15,7 +15,8 @@ final List<Destination> mockDestinations = [
     imagePath: 'assets/images/danang.jpg',
     tags: ['Biển', 'Thành phố', 'Giải trí'],
     location: 'việt nam',
-    description: 'Thành phố đáng sống nhất Việt Nam, nổi tiếng với biển Mỹ Khê, cầu Rồng, Bà Nà Hills và Sơn Trà.',
+    descriptionVi: 'Thành phố đáng sống nhất Việt Nam, nổi tiếng với biển Mỹ Khê, cầu Rồng, Bà Nà Hills và Sơn Trà.',
+    descriptionEn: "Vietnam's most livable city, famous for My Khe Beach, Dragon Bridge, Ba Na Hills and Son Tra.",
     cityId: 'danang',
   ),
   Destination(
@@ -25,7 +26,8 @@ final List<Destination> mockDestinations = [
     imagePath: 'assets/images/dalat.jpg',
     tags: ['Nghỉ dưỡng', 'Lãng mạn', 'Văn hóa'],
     location: 'việt nam',
-    description: '“Thành phố ngàn hoa” với khí hậu mát mẻ quanh năm, hồ Xuân Hương, thung lũng Tình Yêu, và phong cách châu Âu lãng mạn.',
+    descriptionVi: '"Thành phố ngàn hoa" với khí hậu mát mẻ quanh năm, hồ Xuân Hương, thung lũng Tình Yêu, và phong cách châu Âu lãng mạn.',
+    descriptionEn: '"City of thousands of flowers" with cool weather year-round, Xuan Huong Lake, Valley of Love, and romantic European style.',
     cityId: 'dalat',
   ),
   Destination(
@@ -35,7 +37,8 @@ final List<Destination> mockDestinations = [
     imagePath: 'assets/images/nhatrang.jpg',
     tags: ['Biển', 'Lặn', 'Giải trí'],
     location: 'việt nam',
-    description: 'Trung tâm du lịch biển miền Trung, nổi bật với vịnh Nha Trang, đảo Hòn Mun, VinWonders và lặn ngắm san hô.',
+    descriptionVi: 'Trung tâm du lịch biển miền Trung, nổi bật với vịnh Nha Trang, đảo Hòn Mun, VinWonders và lặn ngắm san hô.',
+    descriptionEn: 'Central Coast tourism hub, featuring Nha Trang Bay, Hon Mun Island, VinWonders and coral diving.',
     cityId: 'nhatrang',
   ),
   Destination(
@@ -45,7 +48,8 @@ final List<Destination> mockDestinations = [
     imagePath: 'assets/images/phuquoc.jpg',
     tags: ['Biển', 'Nghỉ dưỡng', 'Khám phá'],
     location: 'việt nam',
-    description: 'Hòn đảo lớn nhất Việt Nam, nổi tiếng với bãi Sao, bãi Dài, Sunset Town, cáp treo Hòn Thơm, và resort sang trọng.',
+    descriptionVi: 'Hòn đảo lớn nhất Việt Nam, nổi tiếng với bãi Sao, bãi Dài, Sunset Town, cáp treo Hòn Thơm, và resort sang trọng.',
+    descriptionEn: "Vietnam's largest island, famous for Sao Beach, Long Beach, Sunset Town, Hon Thom cable car, and luxury resorts.",
     cityId: 'phuquoc',
   ),
   Destination(
@@ -55,7 +59,8 @@ final List<Destination> mockDestinations = [
     imagePath: 'assets/images/hanoi.jpg',
     tags: ['Thủ đô', 'Ẩm thực', 'Lịch sử'],
     location: 'việt nam',
-    description: 'Thủ đô nghìn năm văn hiến, kết hợp giữa nét cổ kính của phố cổ và hiện đại; đặc biệt nổi bật với ẩm thực đường phố.',
+    descriptionVi: 'Thủ đô nghìn năm văn hiến, kết hợp giữa nét cổ kính của phố cổ và hiện đại; đặc biệt nổi bật với ẩm thực đường phố.',
+    descriptionEn: 'The thousand-year-old capital, blending ancient charm of the Old Quarter with modernity; especially renowned for street food.',
     cityId: 'hanoi',
   ),
   Destination(
@@ -65,7 +70,8 @@ final List<Destination> mockDestinations = [
     imagePath: 'assets/images/hoian.jpg',
     tags: ['Di sản', 'Văn hóa', 'Ẩm thực'],
     location: 'việt nam',
-    description: 'Phố cổ di sản UNESCO, lung linh đèn lồng, kiến trúc pha trộn Việt – Hoa – Nhật, ẩm thực phong phú.',
+    descriptionVi: 'Phố cổ di sản UNESCO, lung linh đèn lồng, kiến trúc pha trộn Việt – Hoa – Nhật, ẩm thực phong phú.',
+    descriptionEn: 'UNESCO heritage ancient town, glowing with lanterns, architecture blending Vietnamese-Chinese-Japanese styles, rich cuisine.',
     cityId: 'hoian',
   ),
   Destination(
@@ -75,7 +81,8 @@ final List<Destination> mockDestinations = [
     imagePath: 'assets/images/hue.jpg',
     tags: ['Cố đô', 'Văn hóa', 'Lịch sử'],
     location: 'việt nam',
-    description: 'Cố đô hoàng gia với quần thể di tích triều Nguyễn, sông Hương, núi Ngự, và văn hóa cung đình độc đáo.',
+    descriptionVi: 'Cố đô hoàng gia với quần thể di tích triều Nguyễn, sông Hương, núi Ngự, và văn hóa cung đình độc đáo.',
+    descriptionEn: 'Imperial capital with Nguyen Dynasty heritage complex, Perfume River, Ngu Mountain, and unique royal culture.',
     cityId: 'hue',
   ),
   Destination(
@@ -85,7 +92,8 @@ final List<Destination> mockDestinations = [
     imagePath: 'assets/images/saigon.jpg',
     tags: ['Thành phố', 'Ẩm thực', 'Giải trí'],
     location: 'việt nam',
-    description: 'Trung tâm kinh tế sôi động, giao thoa Đông – Tây, nổi bật với ẩm thực đường phố, chợ Bến Thành, và đời sống về đêm.',
+    descriptionVi: 'Trung tâm kinh tế sôi động, giao thoa Đông – Tây, nổi bật với ẩm thực đường phố, chợ Bến Thành, và đời sống về đêm.',
+    descriptionEn: 'Vibrant economic center, East-West fusion, renowned for street food, Ben Thanh Market, and nightlife.',
     cityId: 'hochiminh',
   ),
   Destination(
@@ -95,7 +103,8 @@ final List<Destination> mockDestinations = [
     imagePath: 'assets/images/sapa.jpg',
     tags: ['Nghỉ dưỡng', 'Khám phá', 'Văn hóa'],
     location: 'việt nam',
-    description: 'Nổi tiếng với ruộng bậc thang, Fansipan – “nóc nhà Đông Dương”, văn hóa dân tộc thiểu số và khí hậu lạnh quanh năm.',
+    descriptionVi: 'Nổi tiếng với ruộng bậc thang, Fansipan – "nóc nhà Đông Dương", văn hóa dân tộc thiểu số và khí hậu lạnh quanh năm.',
+    descriptionEn: 'Famous for terraced rice fields, Fansipan - "Roof of Indochina", ethnic minority culture and cool climate year-round.',
     cityId: 'sapa',
   ),
   Destination(
@@ -105,7 +114,8 @@ final List<Destination> mockDestinations = [
     imagePath: 'assets/images/halongbay.jpg',
     tags: ['Thiên nhiên', 'Khám phá', 'Di sản'],
     location: 'việt nam',
-    description: 'Di sản thiên nhiên thế giới UNESCO, với hàng nghìn đảo đá vôi trên vịnh xanh ngọc tuyệt đẹp.',
+    descriptionVi: 'Di sản thiên nhiên thế giới UNESCO, với hàng nghìn đảo đá vôi trên vịnh xanh ngọc tuyệt đẹp.',
+    descriptionEn: 'UNESCO World Heritage natural site, with thousands of limestone islands in emerald bay waters.',
     cityId: 'halong',
   ),
 ];

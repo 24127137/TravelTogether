@@ -20,11 +20,12 @@ class _DestinationSearchScreenState extends State<DestinationSearchScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final currentLocale = context.locale.languageCode;
     final filteredItems = mockExploreItems
         .where((item) =>
     item.cityId == widget.cityId &&
         (item.name.toLowerCase().contains(_searchText.toLowerCase()) ||
-            item.subtitle.toLowerCase().contains(_searchText.toLowerCase())))
+            item.getSubtitle(currentLocale).toLowerCase().contains(_searchText.toLowerCase())))
         .toList();
 
     return Scaffold(
@@ -197,7 +198,7 @@ class _DestinationSearchScreenState extends State<DestinationSearchScreen> {
                           overflow: TextOverflow.ellipsis,
                         ),
                         Text(
-                          item.subtitle, // MÔ TẢ NGẮN (SUBTITLE)
+                          item.getSubtitle(context.locale.languageCode), // Dịch subtitle
                           style: const TextStyle(
                             fontFamily: 'Roboto',
                             fontWeight: FontWeight.w400,

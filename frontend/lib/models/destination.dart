@@ -9,11 +9,12 @@ class Destination {
   final String name;
   final String province;
   final String imagePath;
-  final double rating; // kept, but constructor will provide default
+  final double rating;
   final List<String> tags;
   final String location;
-  final String description;
-  final String cityId; // Add cityId to associate destinations with cities
+  final String descriptionVi; // Tiếng Việt
+  final String descriptionEn; // English
+  final String cityId;
 
   const Destination({
     required this.id,
@@ -23,9 +24,15 @@ class Destination {
     double rating = 0.0,
     required this.tags,
     required this.location,
-    required this.description,
-    required this.cityId, // Initialize cityId
+    required this.descriptionVi,
+    required this.descriptionEn,
+    required this.cityId,
   }) : rating = rating;
+
+  // Getter để lấy description theo ngôn ngữ hiện tại
+  String getDescription(String languageCode) {
+    return languageCode == 'vi' ? descriptionVi : descriptionEn;
+  }
 
   // copyWith method to create a new instance with updated properties.
   Destination copyWith({
@@ -36,8 +43,9 @@ class Destination {
     double? rating,
     List<String>? tags,
     String? location,
-    String? description,
-    String? cityId, // Add cityId to copyWith
+    String? descriptionVi,
+    String? descriptionEn,
+    String? cityId,
   }) {
     return Destination(
       id: id ?? this.id,
@@ -47,8 +55,9 @@ class Destination {
       rating: rating ?? this.rating,
       tags: tags ?? this.tags,
       location: location ?? this.location,
-      description: description ?? this.description,
-      cityId: cityId ?? this.cityId, // Copy cityId
+      descriptionVi: descriptionVi ?? this.descriptionVi,
+      descriptionEn: descriptionEn ?? this.descriptionEn,
+      cityId: cityId ?? this.cityId,
     );
   }
 }
