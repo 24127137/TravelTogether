@@ -37,6 +37,8 @@ dependencies:
   intl: ^0.20.2
   table_calendar: ^3.0.9
   easy_localization: ^3.0.8
+  http: ^1.2.0
+  shared_preferences: ^2.3.3
 
 dev_dependencies:
   flutter_test:

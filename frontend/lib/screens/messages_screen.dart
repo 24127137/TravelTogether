@@ -5,11 +5,12 @@ import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
 import '../data/mock_messages.dart';
 import 'chatbox_screen.dart';
-import 'main_app_screen.dart';
 
 class MessagesScreen extends StatelessWidget {
   final VoidCallback? onBack;
-  const MessagesScreen({Key? key, this.onBack}) : super(key: key);
+  final String? accessToken;
+
+  const MessagesScreen({Key? key, this.onBack, this.accessToken}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -61,11 +62,8 @@ class MessagesScreen extends StatelessWidget {
             constraints: const BoxConstraints(),
             icon: const Icon(Icons.arrow_back, color: Color(0xFFB99668)),
             onPressed: () {
-              // Navigate back to the app's homepage (MainAppScreen index 0)
-              Navigator.of(context).pushAndRemoveUntil(
-                MaterialPageRoute(builder: (_) => const MainAppScreen(initialIndex: 0)),
-                (route) => false,
-              );
+              // Navigate back using pop instead of pushAndRemoveUntil
+              Navigator.of(context).pop();
             },
           ),
           const SizedBox(width: 12),
