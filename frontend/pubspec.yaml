@@ -59,6 +59,9 @@ flutter:
     - assets/translations/
     - assets/images/travel_plan.png
     - assets/images/nen_canhantrang.png
+    - assets/images/arrow_initial.png
+    - assets/images/arrow_pressing.png
+    - assets/images/arrow_confirm.png
 
   fonts:
     - family: Poppins

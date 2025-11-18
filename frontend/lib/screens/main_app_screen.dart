@@ -13,6 +13,7 @@ import 'before_group_screen.dart';
 import 'destination_search_screen.dart';
 import 'settings_screen.dart';
 import 'private_screen.dart';
+import 'notification_screen.dart';
 
 class MainAppScreen extends StatefulWidget {
   final int initialIndex;
@@ -130,7 +131,7 @@ class _MainAppScreenState extends State<MainAppScreen> {
           onDestinationTap: _openDestinationDetail,
           onSettingsTap: _openSettings,
         ),
-        Center(child: Text('notification'.tr(), style: const TextStyle(fontSize: 24))),
+        NotificationScreen(), // Thay đổi ở đây
         MessagesScreen(),
         const PrivateScreen(),
       ];
