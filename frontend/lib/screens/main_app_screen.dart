@@ -16,7 +16,13 @@ import 'private_screen.dart';
 
 class MainAppScreen extends StatefulWidget {
   final int initialIndex;
-  const MainAppScreen({Key? key, this.initialIndex = 0}) : super(key: key);
+  final String accessToken;
+
+  const MainAppScreen({
+    Key? key,
+    this.initialIndex = 0,
+    required this.accessToken,
+  }) : super(key: key);
 
   @override
   State<MainAppScreen> createState() => _MainAppScreenState();
@@ -131,7 +137,7 @@ class _MainAppScreenState extends State<MainAppScreen> {
           onSettingsTap: _openSettings,
         ),
         Center(child: Text('notification'.tr(), style: const TextStyle(fontSize: 24))),
-        MessagesScreen(),
+        MessagesScreen(accessToken: widget.accessToken),
         const PrivateScreen(),
       ];
       mainContent = IndexedStack(

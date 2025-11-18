@@ -8,6 +8,7 @@
   "group_feedback": "Group Feedback",
   "about": "About",
   "logout": "LOGOUT",
+  "logout_confirmation": "Are you sure you want to logout?",
   "welcome": "Welcome to Travel Together",
   "change_language": "Change Language",
   "home": "Home",

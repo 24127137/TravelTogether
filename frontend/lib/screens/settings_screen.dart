@@ -3,6 +3,8 @@
 
 import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'login.dart';
 
 class SettingsScreen extends StatefulWidget {
   final VoidCallback onBack;
@@ -180,7 +182,82 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 height: 55,
                 child: ElevatedButton(
                   onPressed: () {
-                    // Xử lý đăng xuất
+                    // Hiển thị dialog xác nhận
+                    showDialog(
+                      context: context,
+                      builder: (BuildContext dialogContext) => AlertDialog(
+                        backgroundColor: const Color(0xFFEDE2CC),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        title: Text(
+                          'logout'.tr(),
+                          style: const TextStyle(
+                            color: Color(0xFFA15C20),
+                            fontFamily: 'Poppins',
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        content: Text(
+                          'logout_confirmation'.tr(),
+                          style: const TextStyle(
+                            color: Color(0xFFA15C20),
+                            fontFamily: 'Poppins',
+                          ),
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () {
+                              Navigator.of(dialogContext).pop();
+                            },
+                            child: Text(
+                              'cancel'.tr(),
+                              style: const TextStyle(
+                                color: Color(0xFFA15C20),
+                                fontFamily: 'Poppins',
+                              ),
+                            ),
+                          ),
+                          ElevatedButton(
+                            onPressed: () async {
+                              // Đóng dialog
+                              Navigator.of(dialogContext).pop();
+
+                              // Xóa access token
+                              final prefs = await SharedPreferences.getInstance();
+                              await prefs.remove('access_token');
+                              await prefs.remove('refresh_token');
+
+                              // Đợi một chút để dialog đóng hoàn toàn
+                              await Future.delayed(const Duration(milliseconds: 100));
+
+                              // Quay về trang đăng nhập và xóa toàn bộ navigation stack
+                              if (!context.mounted) return;
+
+                              Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
+                                MaterialPageRoute(
+                                  builder: (context) => const LoginScreen(),
+                                ),
+                                (route) => false,
+                              );
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFFB64B12),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                            ),
+                            child: Text(
+                              'confirm'.tr(),
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontFamily: 'Poppins',
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFFB64B12),
