@@ -2,8 +2,8 @@
 from pydantic import EmailStr
 from sqlmodel import Session, select, text
 from db_tables import TravelGroup, Profiles 
-# === SỬA ĐỔI (GĐ 14): Import thêm model mới ===
-from group_models import CreateGroupInput, GroupExitInput
+# === SỬA ĐỔI (GĐ 15.2): Import model "Kế hoạch" mới ===
+from group_models import CreateGroupInput, GroupExitInput, GroupPlanOutput
 from typing import Any, List, Dict, Optional, Tuple 
 from datetime import datetime, date 
 from fastapi import HTTPException
@@ -48,9 +48,7 @@ def _cancel_all_pending_requests(session: Session, user: Profiles):
 # HÀM HỖ TRỢ V3 (GĐ 13): Lấy Nhóm của Host (Không thay đổi)
 # ====================================================================
 async def _get_host_group_info(session: Session, current_user: Any) -> TravelGroup:
-    """
-    (GĐ 13) Lấy thông tin Nhóm (DB Object) mà 'current_user' đang làm Host.
-    """
+    # (Code GĐ 13 - không thay đổi)
     owner_uuid = str(current_user.id)
     owned_groups_list = session.exec(
         select(Profiles.owned_groups)
@@ -66,6 +64,46 @@ async def _get_host_group_info(session: Session, current_user: Any) -> TravelGro
     if not group:
          raise HTTPException(status_code=404, detail=f"Không tìm thấy nhóm (ID: {group_id}) mà bạn sở hữu")
     return group
+
+# ====================================================================
+# HÀM HỖ TRỢ V4 (GĐ 15): Lấy Group ID (Chung) (Không thay đổi)
+# ====================================================================
+async def get_user_group_info(session: Session, auth_uuid: str) -> tuple[str, int, TravelGroup]:
+    """
+    (Refactor GĐ 15)
+    Hàm "thông minh": Lấy sender_id (UUID), ID Nhóm (INT), và Group Object.
+    """
+    
+    profile = session.exec(
+        select(Profiles.joined_groups, Profiles.owned_groups)
+        .where(Profiles.auth_user_id == auth_uuid)
+    ).first()
+
+    if not profile:
+        raise HTTPException(status_code=404, detail="Không tìm thấy profile của bạn")
+    
+    sender_id = auth_uuid 
+    group_id = None 
+    
+    try:
+        if profile.joined_groups and len(profile.joined_groups) > 0:
+            group_id = profile.joined_groups[0]['group_id'] 
+        elif profile.owned_groups and len(profile.owned_groups) > 0:
+            group_id = profile.owned_groups[0]['group_id']
+            
+        if group_id is None:
+            raise HTTPException(status_code=400, detail="Bạn chưa tham gia (hoặc sở hữu) bất kỳ nhóm nào.")
+        
+        group = session.get(TravelGroup, group_id)
+        if not group:
+             raise HTTPException(status_code=404, detail=f"Lỗi dữ liệu: Không tìm thấy nhóm ID: {group_id}")
+
+        return sender_id, group_id, group
+
+    except KeyError:
+        raise HTTPException(status_code=500, detail="Lỗi cấu trúc dữ liệu: JSON của nhóm không hợp lệ.")
+    except Exception as e:
+        raise e
 
 # ====================================================================
 # LOGIC TẠO NHÓM (GĐ 12 - Không thay đổi)
@@ -264,75 +302,50 @@ async def group_suggest_service_v2(
     return suggestions
 
 # ====================================================================
-# === THÊM MỚI (GĐ 14): LOGIC RỜI NHÓM / GIẢI TÁN ===
+# LOGIC RỜI NHÓM (GĐ 14 - Không thay đổi)
 # ====================================================================
-
 async def leave_group_service(
     session: Session, 
     current_user: Any
 ) -> Dict:
-    """
-    (Mới GĐ 14) Dành cho Member thường RỜI NHÓM.
-    """
+    # (Code GĐ 14 - không thay đổi)
     user_uuid = str(current_user.id)
     user_profile = session.exec(select(Profiles).where(Profiles.auth_user_id == user_uuid)).first()
     if not user_profile:
         raise HTTPException(status_code=404, detail="Không tìm thấy profile")
-
-    # Kiểm tra xem user có phải là member không
     if not user_profile.joined_groups or len(user_profile.joined_groups) == 0:
         raise HTTPException(status_code=400, detail="Bạn không phải là thành viên của nhóm nào")
-    
-    # (Quy tắc "1 Người 1 Trạng thái" đảm bảo họ không phải Host)
-    
     try:
         group_id = user_profile.joined_groups[0]['group_id']
         group = session.get(TravelGroup, group_id)
-        
         if group:
-            # Xóa user khỏi 'members' của nhóm
             group.members = [m for m in group.members if m.get("profile_uuid") != user_uuid]
-            
-            # (Logic V2) Nếu nhóm chỉ còn 1 người (Host), quay về 'open'
             if len(group.members) == 1:
                 group.status = "open"
-                
             session.add(group)
-        
-        # Cập nhật profile user
         user_profile.joined_groups = []
         session.add(user_profile)
-        
         session.commit()
-        
         return {"message": "Bạn đã rời nhóm thành công."}
-
     except Exception as e:
         session.rollback()
-        print(f"LỖI leave_group: {e}")
         raise HTTPException(status_code=500, detail=f"Lỗi máy chủ: {e}")
 
+# ====================================================================
+# LOGIC HOST RỜI (GĐ 14 - Không thay đổi)
+# ====================================================================
 async def host_exit_service(
     session: Session, 
     data: GroupExitInput, 
     current_user: Any
 ) -> Dict:
-    """
-    (Mới GĐ 14) Dành cho Host: GIẢI TÁN hoặc NHƯỜNG QUYỀN.
-    """
-    # 1. Lấy thông tin Host và Nhóm
-    # (Hàm này đã check quyền Host và trả về nhóm)
+    # (Code GĐ 14 - không thay đổi)
     group = await _get_host_group_info(session, current_user)
     current_host_profile = session.exec(select(Profiles).where(Profiles.auth_user_id == group.owner_id)).first()
-
     if not current_host_profile:
          raise HTTPException(status_code=404, detail="Không tìm thấy profile của Host")
-
     try:
-        # === PHÂN NHÁNH 2a: GIẢI TÁN NHÓM ===
         if data.action == "dissolve":
-            
-            # Cập nhật profile của TẤT CẢ member (trừ Host)
             member_uuids = [
                 m.get("profile_uuid") for m in group.members 
                 if m.get("profile_uuid") != group.owner_id
@@ -344,67 +357,60 @@ async def host_exit_service(
                 for member in members_to_update:
                     member.joined_groups = []
                     session.add(member)
-            
-            # Cập nhật profile của Host
             current_host_profile.owned_groups = []
             session.add(current_host_profile)
-            
-            # Xóa nhóm (CSDL sẽ tự động xóa tin nhắn do 'ON DELETE CASCADE')
             session.delete(group)
-            
             session.commit()
             return {"message": "Nhóm đã được giải tán vĩnh viễn."}
-
-        # === PHÂN NHÁNH 2b: NHƯỜNG QUYỀN HOST ===
         elif data.action == "transfer":
             new_host_uuid = data.new_host_uuid
-            if not new_host_uuid: # (Validator đã check, nhưng check lại)
+            if not new_host_uuid: 
                 raise HTTPException(status_code=400, detail="new_host_uuid là bắt buộc")
-            
             if new_host_uuid == group.owner_id:
                 raise HTTPException(status_code=400, detail="Bạn không thể nhường quyền cho chính mình")
-
-            # Kiểm tra xem new_host có phải là member không
             new_host_member_data = next((m for m in group.members if m.get("profile_uuid") == new_host_uuid), None)
             if not new_host_member_data:
                 raise HTTPException(status_code=404, detail="Người này không phải là thành viên của nhóm")
-
-            # Lấy profile của Host mới
             new_host_profile = session.exec(select(Profiles).where(Profiles.auth_user_id == new_host_uuid)).first()
             if not new_host_profile:
                 raise HTTPException(status_code=404, detail="Không tìm thấy profile của Host mới")
-                
-            # --- Bắt đầu chuyển giao ---
-            # 1. Cập nhật Nhóm
-            group.owner_id = new_host_uuid # Chuyển quyền
-            # 1a. Cập nhật 'members' (Xóa Host cũ, nâng cấp Host mới)
+            group.owner_id = new_host_uuid 
             new_members_list = []
             for m in group.members:
                 if m.get("profile_uuid") == current_host_profile.auth_user_id:
-                    continue # Xóa Host cũ
+                    continue 
                 if m.get("profile_uuid") == new_host_uuid:
-                    m['role'] = 'owner' # Nâng cấp Host mới
+                    m['role'] = 'owner' 
                 new_members_list.append(m)
             group.members = new_members_list
-            
-            # 2. Cập nhật Profile Host Cũ (trở về "Pending")
             current_host_profile.owned_groups = []
-            
-            # 3. Cập nhật Profile Host Mới
-            new_host_profile.joined_groups = [] # Xóa trạng thái 'joined'
+            new_host_profile.joined_groups = [] 
             new_host_profile.owned_groups = [{"group_id": group.id, "name": group.name}]
-            
             session.add(group)
             session.add(current_host_profile)
             session.add(new_host_profile)
             session.commit()
-            
             return {"message": f"Đã nhường quyền Host cho {new_host_profile.email}"}
-            
     except HTTPException as he:
         raise he
     except Exception as e:
         session.rollback()
-        print(f"LỖI host_exit: {e}")
-        traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Lỗi máy chủ: {e}")
+
+# ====================================================================
+# SỬA ĐỔI (GĐ 15.2): LOGIC LẤY LỊCH TRÌNH NHÓM
+# ====================================================================
+async def get_group_plan_service(
+    session: Session, 
+    auth_uuid: str
+) -> GroupPlanOutput: # <-- Trả về model GĐ 15.2
+    """
+    (Mới GĐ 15) Lấy Kế hoạch (Plan) của nhóm hiện tại.
+    """
+    # 1. Dùng hàm hỗ trợ V4 để tìm nhóm (đã check quyền)
+    sender_id, group_id, group_db_object = await get_user_group_info(session, auth_uuid)
+    
+    # 2. Chuyển đổi sang Pydantic model 'GroupPlanOutput'
+    plan_output = GroupPlanOutput.model_validate(group_db_object)
+    
+    return plan_output
