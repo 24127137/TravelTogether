@@ -3,6 +3,8 @@ import 'login.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../config/api_config.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'main_app_screen.dart';
 
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});
@@ -217,11 +219,21 @@ class _SignUpScreenState extends State<SignUpScreen> {
   Future<void> _submitSignup() async {
     final url = ApiConfig.getUri(ApiConfig.createProfile);
 
+    final genderMapping = {
+      'Nam': 'male',
+      'Nữ': 'female',
+      'Khác': 'other',
+    };
+
     final body = jsonEncode({
       "fullname": _nameController.text.trim(),
       "email": _emailController.text.trim(),
       "password": _passwordController.text,
       "interests": _selectedInterests,
+      "gender": _gender != null ? genderMapping[_gender!] : null,
+      "birth_date": _birthDate != null
+          ? "${_birthDate!.year.toString().padLeft(4, '0')}-${_birthDate!.month.toString().padLeft(2, '0')}-${_birthDate!.day.toString().padLeft(2, '0')}"
+          : null,
       "preferred_city": "",
     });
 
@@ -241,15 +253,51 @@ class _SignUpScreenState extends State<SignUpScreen> {
       );
 
       Navigator.pop(context); 
-
+      
       if (response.statusCode == 200) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Đăng ký thành công!")),
+        final loginUrl = ApiConfig.getUri(ApiConfig.signIn);
+        final loginBody = jsonEncode({
+          "email": _emailController.text.trim(),
+          "password": _passwordController.text,
+        });
+
+        final loginResponse = await http.post(
+          loginUrl,
+          headers: {"Content-Type": "application/json"},
+          body: loginBody,
         );
-        _fadeToLogin(context);
+
+        if (loginResponse.statusCode == 200) {
+          final data = jsonDecode(loginResponse.body);
+
+          final accessToken = data['access_token'];
+          final refreshToken = data['refresh_token'];
+          final user = data['user'];
+
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString('access_token', accessToken);
+          await prefs.setString('refresh_token', refreshToken);
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text("Đăng ký và đăng nhập thành công! Xin chào ${user['email']}")),
+          );
+
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (context) => MainAppScreen(accessToken: accessToken),
+            ),
+          );
+        } else {
+          final err = jsonDecode(loginResponse.body);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text("Đăng ký thành công nhưng đăng nhập thất bại: ${err['detail'] ?? loginResponse.body}")),
+          );
+          _fadeToLogin(context); 
+        }
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Lỗi: ${response.body}")),
+          SnackBar(content: Text("Lỗi đăng ký: ${response.body}")),
         );
       }
     } catch (e) {
