@@ -1,14 +1,17 @@
+// Screen Profile
 import 'package:flutter/material.dart';
 import 'dart:io';
 import 'edit_profile.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../config/api_config.dart';
+import '../services/auth_service.dart';
 
 class ProfilePage extends StatefulWidget {
-  final String accessToken;
+  final VoidCallback? onBack;
 
-  const ProfilePage({super.key, required this.accessToken});
+  const ProfilePage({super.key, this.onBack});
 
   @override
   State<ProfilePage> createState() => _ProfilePageState();
@@ -16,14 +19,14 @@ class ProfilePage extends StatefulWidget {
 
 class _ProfilePageState extends State<ProfilePage> {
   File? avatarImage;
+  String? _avatarNetworkUrl;
 
   String country = "Vietnam";
-  String fullName = ""; 
+  String fullName = "";
   String birthDate = "01/01/2000";
   String gender = "";
   String email = "";
-  String description =
-      "";
+  String description = "";
   List<String> interests = [];
 
   final Color bgColor = const Color.fromARGB(255, 178, 138, 100);
@@ -31,7 +34,21 @@ class _ProfilePageState extends State<ProfilePage> {
   final Color labelColor = const Color.fromARGB(255, 0, 0, 0);
 
   @override
+  void initState() {
+    super.initState();
+    _fetchProfile();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    ImageProvider<Object>? avatarProvider;
+    if (avatarImage != null) {
+      avatarProvider = FileImage(avatarImage!);
+    } else if (_avatarNetworkUrl != null && _avatarNetworkUrl!.isNotEmpty) {
+      avatarProvider = NetworkImage(_avatarNetworkUrl!);
+    } else {
+      avatarProvider = null;
+    }
     return Scaffold(
       backgroundColor: bgColor,
       body: Stack(
@@ -49,7 +66,7 @@ class _ProfilePageState extends State<ProfilePage> {
                   children: [
                     Padding(
                       padding:
-                          const EdgeInsets.symmetric(horizontal: 30, vertical: 30),
+                      const EdgeInsets.symmetric(horizontal: 30, vertical: 30),
                       child: Container(
                         width: double.infinity,
                         height: 150,
@@ -60,7 +77,7 @@ class _ProfilePageState extends State<ProfilePage> {
                         child: Stack(
                           children: [
                             Align(
-                              alignment: const Alignment(0, -0.3), 
+                              alignment: const Alignment(0, -0.3),
                               child: Padding(
                                 padding: const EdgeInsets.symmetric(horizontal: 70),
                                 child: Column(
@@ -107,12 +124,18 @@ class _ProfilePageState extends State<ProfilePage> {
                                   shape: BoxShape.circle,
                                   color: const Color(0xFF8A724C),
                                   border:
-                                      Border.all(color: Colors.white, width: 2),
+                                  Border.all(color: Colors.white, width: 2),
                                 ),
                                 child: IconButton(
                                   icon: const Icon(Icons.arrow_back_ios_new,
                                       color: Colors.white, size: 15),
-                                  onPressed: () => Navigator.pop(context),
+                                  onPressed: () {
+                                    if (widget.onBack != null) {
+                                      widget.onBack!();
+                                    } else {
+                                      Navigator.pop(context);
+                                    }
+                                  },
                                   padding: const EdgeInsets.all(5),
                                   constraints: const BoxConstraints(),
                                 ),
@@ -129,7 +152,7 @@ class _ProfilePageState extends State<ProfilePage> {
                                   shape: BoxShape.circle,
                                   color: const Color(0xFF8A724C),
                                   border:
-                                      Border.all(color: Colors.white, width: 2),
+                                  Border.all(color: Colors.white, width: 2),
                                 ),
                                 child: IconButton(
                                   icon: const Icon(Icons.edit_outlined,
@@ -146,13 +169,13 @@ class _ProfilePageState extends State<ProfilePage> {
                                           birthDate: birthDate,
                                           interests: interests,
                                           avatar: avatarImage,
-                                          accessToken: widget.accessToken,
+                                          avatar_url: _avatarNetworkUrl,
                                         ),
                                       ),
                                     );
 
                                     if (result != null) {
-                                      await _fetchProfile(); 
+                                      await _fetchProfile();
                                     }
                                   },
                                   padding: const EdgeInsets.all(5),
@@ -164,7 +187,9 @@ class _ProfilePageState extends State<ProfilePage> {
                         ),
                       ),
                     ),
+
                     const SizedBox(height: 20),
+
                     Expanded(
                       child: SingleChildScrollView(
                         padding: const EdgeInsets.symmetric(horizontal: 30),
@@ -185,13 +210,14 @@ class _ProfilePageState extends State<ProfilePage> {
                                 children: [
                                   Expanded(
                                       child:
-                                          buildDisplayBox("Ngày sinh", birthDate)),
+                                      buildDisplayBox("Ngày sinh", birthDate)),
                                   const SizedBox(width: 48),
                                   Expanded(
                                       child: buildDisplayBox("Giới tính", gender)),
                                 ],
                               ),
                               buildDisplayBox("Email", email),
+
                               const SizedBox(height: 10),
                               Text(
                                 "Sở thích du lịch",
@@ -203,6 +229,7 @@ class _ProfilePageState extends State<ProfilePage> {
                                 ),
                               ),
                               const SizedBox(height: 8),
+
                               Container(
                                 padding: const EdgeInsets.symmetric(
                                     horizontal: 12, vertical: 12),
@@ -216,10 +243,10 @@ class _ProfilePageState extends State<ProfilePage> {
                                       Padding(
                                         padding: EdgeInsets.only(
                                             bottom:
-                                                i + 2 < interests.length ? 18 : 0),
+                                            i + 2 < interests.length ? 18 : 0),
                                         child: Row(
                                           mainAxisAlignment:
-                                              MainAxisAlignment.spaceBetween,
+                                          MainAxisAlignment.spaceBetween,
                                           children: [
                                             buildInterestBox(interests[i]),
                                             if (i + 1 < interests.length)
@@ -230,9 +257,9 @@ class _ProfilePageState extends State<ProfilePage> {
                                   ],
                                 ),
                               ),
+
                               const SizedBox(height: 15),
-                              buildDisplayBox(
-                                  "Mô tả bản thân", description,
+                              buildDisplayBox("Mô tả bản thân", description,
                                   maxLines: 3),
                               const SizedBox(height: 30),
                             ],
@@ -250,11 +277,11 @@ class _ProfilePageState extends State<ProfilePage> {
                   child: Center(
                     child: CircleAvatar(
                       radius: 55,
-                      backgroundColor: Colors.white,
-                      backgroundImage: avatarImage != null
-                          ? FileImage(avatarImage!)
-                          : const AssetImage('assets/images/logo.jpg')
-                              as ImageProvider,
+                      backgroundColor: Colors.grey[400],
+                      backgroundImage: avatarProvider,
+                      child: avatarProvider == null
+                          ? const Icon(Icons.person, size: 50, color: Colors.white)
+                          : null,
                     ),
                   ),
                 ),
@@ -285,7 +312,7 @@ class _ProfilePageState extends State<ProfilePage> {
           Container(
             width: double.infinity,
             padding:
-                const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             decoration: BoxDecoration(
               color: boxColor,
               borderRadius: BorderRadius.circular(10),
@@ -341,14 +368,35 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Future<void> _fetchProfile() async {
-    final url = ApiConfig.getUri(ApiConfig.userProfile);
-
     try {
+      String? accessToken = await AuthService.getValidAccessToken();
+
+      if (accessToken == null) {
+        final prefs = await SharedPreferences.getInstance();
+        final refreshToken = prefs.getString('refresh_token');
+
+        if (refreshToken == null || refreshToken.isEmpty) {
+          print("User phải login lại");
+          return;
+        }
+
+        accessToken = await AuthService.refreshAccessToken(refreshToken);
+
+        if (accessToken == null) {
+          print("User phải login lại");
+          return;
+        }
+
+        await prefs.setString('access_token', accessToken);
+      }
+
+      final url = ApiConfig.getUri(ApiConfig.userProfile);
+
       final response = await http.get(
         url,
         headers: {
           "Content-Type": "application/json",
-          "Authorization": "Bearer ${widget.accessToken}",
+          "Authorization": "Bearer $accessToken",
         },
       );
 
@@ -358,21 +406,37 @@ class _ProfilePageState extends State<ProfilePage> {
           fullName = data['fullname'] ?? fullName;
           email = data['email'] ?? email;
           description = data['description'] ?? description;
-          gender = data['gender'] ?? gender;
-          birthDate = data['birth_date'] ?? birthDate;
+
+          final serverGender = data['gender'];
+          if (serverGender == "male") {
+            gender = "Nam";
+          } else if (serverGender == "female") {
+            gender = "Nữ";
+          } else {
+            gender = "Khác";
+          }
+
+          final serverBirth = data['birth_date'] ?? data['birthday'];
+          if (serverBirth != null && serverBirth is String && serverBirth.isNotEmpty) {
+            try {
+              final dt = DateTime.parse(serverBirth);
+              birthDate = '${dt.day.toString().padLeft(2,'0')}/'
+                  '${dt.month.toString().padLeft(2,'0')}/'
+                  '${dt.year}';
+            } catch (_) {
+              birthDate = data['birthday'] ?? birthDate;
+            }
+          }
+
           interests = List<String>.from(data['interests'] ?? interests);
+          _avatarNetworkUrl = data['avatar_url'] as String?;
         });
       } else {
         print('Không thể load profile: ${response.body}');
       }
+
     } catch (e) {
       print('Lỗi khi gọi API profile: $e');
     }
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    _fetchProfile();
   }
 }

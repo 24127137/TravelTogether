@@ -5,11 +5,13 @@ import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'login.dart';
-
+import 'profile.dart';
+//File này là screen tên là <Settings> trong figma
 class SettingsScreen extends StatefulWidget {
   final VoidCallback onBack;
+  final VoidCallback? onProfileTap;
 
-  const SettingsScreen({Key? key, required this.onBack}) : super(key: key);
+  const SettingsScreen({Key? key, required this.onBack, this.onProfileTap}) : super(key: key);
 
   @override
   State<SettingsScreen> createState() => _SettingsScreenState();
@@ -76,57 +78,70 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                   const SizedBox(height: 30),
                   // Phần thông tin người dùng (KHÔNG có box màu be bao quanh)
-                  Row(
-                    children: [
-                      // Avatar với viền cam
-                      Container(
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: const Color(0xFFFF6B00),
-                            width: 4,
+                  InkWell(
+                    onTap: () {
+                      if (widget.onProfileTap != null) {
+                        widget.onProfileTap!();
+                      } else {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => const ProfilePage()),
+                        );
+                      }
+                    },
+                    child: Row(
+                      children: [
+                        // Avatar với viền cam
+                        Container(
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: const Color(0xFFFF6B00),
+                              width: 4,
+                            ),
+                          ),
+                          child: const CircleAvatar(
+                            radius: 35,
+                            backgroundImage: AssetImage('assets/images/avatar.jpg'),
                           ),
                         ),
-                        child: const CircleAvatar(
-                          radius: 35,
-                          backgroundImage: AssetImage('assets/images/avatar.jpg'),
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      // Thông tin user
-                      const Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Sir. EUGENE',
-                              style: TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                                color: Color(0xFFFFFFFF),
-                                fontFamily: 'Poppins',
+                        const SizedBox(width: 16),
+                        // Thông tin user
+                        const Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Sir. EUGENE',
+                                style: TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFFFFFFFF),
+                                  fontFamily: 'Poppins',
+                                ),
                               ),
-                            ),
-                            SizedBox(height: 4),
-                            Text(
-                              'abc@gmail.com',
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: Color(0xFFEDE2CC),
-                                fontFamily: 'Poppins',
+                              SizedBox(height: 4),
+                              Text(
+                                'abc@gmail.com',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: Color(0xFFEDE2CC),
+                                  fontFamily: 'Poppins',
+                                ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
-                      ),
-                      // Icon mũi tên
-                      const Icon(
-                        Icons.chevron_right,
-                        color: Color(0xFFFFFFFF),
-                        size: 30,
-                      ),
-                    ],
+                        // Icon mũi tên
+                        const Icon(
+                          Icons.chevron_right,
+                          color: Color(0xFFFFFFFF),
+                          size: 30,
+                        ),
+                      ],
+                    ),
                   ),
+
                   const SizedBox(height: 20),
                 ],
               ),
@@ -238,7 +253,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                 MaterialPageRoute(
                                   builder: (context) => const LoginScreen(),
                                 ),
-                                (route) => false,
+                                    (route) => false,
                               );
                             },
                             style: ElevatedButton.styleFrom(
@@ -355,5 +370,4 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 }
-
 

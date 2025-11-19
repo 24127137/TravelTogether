@@ -4,7 +4,8 @@
 import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
 import '../data/mock_explore_items.dart';
-
+import '../widgets/enter_bar.dart';
+//File này là screen tên là <Địa điểm trong thành phố> trong figma
 class DestinationExploreScreen extends StatelessWidget {
   final String cityId;
   final int? currentIndex;
@@ -111,45 +112,8 @@ class DestinationExploreScreen extends StatelessWidget {
           ),
           const SizedBox(height: 32),
           Center(
-            child: GestureDetector(
-              onTap: onBeforeGroup,
-              child: Container(
-                width: 216,
-                padding: const EdgeInsets.all(4),
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    begin: Alignment(0.21, 0.40),
-                    end: Alignment(1.07, 0.83),
-                    colors: [Color(0xFFB64B12), Color(0xFFA15C20)],
-                  ),
-                  borderRadius: BorderRadius.circular(35),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      width: 45,
-                      height: 45,
-                      decoration: const BoxDecoration(
-                        color: Color(0xFF5E3714),
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                    const SizedBox(width: 22),
-                    Text(
-                      'press_confirm'.tr(),
-                      style: const TextStyle(
-                        color: Color(0xFFF7F3E8),
-                        fontSize: 13,
-                        fontFamily: 'Climate Crisis',
-                        fontWeight: FontWeight.w400,
-                        height: 1.54,
-                        letterSpacing: 0.30,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+            child: EnterButton(
+              onConfirm: onBeforeGroup ?? () {},  // ✅ Gọi callback sau khi animation hoàn thành
             ),
           ),
         ],
@@ -159,11 +123,11 @@ class DestinationExploreScreen extends StatelessWidget {
   }
 
   Widget _buildPlaceCard(
-    String imageUrl,
-    String namePart1,
-    String namePart2,
-    String subtitle,
-  ) {
+      String imageUrl,
+      String namePart1,
+      String namePart2,
+      String subtitle,
+      ) {
     return StatefulBuilder(
       builder: (context, setState) {
         final ValueNotifier<bool> isFavorite = ValueNotifier(false);

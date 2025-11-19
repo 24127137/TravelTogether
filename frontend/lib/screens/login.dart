@@ -1,3 +1,4 @@
+// Screen Đăng nhập
 import 'package:flutter/material.dart';
 import 'signup.dart';
 import 'package:http/http.dart' as http;
@@ -197,14 +198,14 @@ class _LoginScreenState extends State<LoginScreen> {
                     child: _isLoading
                         ? const CircularProgressIndicator(color: Colors.white)
                         : const Text(
-                            "Đăng nhập",
-                            style: TextStyle(
-                              fontSize: 24,
-                              fontFamily: 'WorkSans',
-                              fontWeight: FontWeight.w600,
-                              color: Colors.white,
-                            ),
-                          ),
+                      "Đăng nhập",
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontFamily: 'WorkSans',
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                      ),
+                    ),
                   ),
                 ),
                 const SizedBox(height: 30),
@@ -232,7 +233,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               child: child,
                             ),
                             transitionDuration:
-                                const Duration(milliseconds: 150),
+                            const Duration(milliseconds: 150),
                           ),
                         );
                       },

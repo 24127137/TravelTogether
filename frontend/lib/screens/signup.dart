@@ -1,8 +1,11 @@
+// Screen Đăng ký
 import 'package:flutter/material.dart';
 import 'login.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../config/api_config.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'main_app_screen.dart';
 
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});
@@ -38,7 +41,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
     {'title': 'Cắm trại', 'image': 'assets/images/interests/camping.jpg'},
     {'title': 'Du thuyền', 'image': 'assets/images/interests/cruise.jpg'},
     {'title': 'Động vật', 'image': 'assets/images/interests/animals.jpg'},
-    {'title': 'Mạo hiểm', 'image': 'assets/images/interests/thrilling.jpg'},  
+    {'title': 'Mạo hiểm', 'image': 'assets/images/interests/thrilling.jpg'},
     {'title': 'Phượt', 'image': 'assets/images/interests/backpacking.jpg'},
     {'title': 'Đặc sản', 'image': 'assets/images/interests/specialty.jpg'},
     {'title': 'Vlog', 'image': 'assets/images/interests/vlog.jpg'},
@@ -49,7 +52,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
   final List<String> _selectedInterests = [];
   int _visibleCount = 12;
   final ScrollController _scrollController = ScrollController();
-  
+
   @override
   void initState() {
     super.initState();
@@ -150,22 +153,22 @@ class _SignUpScreenState extends State<SignUpScreen> {
             ),
             textTheme: const TextTheme(
               bodyLarge: TextStyle(
-                fontFamily: 'WorkSans',
-                fontWeight: FontWeight.w500,
-                fontSize: 18,
-                color: Colors.black
+                  fontFamily: 'WorkSans',
+                  fontWeight: FontWeight.w500,
+                  fontSize: 18,
+                  color: Colors.black
               ),
               labelLarge: TextStyle(
-                fontFamily: 'WorkSans',
-                fontWeight: FontWeight.w600,
-                fontSize: 16,
-                color: Colors.black
+                  fontFamily: 'WorkSans',
+                  fontWeight: FontWeight.w600,
+                  fontSize: 16,
+                  color: Colors.black
               ),
               titleLarge: TextStyle(
-                fontFamily: 'WorkSans',
-                fontWeight: FontWeight.w700,
-                fontSize: 20,
-                color: Colors.black
+                  fontFamily: 'WorkSans',
+                  fontWeight: FontWeight.w700,
+                  fontSize: 20,
+                  color: Colors.black
               ),
             ),
           ),
@@ -201,7 +204,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
     final hasSpecial = RegExp(r'[!@#\$&*~.,;:_^%+-]').hasMatch(password);
 
     if (password.length < 8 || !hasLetters || !hasDigits) {
-      return 0.25; 
+      return 0.25;
     }
 
     strength = 0.5;
@@ -217,11 +220,21 @@ class _SignUpScreenState extends State<SignUpScreen> {
   Future<void> _submitSignup() async {
     final url = ApiConfig.getUri(ApiConfig.createProfile);
 
+    final genderMapping = {
+      'Nam': 'male',
+      'Nữ': 'female',
+      'Khác': 'other',
+    };
+
     final body = jsonEncode({
       "fullname": _nameController.text.trim(),
       "email": _emailController.text.trim(),
       "password": _passwordController.text,
       "interests": _selectedInterests,
+      "gender": _gender != null ? genderMapping[_gender!] : null,
+      "birth_date": _birthDate != null
+          ? "${_birthDate!.year.toString().padLeft(4, '0')}-${_birthDate!.month.toString().padLeft(2, '0')}-${_birthDate!.day.toString().padLeft(2, '0')}"
+          : null,
       "preferred_city": "",
     });
 
@@ -240,16 +253,52 @@ class _SignUpScreenState extends State<SignUpScreen> {
         body: body,
       );
 
-      Navigator.pop(context); 
+      Navigator.pop(context);
 
       if (response.statusCode == 200) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Đăng ký thành công!")),
+        final loginUrl = ApiConfig.getUri(ApiConfig.signIn);
+        final loginBody = jsonEncode({
+          "email": _emailController.text.trim(),
+          "password": _passwordController.text,
+        });
+
+        final loginResponse = await http.post(
+          loginUrl,
+          headers: {"Content-Type": "application/json"},
+          body: loginBody,
         );
-        _fadeToLogin(context);
+
+        if (loginResponse.statusCode == 200) {
+          final data = jsonDecode(loginResponse.body);
+
+          final accessToken = data['access_token'];
+          final refreshToken = data['refresh_token'];
+          final user = data['user'];
+
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString('access_token', accessToken);
+          await prefs.setString('refresh_token', refreshToken);
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text("Đăng ký và đăng nhập thành công! Xin chào ${user['email']}")),
+          );
+
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (context) => MainAppScreen(accessToken: accessToken),
+            ),
+          );
+        } else {
+          final err = jsonDecode(loginResponse.body);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text("Đăng ký thành công nhưng đăng nhập thất bại: ${err['detail'] ?? loginResponse.body}")),
+          );
+          _fadeToLogin(context);
+        }
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Lỗi: ${response.body}")),
+          SnackBar(content: Text("Lỗi đăng ký: ${response.body}")),
         );
       }
     } catch (e) {
@@ -288,7 +337,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                             child: _buildStepIndicators(),
                           ),
                         ),
-                        const SizedBox(width: 48), 
+                        const SizedBox(width: 48),
                       ],
                     ),
                   ),
@@ -331,7 +380,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
             ),
             const SizedBox(height: 12),
             if (_passwordController.text.isNotEmpty)
-              _buildPasswordStrengthBar(), 
+              _buildPasswordStrengthBar(),
           ],
         );
         break;
@@ -399,13 +448,13 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 step == 6
                     ? "Tất cả đã sẵn sàng!"
                     : [
-                        "Email của bạn là",
-                        "Tạo một mật khẩu",
-                        "Tên bạn là",
-                        "Ngày sinh của bạn",
-                        "Bạn là",
-                        "Bạn đang tìm kiếm điều gì?"
-                      ][step],
+                  "Email của bạn là",
+                  "Tạo một mật khẩu",
+                  "Tên bạn là",
+                  "Ngày sinh của bạn",
+                  "Bạn là",
+                  "Bạn đang tìm kiếm điều gì?"
+                ][step],
                 textAlign: TextAlign.center,
                 style: const TextStyle(
                   fontSize: 36,
@@ -429,7 +478,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 onPressed: _isValid ? _nextStep : null,
                 style: ElevatedButton.styleFrom(
                   backgroundColor:
-                      _isValid ? const Color(0xFF8A724C) : const Color.fromARGB(255, 73, 73, 73),
+                  _isValid ? const Color(0xFF8A724C) : const Color.fromARGB(255, 73, 73, 73),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(30),
                   ),
@@ -450,7 +499,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
               width: double.infinity,
               height: 60,
               child: ElevatedButton(
-                onPressed: _submitSignup, 
+                onPressed: _submitSignup,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF8A724C),
                   shape: RoundedRectangleBorder(
@@ -469,7 +518,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
               ),
             ),
 
-            const SizedBox(height: 20),
+          const SizedBox(height: 20),
 
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -537,14 +586,14 @@ class _SignUpScreenState extends State<SignUpScreen> {
         ),
         suffixIcon: obscure
             ? IconButton(
-                icon: Icon(
-                  _obscurePassword
-                      ? Icons.visibility_off_outlined
-                      : Icons.visibility_outlined,
-                ),
-                onPressed: () =>
-                    setState(() => _obscurePassword = !_obscurePassword),
-              )
+          icon: Icon(
+            _obscurePassword
+                ? Icons.visibility_off_outlined
+                : Icons.visibility_outlined,
+          ),
+          onPressed: () =>
+              setState(() => _obscurePassword = !_obscurePassword),
+        )
             : null,
       ),
     );
@@ -675,7 +724,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
               itemBuilder: (context, index) {
                 final interest = _allInterests[index];
                 final isSelected =
-                    _selectedInterests.contains(interest['title']);
+                _selectedInterests.contains(interest['title']);
                 final imagePath = (interest['image'] ?? '').trim();
                 final hasImage = imagePath.isNotEmpty;
 
@@ -709,42 +758,42 @@ class _SignUpScreenState extends State<SignUpScreen> {
                               borderRadius: BorderRadius.circular(18),
                               child: hasImage
                                   ? Image.asset(
-                                      imagePath,
-                                      fit: BoxFit.cover,
-                                      width: double.infinity,
-                                      height: double.infinity,
-                                      errorBuilder:
-                                          (context, error, stackTrace) {
-                                        return Container(
-                                          color: Colors.black.withValues(alpha: 0.6),
-                                          alignment: Alignment.center,
-                                          child: Text(
-                                            interest['title']!,
-                                            textAlign: TextAlign.center,
-                                            style: const TextStyle(
-                                              color: Colors.white,
-                                              fontSize: 14,
-                                              fontFamily: 'WorkSans',
-                                              fontWeight: FontWeight.w600,
-                                            ),
-                                          ),
-                                        );
-                                      },
-                                    )
-                                  : Container(
-                                      color: Colors.black.withValues(alpha: 0.6),
-                                      alignment: Alignment.center,
-                                      child: Text(
-                                        interest['title']!,
-                                        textAlign: TextAlign.center,
-                                        style: const TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 14,
-                                          fontFamily: 'WorkSans',
-                                          fontWeight: FontWeight.w600,
-                                        ),
+                                imagePath,
+                                fit: BoxFit.cover,
+                                width: double.infinity,
+                                height: double.infinity,
+                                errorBuilder:
+                                    (context, error, stackTrace) {
+                                  return Container(
+                                    color: Colors.black.withValues(alpha: 0.6),
+                                    alignment: Alignment.center,
+                                    child: Text(
+                                      interest['title']!,
+                                      textAlign: TextAlign.center,
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 14,
+                                        fontFamily: 'WorkSans',
+                                        fontWeight: FontWeight.w600,
                                       ),
                                     ),
+                                  );
+                                },
+                              )
+                                  : Container(
+                                color: Colors.black.withValues(alpha: 0.6),
+                                alignment: Alignment.center,
+                                child: Text(
+                                  interest['title']!,
+                                  textAlign: TextAlign.center,
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 14,
+                                    fontFamily: 'WorkSans',
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
                             ),
 
                             if (isSelected)

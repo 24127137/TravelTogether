@@ -1,6 +1,6 @@
 /// File: personal_section.dart
 /// Mô tả: Màn hình cá nhân với các tùy chọn Lộ Trình và Tình Trạng
-
+//File này là screen tên là <Khung cá nhân> trong figma
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
