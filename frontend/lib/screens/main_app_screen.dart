@@ -141,7 +141,14 @@ class _MainAppScreenState extends State<MainAppScreen> {
       );
     }
     return Scaffold(
-      body: mainContent,
+      extendBody: true, // ✅ Cho phép body kéo xuống dưới bottom bar
+      backgroundColor: Colors.transparent, // ✅ Nền trong suốt
+      body: Container(
+        decoration: const BoxDecoration(
+          color: Colors.white, // ✅ Màu nền (hoặc gradient nếu bạn muốn)
+        ),
+        child: mainContent,
+      ),
       bottomNavigationBar: CustomBottomNavBar(
         currentIndex: _selectedIndex,
         onTap: _onItemTapped,

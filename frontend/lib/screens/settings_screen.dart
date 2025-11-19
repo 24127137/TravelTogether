@@ -3,6 +3,9 @@
 
 import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
+import 'information_screen.dart';
+import 'reputation_screen.dart';
+import 'feedback_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   final VoidCallback onBack;
@@ -22,7 +25,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return Container(
       decoration: const BoxDecoration(
         image: DecorationImage(
-          image: AssetImage('assets/images/halong.jpg'),
+          image: AssetImage('assets/images/Settings.png'),
           fit: BoxFit.cover,
         ),
       ),
@@ -31,12 +34,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
           children: [
             // Phần header cam
             Container(
+              margin: const EdgeInsets.symmetric(horizontal: 10),
               padding: const EdgeInsets.all(20.0),
               decoration: BoxDecoration(
                 color: const Color(0xFFA15C20).withValues(alpha: 0.85),
                 borderRadius: const BorderRadius.only(
-                  bottomLeft: Radius.circular(30),
-                  bottomRight: Radius.circular(30),
+                  topLeft: Radius.circular(40),
+                  topRight: Radius.circular(40),
+                  bottomLeft: Radius.circular(40),
+                  bottomRight: Radius.circular(40),
                 ),
               ),
               child: Column(
@@ -50,12 +56,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           width: 40,
                           height: 40,
                           decoration: const BoxDecoration(
-                            color: Color(0xFFA15C20),
+                            color: Color(0xFFEDE2CC),
                             shape: BoxShape.circle,
                           ),
                           child: const Icon(
                             Icons.arrow_back_ios_new,
-                            color: Color(0xFFFFFFFF),
+                            color: Color(0xFF1B1E28),
                             size: 20,
                           ),
                         ),
@@ -129,7 +135,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ],
               ),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 40),
             // Các tùy chọn cài đặt
             _buildSettingTile(
               icon: Icons.language,
@@ -144,11 +150,56 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 context.setLocale(const Locale('en'));
               },
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 40),
             _buildSettingTile(
               icon: Icons.chat_bubble_outline,
               title: _showGroupFeedback ? 'group_feedback'.tr() : 'reputation'.tr(),
-              onTap: () {},
+              onTap: () {
+                // Navigate dựa vào trạng thái hiện tại
+                if (_showGroupFeedback) {
+                  // Đang hiển thị "Phản hồi nhóm" → sang FeedbackScreen
+                  Navigator.push(
+                    context,
+                    PageRouteBuilder(
+                      pageBuilder: (context, animation, secondaryAnimation) => const FeedbackScreen(),
+                      transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                        const begin = Offset(1.0, 0.0);
+                        const end = Offset.zero;
+                        const curve = Curves.easeInOut;
+
+                        var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+                        var offsetAnimation = animation.drive(tween);
+
+                        return SlideTransition(
+                          position: offsetAnimation,
+                          child: child,
+                        );
+                      },
+                    ),
+                  );
+                } else {
+                  // Đang hiển thị "Uy tín" → sang ReputationScreen
+                  Navigator.push(
+                    context,
+                    PageRouteBuilder(
+                      pageBuilder: (context, animation, secondaryAnimation) => const ReputationScreen(),
+                      transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                        const begin = Offset(1.0, 0.0);
+                        const end = Offset.zero;
+                        const curve = Curves.easeInOut;
+
+                        var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+                        var offsetAnimation = animation.drive(tween);
+
+                        return SlideTransition(
+                          position: offsetAnimation,
+                          child: child,
+                        );
+                      },
+                    ),
+                  );
+                }
+              },
               onLeftTap: () {
                 // Bấm < = quay lại "Phản hồi nhóm"
                 setState(() {
@@ -162,11 +213,31 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 });
               },
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 40),
             _buildSettingTile(
               icon: Icons.info_outline,
               title: 'about'.tr(),
-              onTap: () {},
+              onTap: () {
+                Navigator.push(
+                  context,
+                  PageRouteBuilder(
+                    pageBuilder: (context, animation, secondaryAnimation) => const InformationScreen(),
+                    transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                      const begin = Offset(1.0, 0.0);
+                      const end = Offset.zero;
+                      const curve = Curves.easeInOut;
+
+                      var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+                      var offsetAnimation = animation.drive(tween);
+
+                      return SlideTransition(
+                        position: offsetAnimation,
+                        child: child,
+                      );
+                    },
+                  ),
+                );
+              },
               onLeftTap: null,
               onRightTap: null,
               hideArrows: true,
@@ -217,9 +288,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
     bool hideArrows = false,
   }) {
     return Container(
+      height: 80,
       margin: const EdgeInsets.symmetric(horizontal: 20),
       decoration: BoxDecoration(
-        color: const Color(0xFFEDE2CC).withValues(alpha: 0.9),
+        color: const Color(0xFFDCC9A7).withValues(alpha: 0.9),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
           color: const Color(0xFFA15C20),
@@ -278,5 +350,3 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 }
-
-

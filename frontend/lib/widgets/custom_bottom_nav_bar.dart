@@ -22,11 +22,14 @@ class CustomBottomNavBar extends StatelessWidget {
       // Padding Bottom để chừa khoảng trống cho Safe Area (notch/home bar)
       padding: EdgeInsets.only(bottom: MediaQuery.of(context).padding.bottom > 0 ? 10 : 0),
       height: 90 + MediaQuery.of(context).padding.bottom, // Tăng chiều cao để chứa Safe Area
+      clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
         color: const Color(0xFFEDE2CC),
         // Ensure the bottom bar is rectangular (no rounded corners)
-        shape: BoxShape.rectangle,
-        borderRadius: BorderRadius.zero,
+        borderRadius: const BorderRadius.only(
+          topLeft: Radius.circular(40),
+          topRight: Radius.circular(40),
+        ),
         boxShadow: [
           BoxShadow(
             color: const Color.fromRGBO(0, 0, 0, 0.1),
