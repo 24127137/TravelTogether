@@ -39,6 +39,12 @@ dependencies:
   easy_localization: ^3.0.8
   http: ^1.2.0
   shared_preferences: ^2.3.3
+  image_picker: ^1.0.7
+  supabase_flutter: 2.10.3
+  path_provider: ^2.1.2
+  path_provider_android: ^2.2.4
+  hive_flutter: ^1.1.0
+  sign_in_with_apple: ^6.1.2
 
 dev_dependencies:
   flutter_test:
@@ -61,6 +67,32 @@ flutter:
     - assets/translations/
     - assets/images/travel_plan.png
     - assets/images/nen_canhantrang.png
+    - assets/images/onboarding/1.png
+    - assets/images/onboarding/2.png
+    - assets/images/onboarding/3.png
+    - assets/images/saigon.jpg
+    - assets/images/logo.jpg
+    - assets/images/profile_page_background.png
+    - assets/images/interests/culture.jpg
+    - assets/images/interests/food.jpg
+    - assets/images/interests/photo.jpg
+    - assets/images/interests/trekking.jpg
+    - assets/images/interests/beach.jpg
+    - assets/images/interests/shopping.jpg
+    - assets/images/interests/sightseeing.jpg
+    - assets/images/interests/resort.jpg
+    - assets/images/interests/festival.jpg
+    - assets/images/interests/cafe.jpg
+    - assets/images/interests/homestay.jpg
+    - assets/images/interests/view.jpg
+    - assets/images/interests/camping.jpg
+    - assets/images/interests/cruise.jpg
+    - assets/images/interests/animals.jpg
+    - assets/images/interests/thrilling.jpg
+    - assets/images/interests/backpacking.jpg
+    - assets/images/interests/specialty.jpg
+    - assets/images/interests/vlog.jpg
+    - assets/images/interests/rowing.jpg
 
   fonts:
     - family: Poppins
@@ -81,3 +113,13 @@ flutter:
     - family: Inter
       fonts:
         - asset: assets/fonts/Inter-VariableFont_opsz,wght.ttf
+    - family: WorkSans
+      fonts:
+        - asset: assets/fonts/WorkSans/static/WorkSans-Regular.ttf
+        - asset: assets/fonts/WorkSans/static/WorkSans-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/WorkSans/static/WorkSans-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/WorkSans/static/WorkSans-Bold.ttf
+          weight: 700
+

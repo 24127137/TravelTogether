@@ -1,18 +1,24 @@
+// lib/screens/edit_profile.dart
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'dart:convert';
+import 'welcome.dart';
 import '../config/api_config.dart';
+import '../services/auth_service.dart';
 
 class EditProfilePage extends StatefulWidget {
   final String fullName;
-  final String birthDate;
-  final String gender;
+  final String birthDate; // format may be "dd/MM/yyyy" from profile page
+  final String gender; // "Nam"/"Nữ"/"Khác" or backend values
   final String description;
   final List<String> interests;
   final File? avatar;
+  final String? avatar_url;
   final String email;
-  final String accessToken;
 
   const EditProfilePage({
     super.key,
@@ -22,8 +28,8 @@ class EditProfilePage extends StatefulWidget {
     required this.description,
     required this.interests,
     required this.email,
-    required this.accessToken,
     this.avatar,
+    this.avatar_url,
   });
 
   @override
@@ -34,12 +40,12 @@ class _EditProfilePageState extends State<EditProfilePage> {
   late TextEditingController _nameController;
   late TextEditingController _descriptionController;
   late TextEditingController _emailController;
-  late DateTime? _birthDate;
+  DateTime? _birthDate;
   late String _gender;
   late List<String> _selectedInterests;
-  File? _avatar;
+  File? avatar;
 
-  final Color boxColor = Colors.white.withValues(alpha: 0.9);
+  final Color boxColor = Colors.white.withOpacity(0.9);
   final Color labelColor = Colors.black;
   final String country = "Vietnam";
 
@@ -73,22 +79,45 @@ class _EditProfilePageState extends State<EditProfilePage> {
     _nameController = TextEditingController(text: widget.fullName);
     _descriptionController = TextEditingController(text: widget.description);
     _emailController = TextEditingController(text: widget.email);
-    _gender = widget.gender;
     _selectedInterests = List.from(widget.interests);
-    _avatar = widget.avatar;
+    avatar = widget.avatar;
 
+    _birthDate = _parseIncomingDate(widget.birthDate);
+
+    _gender = _normalizeGender(widget.gender);
+  }
+
+  DateTime? _parseIncomingDate(String raw) {
+    if (raw.trim().isEmpty) return null;
     try {
-      final parts = widget.birthDate.split('/');
-      if (parts.length == 3) {
-        _birthDate = DateTime(
-          int.parse(parts[2]),
-          int.parse(parts[1]),
-          int.parse(parts[0]),
-        );
+      if (raw.contains('/')) {
+        final parts = raw.split('/');
+        if (parts.length == 3) {
+          final d = int.parse(parts[0]);
+          final m = int.parse(parts[1]);
+          final y = int.parse(parts[2]);
+          return DateTime(y, m, d);
+        }
       }
-    } catch (e) {
-      _birthDate = null;
-    }
+      if (raw.contains('-')) {
+        final parts = raw.split('-');
+        if (parts.length >= 3) {
+          final y = int.parse(parts[0]);
+          final m = int.parse(parts[1]);
+          final d = int.parse(parts[2]);
+          return DateTime(y, m, d);
+        }
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  String _normalizeGender(String g) {
+    if (g.isEmpty) return '';
+    final low = g.toLowerCase();
+    if (low == 'male' || low == 'nam') return 'Nam';
+    if (low == 'female' || low == 'nữ' || low == 'nu') return 'Nữ';
+    return 'Khác';
   }
 
   @override
@@ -99,56 +128,195 @@ class _EditProfilePageState extends State<EditProfilePage> {
     super.dispose();
   }
 
-  void _saveProfile() async {
-    final url = ApiConfig.getUri(ApiConfig.userProfile);
-
-    final genderMap = {
-      'Nam': 'male',
-      'Nữ': 'female',
-      'Khác': 'other',
-    };
-
-    final body = jsonEncode({
-      'fullname': _nameController.text,
-      'gender': genderMap[_gender] ?? 'other', 
-      'interests': _selectedInterests,
-    });
-
+  Future<String?> _uploadAvatarViaHTTP(File avatarFile, String token, {String? oldFileUrl}) async {
     try {
+      final fileBytes = await avatarFile.readAsBytes();
+      const supabaseUrl = ApiConfig.supabaseUrl;
+
+      if (widget.avatar_url != null && widget.avatar_url!.isNotEmpty) {
+        try {
+          final uri = Uri.parse(widget.avatar_url!);
+          final oldFilePath = uri.pathSegments
+              .skip(uri.pathSegments.indexOf('avatar') + 1)
+              .join('/');
+          
+          final fullPath = 'avatar/$oldFilePath';
+
+          debugPrint('Deleting: $fullPath');
+
+          final deleteResponse = await http.delete(
+            Uri.parse('$supabaseUrl/storage/v1/object/avatar/$oldFilePath'),
+            headers: {
+              'Authorization': 'Bearer $token',
+              'apikey': ApiConfig.supabaseAnonKey,
+              'Content-Type': 'application/json',
+            },
+            body: jsonEncode({}),
+          );
+          
+          debugPrint('Delete status: ${deleteResponse.statusCode}');
+          debugPrint('Delete body: ${deleteResponse.body}');
+          
+        } catch (e) {
+          debugPrint('Delete failed: $e');
+        }
+      }
+
+      final fileName = '${DateTime.now().millisecondsSinceEpoch}_${avatarFile.path.split('/').last}';
+      final uploadUrl = Uri.parse('$supabaseUrl/storage/v1/object/avatar/$fileName');
+
+      debugPrint('Uploading to: $uploadUrl');
+
+      final response = await http.post(
+        uploadUrl,
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'image/jpeg',
+          'apikey': ApiConfig.supabaseAnonKey,
+        },
+        body: fileBytes,
+      );
+
+      debugPrint('Upload status: ${response.statusCode}');
+      debugPrint('Upload body: ${response.body}');
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final publicUrl = '$supabaseUrl/storage/v1/object/public/avatar/$fileName';
+        debugPrint('Avatar uploaded: $publicUrl');
+        return publicUrl;
+      } else {
+        debugPrint('Upload failed: ${response.statusCode} ${response.body}');
+        return null;
+      }
+    } catch (e) {
+      debugPrint('Upload error: $e');
+      return null;
+    }
+  }
+
+  Future<void> _saveProfile() async {
+    try {
+      String? token = await AuthService.getValidAccessToken();
+      final prefs = await SharedPreferences.getInstance();
+
+      if (token == null) {
+        final refreshToken = prefs.getString('refresh_token');
+        if (refreshToken == null || refreshToken.isEmpty) {
+          if (!mounted) return;
+          Navigator.of(context).pushAndRemoveUntil(
+            MaterialPageRoute(builder: (_) => const WelcomeScreen()),
+            (route) => false,
+          );
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại'),
+            ),
+          );
+          return;
+        }
+
+        token = await AuthService.refreshAccessToken(refreshToken);
+        if (token == null) {
+          if (!mounted) return;
+          Navigator.of(context).pushAndRemoveUntil(
+            MaterialPageRoute(builder: (_) => const WelcomeScreen()),
+            (route) => false,
+          );
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại'),
+            ),
+          );
+          return;
+        }
+        await prefs.setString('access_token', token);
+      }
+
+      String? avatarUrl = widget.avatar_url;
+      if (avatar != null) {
+        avatarUrl = await _uploadAvatarViaHTTP(
+          avatar!,
+          token,
+          oldFileUrl: widget.avatar_url, 
+        );
+
+        if (avatarUrl == null) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Không thể upload ảnh đại diện')),
+            );
+          }
+          return;
+        }
+      }
+
+      final genderMap = {'Nam': 'male', 'Nữ': 'female', 'Khác': 'other'};
+      final mappedGender = genderMap[_gender] ?? 'other';
+
+      String? birthDateFormatted;
+      if (_birthDate != null) {
+        birthDateFormatted =
+            '${_birthDate!.year.toString().padLeft(4, '0')}-'
+            '${_birthDate!.month.toString().padLeft(2, '0')}-'
+            '${_birthDate!.day.toString().padLeft(2, '0')}';
+      }
+
+      final body = {
+        'fullname': _nameController.text.trim(),
+        'email': _emailController.text.trim(),
+        'gender': mappedGender,
+        'birthday': birthDateFormatted,
+        'description': _descriptionController.text.trim(),
+        'interests': _selectedInterests,
+        'avatar_url': avatarUrl,
+      };
+
+      final url = ApiConfig.getUri(ApiConfig.userProfile);
       final response = await http.patch(
         url,
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer ${widget.accessToken}',
+          'Authorization': 'Bearer $token',
         },
-        body: body,
+        body: jsonEncode(body),
       );
 
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        Navigator.pop(context, {
-          'name': data['fullname'],
-          'nickname': _descriptionController.text,
-          'gender': data['gender'],
-          'birthday': data['birthday'], 
-          'interests': List<String>.from(data['interests']),
-          'avatar': _avatar,
-        });
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Cập nhật thành công!')),
+          );
+          Navigator.pop(context, true);
+        }
       } else {
-        print('Lỗi server: ${response.body}');
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Cập nhật thất bại')),
-        );
+        debugPrint('Update profile failed: ${response.statusCode} ${response.body}');
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Cập nhật thất bại: ${response.statusCode}')),
+          );
+        }
       }
     } catch (e) {
-      print('Lỗi kết nối: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Không thể kết nối đến server')),
-      );
+      debugPrint('Error calling update profile: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Không thể kết nối đến server')),
+        );
+      }
     }
   }
 
-  void _pickDate() async {
+  Future<void> _pickAvatar() async {
+    final ImagePicker picker = ImagePicker();
+    final XFile? picked = await picker.pickImage(source: ImageSource.gallery);
+    if (picked != null) {
+      setState(() {
+        avatar = File(picked.path);
+      });
+    }
+  }
+
+  Future<void> _pickDate() async {
     final picked = await showDatePicker(
       context: context,
       initialDate: _birthDate ?? DateTime(2000, 1, 1),
@@ -164,7 +332,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
             ),
             textButtonTheme: TextButtonThemeData(
               style: TextButton.styleFrom(
-                foregroundColor: Color(0xFF8A724C),
+                foregroundColor: const Color(0xFF8A724C),
                 textStyle: const TextStyle(
                   fontFamily: 'WorkSans',
                   fontWeight: FontWeight.w600,
@@ -183,7 +351,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
     }
   }
 
-  void _pickGender() async {
+  Future<void> _pickGender() async {
     final result = await showDialog<String>(
       context: context,
       builder: (context) => AlertDialog(
@@ -231,7 +399,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
     );
   }
 
-  void _pickInterests() async {
+  Future<void> _pickInterests() async {
     final result = await showDialog<List<String>>(
       context: context,
       builder: (context) => _InterestsDialog(
@@ -247,6 +415,15 @@ class _EditProfilePageState extends State<EditProfilePage> {
 
   @override
   Widget build(BuildContext context) {
+    ImageProvider<Object>? avatarImage;
+    if (avatar != null) {
+      avatarImage = FileImage(avatar!) as ImageProvider<Object>?;
+    } else if (widget.avatar_url != null) {
+      avatarImage = NetworkImage(widget.avatar_url!) as ImageProvider<Object>?;
+    } else {
+      avatarImage = null;
+    }
+
     return Scaffold(
       backgroundColor: const Color.fromARGB(255, 178, 138, 100),
       body: Stack(
@@ -266,47 +443,51 @@ class _EditProfilePageState extends State<EditProfilePage> {
                       padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 30),
                       child: Container(
                         width: double.infinity,
-                        height: 130,
+                        height: 150,
                         decoration: BoxDecoration(
                           color: const Color.fromARGB(200, 185, 150, 104),
                           borderRadius: BorderRadius.circular(30),
                         ),
                         child: Stack(
                           children: [
-                            Center(
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  FittedBox(
-                                    fit: BoxFit.scaleDown,
-                                    child: Text(
-                                      _nameController.text.toUpperCase(),
+                            Align(
+                              alignment: const Alignment(0, -0.3),
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 70),
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    FittedBox(
+                                      fit: BoxFit.scaleDown,
+                                      child: Text(
+                                        _nameController.text.toUpperCase(),
+                                        textAlign: TextAlign.center,
+                                        style: const TextStyle(
+                                          fontFamily: 'WorkSans',
+                                          fontSize: 48,
+                                          fontWeight: FontWeight.w900,
+                                          color: Colors.white,
+                                          letterSpacing: 1.2,
+                                          fontStyle: FontStyle.italic,
+                                        ),
+                                      ),
+                                    ),
+                                    Text(
+                                      country.toUpperCase(),
                                       textAlign: TextAlign.center,
                                       style: const TextStyle(
                                         fontFamily: 'WorkSans',
-                                        fontSize: 48,
-                                        fontWeight: FontWeight.w900,
                                         color: Colors.white,
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w500,
                                         letterSpacing: 1.2,
-                                        fontStyle: FontStyle.italic,
                                       ),
                                     ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    country.toUpperCase(),
-                                    textAlign: TextAlign.center,
-                                    style: const TextStyle(
-                                      fontFamily: 'WorkSans',
-                                      color: Colors.white,
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w500,
-                                      letterSpacing: 1.2,
-                                    ),
-                                  ),
-                                ],
+                                  ],
+                                ),
                               ),
                             ),
+
                             Positioned(
                               top: 5,
                               left: 5,
@@ -315,6 +496,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
                                 onPressed: () => Navigator.pop(context),
                               ),
                             ),
+
                             Positioned(
                               top: 5,
                               right: 5,
@@ -356,11 +538,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
                                   ),
                                   const SizedBox(width: 48),
                                   Expanded(
-                                    child: buildClickableField(
-                                      "Giới tính",
-                                      _gender,
-                                      _pickGender,
-                                    ),
+                                    child: buildClickableField("Giới tính", _gender.isNotEmpty ? _gender : "Chọn giới tính", _pickGender),
                                   ),
                                 ],
                               ),
@@ -382,12 +560,39 @@ class _EditProfilePageState extends State<EditProfilePage> {
                   left: 0,
                   right: 0,
                   child: Center(
-                    child: CircleAvatar(
-                      radius: 55,
-                      backgroundColor: Colors.white,
-                      backgroundImage: _avatar != null
-                          ? FileImage(_avatar!)
-                          : const AssetImage('assets/images/logo.jpg') as ImageProvider,
+                    child: Stack(
+                      children: [
+                        CircleAvatar(
+                          radius: 55,
+                          backgroundColor: Colors.grey[300],
+                          backgroundImage: avatarImage,
+                          child: avatarImage == null
+                              ? const Icon(Icons.person, size: 50, color: Colors.white)
+                              : null,
+                        ),
+
+                        Positioned(
+                          bottom: 0,
+                          right: 0,
+                          child: GestureDetector(
+                            onTap: _pickAvatar,
+                            child: Container(
+                              width: 35,
+                              height: 35,
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFFFA500), 
+                                shape: BoxShape.circle,
+                                border: Border.all(color: Colors.white, width: 2),
+                              ),
+                              child: const Icon(
+                                Icons.camera_alt,
+                                color: Colors.white,
+                                size: 20,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),
@@ -519,9 +724,16 @@ class _EditProfilePageState extends State<EditProfilePage> {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           buildInterestBox(_selectedInterests[i]),
-                          if (i + 1 < _selectedInterests.length)
-                            buildInterestBox(_selectedInterests[i + 1]),
+                          if (i + 1 < _selectedInterests.length) buildInterestBox(_selectedInterests[i + 1]),
                         ],
+                      ),
+                    ),
+                  if (_selectedInterests.isEmpty)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 8.0),
+                      child: Text(
+                        'Chưa có sở thích. Nhấn để chọn.',
+                        style: TextStyle(color: labelColor),
                       ),
                     ),
                 ],
@@ -663,9 +875,7 @@ class _InterestsDialogState extends State<_InterestsDialog> {
                           child: Container(
                             decoration: BoxDecoration(
                               border: Border.all(
-                                color: isSelected
-                                    ? const Color(0xFF8A724C)
-                                    : Colors.transparent,
+                                color: isSelected ? const Color(0xFF8A724C) : Colors.transparent,
                                 width: 3,
                               ),
                               borderRadius: BorderRadius.circular(12),
@@ -682,7 +892,7 @@ class _InterestsDialogState extends State<_InterestsDialog> {
                                           height: double.infinity,
                                           errorBuilder: (context, error, stackTrace) {
                                             return Container(
-                                              color: Colors.black.withValues(alpha: 0.6),
+                                              color: Colors.black.withOpacity(0.6),
                                               alignment: Alignment.center,
                                               child: Text(
                                                 interest['title']!,
@@ -698,7 +908,7 @@ class _InterestsDialogState extends State<_InterestsDialog> {
                                           },
                                         )
                                       : Container(
-                                          color: Colors.black.withValues(alpha: 0.6),
+                                          color: Colors.black.withOpacity(0.6),
                                           alignment: Alignment.center,
                                           child: Text(
                                             interest['title']!,
@@ -744,9 +954,7 @@ class _InterestsDialogState extends State<_InterestsDialog> {
                               fontSize: 11,
                               fontFamily: 'WorkSans',
                               fontWeight: FontWeight.w600,
-                              color: isSelected
-                                  ? const Color(0xFF8A724C)
-                                  : Colors.black,
+                              color: isSelected ? const Color(0xFF8A724C) : Colors.black,
                             ),
                           ),
                         ),
@@ -761,7 +969,7 @@ class _InterestsDialogState extends State<_InterestsDialog> {
               width: double.infinity,
               height: 50,
               child: ElevatedButton(
-                onPressed: () => Navigator.pop(context, _tempSelected),
+                onPressed: _tempSelected.length >= 3 ? () => Navigator.pop(context, _tempSelected) : null,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF8A724C),
                   shape: RoundedRectangleBorder(
