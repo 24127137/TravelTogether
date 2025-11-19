@@ -1,13 +1,11 @@
-/// File: destination_detail_screen.dart
-
-
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
 import '../models/destination.dart';
 import '../data/mock_destinations.dart';
 import '../screens/destination_explore_screen.dart';
-
+import '../widgets/enter_bar.dart'; // Import thêm
+//File này là screen tên là <Mô tả thành phố> trong figma
 class DestinationDetailScreen extends StatelessWidget {
   final Destination? destination;
   final VoidCallback? onBack;
@@ -18,20 +16,16 @@ class DestinationDetailScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final dest = destination ?? mockDestinations.firstWhere((d) => d.name == 'Đà Lạt');
     final size = MediaQuery.of(context).size;
-
-    // Chiều cao ảnh chiếm khoảng 55% màn hình — tránh phóng to quá gây vỡ ảnh
     final double imageHeight = size.height * 0.55;
 
     return Scaffold(
-      // Khi màn hình con cần ảnh nền full-screen, cho phép nội dung kéo dài xuống dưới
       extendBodyBehindAppBar: true,
       backgroundColor: const Color(0xFF7B4A22),
       body: SafeArea(
-        // SafeArea để tránh che phần status bar; nhưng nội dung vẫn full-screen
         child: SizedBox.expand(
           child: Stack(
             children: [
-              // 1️⃣ Ảnh nền (đặt ở top, vừa đủ rộng)
+              // Ảnh nền
               Positioned(
                 left: 0,
                 right: 0,
@@ -40,11 +34,11 @@ class DestinationDetailScreen extends StatelessWidget {
                   dest.imagePath,
                   width: size.width,
                   height: imageHeight,
-                  fit: BoxFit.cover, // giữ tỉ lệ, ưu tiên cover nhưng giới hạn chiều cao
+                  fit: BoxFit.cover,
                 ),
               ),
 
-              // 2️⃣ Hiệu ứng mờ vùng dưới ảnh (blur + gradient)
+              // Hiệu ứng mờ
               Positioned(
                 left: 0,
                 right: 0,
@@ -70,7 +64,7 @@ class DestinationDetailScreen extends StatelessWidget {
                 ),
               ),
 
-              // 3️⃣ Nút Quay lại (ở SafeArea)
+              // Nút Quay lại
               Positioned(
                 top: 12,
                 left: 12,
@@ -83,19 +77,17 @@ class DestinationDetailScreen extends StatelessWidget {
                 ),
               ),
 
-              // 4️⃣ Nội dung nổi trên hiệu ứng mờ (chữ không bị mờ)
+              // Nội dung
               Positioned(
                 left: 16,
                 right: 16,
                 bottom: 0,
                 child: Container(
-                  // Tăng padding bottom để chừa chỗ cho nút ở dưới
                   padding: const EdgeInsets.only(bottom: 100, top: 20),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      // Tiêu đề
                       Text(
                         dest.name,
                         style: const TextStyle(
@@ -113,8 +105,6 @@ class DestinationDetailScreen extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: 6),
-
-                      // Phụ đề (sử dụng trường 'province' từ model)
                       Text(
                         dest.province,
                         style: const TextStyle(
@@ -124,11 +114,7 @@ class DestinationDetailScreen extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: 18),
-
-                      // Tags removed as requested
                       const SizedBox(height: 20),
-
-                      // Mô tả
                       Text(
                         'description'.tr(),
                         style: const TextStyle(
@@ -153,45 +139,21 @@ class DestinationDetailScreen extends StatelessWidget {
                 ),
               ),
 
-              // 5️⃣ Nút chuyển tiếp sang Destination_Explore_Screen
+              // EnterButton thay thế nút cũ
               Positioned(
                 left: 0,
                 right: 0,
                 bottom: 24,
                 child: Center(
-                  child: SizedBox(
-                    width: 216,
-                    height: 56,
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 0),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(35),
-                        ),
-                        backgroundColor: const Color(0xFFA15C20),
-                        elevation: 0,
-                      ),
-                      onPressed: onContinue ?? () {
-                        // Debug log
-                        // ignore: avoid_print
-                        print('DestinationDetail: nút Tiếp tục bấm, cityId=${dest.cityId}');
-                        WidgetsBinding.instance.addPostFrameCallback((_) {
-                          Navigator.of(context, rootNavigator: true).push(MaterialPageRoute(
-                            builder: (_) => DestinationExploreScreen(cityId: dest.cityId),
-                          ));
-                        });
-                      },
-                      child: Text(
-                        'continue'.tr(),
-                        style: const TextStyle(
-                          color: Color(0xFFF7F3E8),
-                          fontSize: 16,
-                          fontFamily: 'Climate Crisis',
-                          fontWeight: FontWeight.w400,
-                          letterSpacing: 0.3,
-                        ),
-                      ),
-                    ),
+                  child: EnterButton(
+                    onConfirm: onContinue ?? () {
+                      print('DestinationDetail: nút Tiếp tục bấm, cityId=${dest.cityId}');
+                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                        Navigator.of(context, rootNavigator: true).push(MaterialPageRoute(
+                          builder: (_) => DestinationExploreScreen(cityId: dest.cityId),
+                        ));
+                      });
+                    },
                   ),
                 ),
               ),

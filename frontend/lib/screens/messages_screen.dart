@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
 import '../data/mock_messages.dart';
 import 'chatbox_screen.dart';
-
+//File này là screen tên là <OFFICIAL MESSAGE> trong figma
 class MessagesScreen extends StatelessWidget {
   final VoidCallback? onBack;
   final String? accessToken;

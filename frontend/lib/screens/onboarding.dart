@@ -1,3 +1,4 @@
+// Onboarding thay cho Trang đầu
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'welcome.dart';
@@ -18,19 +19,19 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       "image": "assets/images/onboarding/1.png",
       "title": "Không còn đi một mình nữa",
       "desc":
-          "Mỗi chuyến đi sẽ tuyệt hơn khi có người hiểu bạn.\nGặp gỡ những người cùng đam mê khám phá và bắt đầu hành trình cùng nhau.",
+      "Mỗi chuyến đi sẽ tuyệt hơn khi có người hiểu bạn.\nGặp gỡ những người cùng đam mê khám phá và bắt đầu hành trình cùng nhau.",
     },
     {
       "image": "assets/images/onboarding/2.png",
       "title": "Ghép nối hành trình hoàn hảo",
       "desc":
-          "Tìm người có cùng điểm đến, thời gian và phong cách du lịch.\nTất cả chỉ trong vài chạm.",
+      "Tìm người có cùng điểm đến, thời gian và phong cách du lịch.\nTất cả chỉ trong vài chạm.",
     },
     {
       "image": "assets/images/onboarding/3.png",
       "title": "Cùng nhau tạo nên ký ức",
       "desc":
-          "Lên kế hoạch, khám phá và chia sẻ trải nghiệm đáng nhớ.\nNhững chuyến đi tuyệt vời luôn được kể lại... cùng người khác.",
+      "Lên kế hoạch, khám phá và chia sẻ trải nghiệm đáng nhớ.\nNhững chuyến đi tuyệt vời luôn được kể lại... cùng người khác.",
     },
   ];
 
@@ -72,7 +73,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     physics: const BouncingScrollPhysics(),
                     child: Padding(
                       padding:
-                          const EdgeInsets.symmetric(horizontal: 30, vertical: 40),
+                      const EdgeInsets.symmetric(horizontal: 30, vertical: 40),
                       child: Center(
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
@@ -126,7 +127,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: List.generate(
                       _onboardingData.length,
-                      (index) => AnimatedContainer(
+                          (index) => AnimatedContainer(
                         duration: const Duration(milliseconds: 200),
                         margin: const EdgeInsets.symmetric(horizontal: 4),
                         height: 8,
@@ -164,21 +165,21 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                             FadeTransition(opacity: animation, child: child),
                         child: _currentPage == 2
                             ? const Text(
-                                "Bắt đầu",
-                                key: ValueKey('start'),
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.w600,
-                                  fontFamily: 'WorkSans',
-                                ),
-                              )
+                          "Bắt đầu",
+                          key: ValueKey('start'),
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 20,
+                            fontWeight: FontWeight.w600,
+                            fontFamily: 'WorkSans',
+                          ),
+                        )
                             : const Icon(
-                                Icons.arrow_forward_rounded,
-                                key: ValueKey('arrow'),
-                                color: Colors.white,
-                                size: 28,
-                              ),
+                          Icons.arrow_forward_rounded,
+                          key: ValueKey('arrow'),
+                          color: Colors.white,
+                          size: 28,
+                        ),
                       ),
                     ),
                   ),

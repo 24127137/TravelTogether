@@ -151,6 +151,9 @@
   "subtitle_viewpoint": "Viewpoint",
   "subtitle_natural_heritage": "Natural Heritage",
   "subtitle_beautiful_cave": "Beautiful Cave",
-  "subtitle_modern_museum": "Modern Museum"
+  "subtitle_modern_museum": "Modern Museum",
+  "exit_app": "Exit Application",
+  "exit_app_confirmation": "Are you sure you want to exit Travel Together?",
+  "exit": "Exit"
 }
 

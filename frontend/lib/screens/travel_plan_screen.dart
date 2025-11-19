@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-
+//File này là screen tên là <Lộ trình + địa điểm cá nhân> trong figma
 class TravelPlanScreen extends StatelessWidget {
   const TravelPlanScreen({super.key});
 

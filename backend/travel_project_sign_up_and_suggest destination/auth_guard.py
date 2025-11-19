@@ -1,15 +1,14 @@
 from fastapi import Depends, HTTPException
-# === THAY ĐỔI (GĐ 5.3): Bỏ OAuth2, dùng APIKeyHeader ===
 from fastapi.security import APIKeyHeader 
 from config import settings
 from supabase import create_client, Client
 from typing import Any
 
 # ====================================================================
-# "NGƯỜI BẢO VỆ" (Security Guard) (GĐ 5.3 - Dùng Ô Nhập Liệu)
+# "NGƯỜI BẢO VỆ" (Security Guard) (GĐ 8.5 - Thêm giới hạn độ dài)
 # ====================================================================
 
-# Khởi tạo client Supabase (chỉ dùng cho "Bảo vệ")
+# Khởi tạo client Supabase
 try:
     supabase_guard_client: Client = create_client(settings.SUPABASE_URL, settings.SUPABASE_KEY)
     print("Đã khởi tạo Supabase Auth client (cho auth_guard) thành công.")
@@ -17,35 +16,40 @@ except Exception as e:
     print(f"LỖI: Không thể khởi tạo Supabase Auth client (trong auth_guard): {e}")
     supabase_guard_client = None
 
-# 1. ĐỊNH NGHĨA "NƠI LẤY VÉ" MỚI (Dạng Ô Nhập Liệu)
-# Đây là thứ sẽ tạo ra "ô nhập liệu" tên là "Authorization"
+# 1. ĐỊNH NGHĨA "NƠI LẤY VÉ"
 api_key_scheme = APIKeyHeader(
     name="Authorization", 
     description="Dán 'Bearer <token>' vào đây (Ví dụ: Bearer eyJ...)",
-    auto_error=False # Tắt tự động báo lỗi để chúng ta tự xử lý
+    auto_error=False 
 )
 
 async def get_current_user(
-    # Tự động lấy "Vé" (token) từ Header "Authorization"
     token_str: str = Depends(api_key_scheme) 
 ) -> Any:
     """
     "Người Bảo vệ" (Dependency)
     Nhiệm vụ: Lấy "vé" (token) từ ô "Authorization", kiểm tra nó.
-    
-    API nào dùng "Depends(get_current_user)" sẽ tự động được bảo vệ
-    VÀ có ô nhập liệu "Authorization".
     """
     if not supabase_guard_client:
         raise HTTPException(status_code=500, detail="Supabase client chưa được khởi tạo")
     
-    # 2. KIỂM TRA "VÉ" (TOKEN)
+    # 2. KIỂM TRA "VÉ" (TOKEN) CÓ RỖNG KHÔNG
     if not token_str:
         raise HTTPException(
             status_code=401, 
             detail="Chưa cung cấp token (Header 'Authorization')"
         )
     
+    # === THÊM MỚI (GĐ 8.5): Chặn lỗi (Vấn đề 3) token siêu dài ===
+    # Header "Authorization" (bao gồm "Bearer ") không bao giờ
+    # được dài hơn 8192 ký tự.
+    if len(token_str) > 8192:
+        raise HTTPException(
+            status_code=413, # 413 Payload Too Large
+            detail="Header 'Authorization' quá dài."
+        )
+    # ======================================================
+
     # 3. KIỂM TRA ĐỊNH DẠNG "Bearer <token>"
     if not token_str.startswith("Bearer "):
          raise HTTPException(
@@ -54,11 +58,9 @@ async def get_current_user(
         )
         
     # 4. TÁCH LẤY TOKEN THẬT
-    # "Bearer eyJ..." -> "eyJ..."
     real_token = token_str.split(" ")[1]
     
     try:
-        # === HÀNH ĐỘNG CỐT LÕI ===
         # 5. "Bảo vệ" gọi Supabase Auth: "Kiểm tra cái 'vé' (token) này"
         user_response = supabase_guard_client.auth.get_user(real_token)
         
