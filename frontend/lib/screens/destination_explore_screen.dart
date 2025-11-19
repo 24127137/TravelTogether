@@ -27,46 +27,61 @@ class DestinationExploreScreen extends StatelessWidget {
     final cityItems = mockExploreItems.where((item) => item.cityId == cityId).toList();
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF7F3E8),
-      extendBody: true,
-      appBar: AppBar(
-        backgroundColor: const Color(0xFFF7F3E8),
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Color(0xFF3E3322)),
-          onPressed: onBack ?? () => Navigator.of(context).pop(),
+        extendBodyBehindAppBar: true,
+        extendBody: true,
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          leading: Container(
+            margin: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              shape: BoxShape.circle,
+            ),
+            child: IconButton(
+              icon: const Icon(Icons.arrow_back, color: Colors.black),
+              onPressed: () {
+                if (Navigator.canPop(context)) {
+                  Navigator.pop(context);
+                } else {
+                  print('Không thể pop, stack rỗng');
+                  if (onBack != null) onBack!();
+                }
+              },
+
+            ),
+          ),
+          actions: [
+            Padding(
+              padding: const EdgeInsets.only(right: 16),
+              child: const CircleAvatar(
+                backgroundImage: AssetImage('assets/images/avatar.jpg'),
+                radius: 18,
+              ),
+            ),
+          ],
         ),
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 16),
-            child: const CircleAvatar(
-              backgroundImage: AssetImage('assets/images/avatar.jpg'),
-              radius: 18,
+        body: Container(
+          decoration: const BoxDecoration(
+            image: DecorationImage(
+              image: AssetImage('assets/images/landmarks.png'), // Đường dẫn hình nền của bạn
+              fit: BoxFit.cover,
             ),
           ),
-        ],
-      ),
-      body: ListView(
-        padding: EdgeInsets.fromLTRB(16,16,16, kBottomNavigationBarHeight + MediaQuery.of(context).padding.bottom + 16),
+      child: SingleChildScrollView(
+        physics: const NeverScrollableScrollPhysics(), // ✅ Không cho phép scroll
+        padding: EdgeInsets.fromLTRB(16, 16, 16, kBottomNavigationBarHeight + MediaQuery.of(context).padding.bottom + 16),
+        child: Column(
         children: [
-          Text(
-            'explore_vietnam'.tr(),
-            style: const TextStyle(
-              color: Color(0xFF3E3322),
-              fontSize: 20,
-              fontFamily: 'Inter',
-              fontWeight: FontWeight.w500,
-              letterSpacing: 0.10,
-            ),
-          ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 100),
           GestureDetector(
             onTap: _triggerSearchCallback,
             child: Container(
               width: double.infinity,
               height: 74,
               decoration: BoxDecoration(
-                border: Border.all(color: const Color(0xFFDCC9A7), width: 2),
+                color: const Color(0xFFEDE2CC),
+                border: Border.all(color: const Color(0xFFB64B12), width: 2),
                 borderRadius: BorderRadius.circular(21),
               ),
               alignment: Alignment.centerLeft,
@@ -82,7 +97,7 @@ class DestinationExploreScreen extends StatelessWidget {
               ),
             ),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 12),
           Text(
             'featured_places'.tr(),
             style: const TextStyle(
@@ -94,7 +109,7 @@ class DestinationExploreScreen extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           SizedBox(
-            height: 441,
+            height: 380,
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
               itemCount: cityItems.length,
@@ -110,15 +125,16 @@ class DestinationExploreScreen extends StatelessWidget {
               },
             ),
           ),
-          const SizedBox(height: 32),
+          const SizedBox(height: 25),
           Center(
             child: EnterButton(
               onConfirm: onBeforeGroup ?? () {},  // ✅ Gọi callback sau khi animation hoàn thành
             ),
           ),
         ],
+        ),
       ),
-      // BottomNavigationBar removed: MainAppScreen provides the persistent BottomNavigationBar.
+        ),// BottomNavigationBar removed: MainAppScreen provides the persistent BottomNavigationBar
     );
   }
 

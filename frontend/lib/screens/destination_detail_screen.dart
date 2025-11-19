@@ -69,9 +69,9 @@ class DestinationDetailScreen extends StatelessWidget {
                 top: 12,
                 left: 12,
                 child: CircleAvatar(
-                  backgroundColor: Colors.black45,
+                  backgroundColor: Colors.white,
                   child: IconButton(
-                    icon: const Icon(Icons.arrow_back, color: Colors.white),
+                    icon: const Icon(Icons.arrow_back, color: Colors.black),
                     onPressed: onBack ?? () => Navigator.of(context).pop(),
                   ),
                 ),
@@ -148,15 +148,18 @@ class DestinationDetailScreen extends StatelessWidget {
                   child: EnterButton(
                     onConfirm: onContinue ?? () {
                       print('DestinationDetail: nút Tiếp tục bấm, cityId=${dest.cityId}');
-                      WidgetsBinding.instance.addPostFrameCallback((_) {
-                        Navigator.of(context, rootNavigator: true).push(MaterialPageRoute(
-                          builder: (_) => DestinationExploreScreen(cityId: dest.cityId),
-                        ));
-                      });
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => DestinationExploreScreen(cityId: dest.cityId),
+                        ),
+                      );
                     },
                   ),
+
+                  ),
                 ),
-              ),
+
             ],
           ),
         ),

@@ -62,6 +62,7 @@ flutter:
     - assets/images/arrow_initial.png
     - assets/images/arrow_pressing.png
     - assets/images/arrow_confirm.png
+    - assets/images/message.jpg
 
   fonts:
     - family: Poppins
