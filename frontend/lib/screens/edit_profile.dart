@@ -1,10 +1,10 @@
 // lib/screens/edit_profile.dart
+// Screen Profile (Edit mode)
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'dart:convert';
 import 'welcome.dart';
 import '../config/api_config.dart';
