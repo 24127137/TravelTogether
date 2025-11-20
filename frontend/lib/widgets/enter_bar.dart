@@ -226,8 +226,7 @@ class _EnterButtonState extends State<EnterButton>
                       duration: const Duration(milliseconds: 500),
                       curve: Curves.elasticOut,
                       builder: (context, value, child) {
-                        final double safeOpacity =
-                        (value.clamp(0.0, 1.0)) as double;
+                        final double safeOpacity = value.clamp(0.0, 1.0);
                         return Transform.scale(
                           scale: value,
                           child: Opacity(

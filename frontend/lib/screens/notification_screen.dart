@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-
+//File này là screen tên là <Notification> trong figma
 class NotificationScreen extends StatelessWidget {
   const NotificationScreen({super.key});
 

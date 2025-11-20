@@ -1,42 +1,29 @@
 import 'package:flutter/material.dart';
-import '../widgets/custom_bottom_nav_bar.dart';
-import 'main_app_screen.dart';
-
-class TravelPlanScreen extends StatefulWidget {
+//File này là screen tên là <Lộ trình + địa điểm cá nhân> trong figma
+class TravelPlanScreen extends StatelessWidget {
   const TravelPlanScreen({super.key});
 
   @override
-  State<TravelPlanScreen> createState() => _TravelPlanScreenState();
+  Widget build(BuildContext context) {
+    return const _TravelPlanContent();
+  }
 }
 
-class _TravelPlanScreenState extends State<TravelPlanScreen> {
-  int _currentIndex = 3; // Tab "Cá nhân"
-
-  static const List<Map<String, String>> places = [
-    {"image": "https://placehold.co/300x200", "name": "Đỉnh Langbiang"},
-    {"image": "https://placehold.co/300x200", "name": "Cao đẳng Sư phạm Đà Lạt"},
-    {"image": "https://placehold.co/300x200", "name": "Hồ Xuân Hương"},
-    {"image": "https://placehold.co/300x200", "name": "Quảng trường Lâm Viên"},
-    {"image": "https://placehold.co/300x200", "name": "Chùa Linh Phước"},
-    {"image": "https://placehold.co/300x200", "name": "Nhà thờ Don Bosco"},
-    {"image": "https://placehold.co/300x200", "name": "Ga Đà Lạt"},
-    {"image": "https://placehold.co/300x200", "name": "Dinh Bảo Đại"},
-    {"image": "https://placehold.co/300x200", "name": "Nhà thờ Chánh Tòa"},
-    {"image": "https://placehold.co/300x200", "name": "Thiền Viện Trúc Lâm"},
-  ];
+class _TravelPlanContent extends StatelessWidget {
+  const _TravelPlanContent();
 
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
     final horizontalPadding = 16.0;
-    final frameHeight = size.height * 0.75;   // giảm bớt để tránh đè vào bottom bar
+    final frameHeight = size.height * 0.85;
     const spacing = 12.0;
 
     return Scaffold(
       body: SafeArea(
         child: Stack(
           children: [
-            // NỀN
+            // Background
             Positioned.fill(
               child: Image.asset(
                 'assets/images/travel_plan.png',
@@ -46,7 +33,21 @@ class _TravelPlanScreenState extends State<TravelPlanScreen> {
               ),
             ),
 
-            // KHUNG NỘI DUNG
+            // Back button
+            Positioned(
+              top: 16,
+              left: 16,
+              child: IconButton(
+                icon: const Icon(
+                  Icons.arrow_back_ios,
+                  color: Colors.white,
+                  size: 24,
+                ),
+                onPressed: () => Navigator.of(context).pop(),
+              ),
+            ),
+
+            // Content frame
             Align(
               alignment: Alignment.center,
               child: Padding(
@@ -69,13 +70,13 @@ class _TravelPlanScreenState extends State<TravelPlanScreen> {
                         mainAxisSpacing: spacing,
                         childAspectRatio: 0.72,
                       ),
-                      itemCount: places.length,
+                      itemCount: _places.length,
                       itemBuilder: (context, index) {
-                        final place = places[index];
+                        final place = _places[index];
                         return Column(
                           children: [
                             AspectRatio(
-                              aspectRatio: 1, // đảm bảo hình luôn vuông và đều
+                              aspectRatio: 1,
                               child: ClipRRect(
                                 borderRadius: BorderRadius.circular(12),
                                 child: Image.network(
@@ -113,20 +114,19 @@ class _TravelPlanScreenState extends State<TravelPlanScreen> {
           ],
         ),
       ),
-
-      // Bottom Navigation Bar
-      bottomNavigationBar: CustomBottomNavBar(
-        currentIndex: _currentIndex,
-        onTap: (newIndex) {
-          // Quay về MainAppScreen với tab tương ứng
-          Navigator.of(context).pushAndRemoveUntil(
-            MaterialPageRoute(
-              builder: (_) => MainAppScreen(initialIndex: newIndex),
-            ),
-            (route) => false,
-          );
-        },
-      ),
     );
   }
+
+  static const List<Map<String, String>> _places = [
+    {"image": "https://placehold.co/300x200", "name": "Đỉnh Langbiang"},
+    {"image": "https://placehold.co/300x200", "name": "Cao đẳng Sư phạm Đà Lạt"},
+    {"image": "https://placehold.co/300x200", "name": "Hồ Xuân Hương"},
+    {"image": "https://placehold.co/300x200", "name": "Quảng trường Lâm Viên"},
+    {"image": "https://placehold.co/300x200", "name": "Chùa Linh Phước"},
+    {"image": "https://placehold.co/300x200", "name": "Nhà thờ Don Bosco"},
+    {"image": "https://placehold.co/300x200", "name": "Ga Đà Lạt"},
+    {"image": "https://placehold.co/300x200", "name": "Dinh Bảo Đại"},
+    {"image": "https://placehold.co/300x200", "name": "Nhà thờ Chánh Tòa"},
+    {"image": "https://placehold.co/300x200", "name": "Thiền Viện Trúc Lâm"},
+  ];
 }
