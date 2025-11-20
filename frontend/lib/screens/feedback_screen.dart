@@ -10,7 +10,7 @@ class FeedbackScreen extends StatefulWidget {
 class _FeedbackScreenState extends State<FeedbackScreen> {
   // Data models
   final String groupName = '2 tháng 1 lần';
-  final String groupAvatar = 'https://placehold.co/107x107';
+  final String groupAvatar = 'assets/images/group_avatar.jpg';
 
   final List<String> members = [
     'Cả nhóm',
@@ -72,7 +72,7 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
     return Scaffold(
       body: Stack(
         children: [
-          // Background
+          // Background với 2 khung nhỏ hơn
           Container(
             color: const Color(0xFFB64B12),
             child: Column(
@@ -80,9 +80,11 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
                 Expanded(
                   child: Row(
                     children: [
-                      const Spacer(flex: 64),
-                      Container(width: 239, height: double.infinity, color: const Color(0xFF6D2D0B)),
-                      const Spacer(flex: 137),
+                      const Spacer(flex: 80),
+                      Container(width: 50, height: double.infinity, color: const Color(0xFF6D2D0B)),
+                      const Spacer(flex: 40),
+                      Container(width: 50, height: double.infinity, color: const Color(0xFF6D2D0B)),
+                      const Spacer(flex: 80),
                     ],
                   ),
                 ),
@@ -99,7 +101,6 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
                   padding: const EdgeInsets.symmetric(horizontal: 26, vertical: 15),
                   child: Row(
                     children: [
-                      // Back button
                       Container(
                         width: 44,
                         height: 44,
@@ -113,7 +114,6 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
                         ),
                       ),
                       const Spacer(),
-                      // Confirm button
                       Container(
                         width: 44,
                         height: 44,
@@ -130,219 +130,250 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
                   ),
                 ),
 
-                // Title
-                const Padding(
-                  padding: EdgeInsets.only(top: 10),
-                  child: Text(
-                    'GÓP Ý',
-                    style: TextStyle(
-                      color: Color(0xFF4A1A0F),
-                      fontSize: 96,
-                      fontFamily: 'Alumni Sans',
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                ),
+                const SizedBox(height: 10),
 
-                const SizedBox(height: 20),
-
-                // Content card
+                // Stack để đặt chữ GÓP Ý chồng lên viền khung
                 Expanded(
-                  child: Container(
-                    margin: const EdgeInsets.symmetric(horizontal: 20),
-                    decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha: 0.27),
-                      border: Border.all(color: const Color(0xFFEDE2CC), width: 6),
-                      borderRadius: BorderRadius.circular(30),
-                    ),
-                    child: ListView(
-                      padding: const EdgeInsets.all(24),
-                      children: [
-                        // Group info
-                        Row(
-                          children: [
-                            // Group avatar
-                            Container(
-                              width: 107,
-                              height: 107,
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(10),
-                                image: DecorationImage(
-                                  image: NetworkImage(groupAvatar),
-                                  fit: BoxFit.cover,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 16),
-                            // Group name and stars
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
+                  child: Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      // Content card - bắt đầu từ giữa chữ GÓP Ý
+                      Positioned(
+                        top: 50, // Một nửa chiều cao của text GÓP Ý
+                        left: 20,
+                        right: 20,
+                        bottom: 20,
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: const Color(0x65000000),
+                            border: Border.all(color: const Color(0xFFEDE2CC), width: 6),
+                            borderRadius: BorderRadius.circular(30),
+                          ),
+                          child: ListView(
+                            padding: const EdgeInsets.fromLTRB(24, 60, 24, 24), // Top padding cho chữ GÓP Ý
+                            children: [
+                              // Group info
+                              Row(
                                 children: [
-                                  Text(
-                                    groupName,
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 40,
-                                      fontFamily: 'Alumni Sans',
-                                      fontWeight: FontWeight.w900,
+                                  Container(
+                                    width: 120,
+                                    height: 120,
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(10),
+                                      image: DecorationImage(
+                                        image: AssetImage(groupAvatar),
+                                        fit: BoxFit.cover,
+                                      ),
                                     ),
                                   ),
-                                  const SizedBox(height: 8),
-                                  // Star selector
-                                  Row(
-                                    children: List.generate(5, (index) {
-                                      return GestureDetector(
-                                        onTap: () {
-                                          setState(() {
-                                            selectedStars = index + 1;
-                                            selectedTags.clear(); // Clear tags khi đổi sao
-                                          });
-                                        },
-                                        child: Padding(
-                                          padding: const EdgeInsets.only(right: 8),
-                                          child: Icon(
-                                            index < selectedStars ? Icons.star : Icons.star_border,
-                                            color: const Color(0xFFFFD700),
-                                            size: 35,
+                                  const SizedBox(width: 16),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          groupName,
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 40,
+                                            fontFamily: 'Alumni Sans',
+                                            fontWeight: FontWeight.w900,
                                           ),
                                         ),
-                                      );
-                                    }),
+                                        const SizedBox(height: 8),
+                                        Row(
+                                          children: List.generate(5, (index) {
+                                            return GestureDetector(
+                                              onTap: () {
+                                                setState(() {
+                                                  selectedStars = index + 1;
+                                                  selectedTags.clear();
+                                                });
+                                              },
+                                              child: Padding(
+                                                padding: const EdgeInsets.only(right: 1),
+                                                child: Icon(
+                                                  index < selectedStars ? Icons.star : Icons.star_border,
+                                                  color: const Color(0xFFFFD700),
+                                                  size: 28,
+                                                ),
+                                              ),
+                                            );
+                                          }),
+                                        ),
+                                      ],
+                                    ),
                                   ),
                                 ],
                               ),
-                            ),
-                          ],
-                        ),
 
-                        const SizedBox(height: 40),
+                              const SizedBox(height: 40),
 
-                        // Đối tượng section
-                        const Text(
-                          'Đối tượng',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 32,
-                            fontFamily: 'Alumni Sans',
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        Container(
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            border: Border.all(color: const Color(0xFFDCC9A7), width: 2),
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: Wrap(
-                            spacing: 8,
-                            runSpacing: 8,
-                            children: members.map((member) {
-                              final isSelected = selectedMember == member;
-                              return GestureDetector(
-                                onTap: () {
-                                  setState(() {
-                                    selectedMember = member;
-                                  });
-                                },
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                                  decoration: BoxDecoration(
-                                    color: isSelected
-                                        ? const Color(0xFFEDE2CC)
-                                        : const Color(0x60B64B12),
-                                    borderRadius: BorderRadius.circular(20),
-                                  ),
-                                  child: Text(
-                                    member,
-                                    style: TextStyle(
-                                      color: isSelected ? Colors.black : Colors.white,
-                                      fontSize: 14,
-                                      fontFamily: 'Alumni Sans',
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
+                              // Đối tượng section
+                              const Text(
+                                'Đối tượng',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 32,
+                                  fontFamily: 'Alumni Sans',
+                                  fontWeight: FontWeight.w500,
                                 ),
-                              );
-                            }).toList(),
-                          ),
-                        ),
-
-                        const SizedBox(height: 40),
-
-                        // Ý kiến section
-                        const Text(
-                          'Ý kiến',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 32,
-                            fontFamily: 'Alumni Sans',
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        Container(
-                          constraints: const BoxConstraints(minHeight: 192),
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            border: Border.all(color: const Color(0xFFEDE2CC), width: 2),
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: selectedStars == 0
-                              ? const Center(
-                            child: Text(
-                              'Vui lòng chọn số sao để xem gợi ý',
-                              style: TextStyle(
-                                color: Colors.white70,
-                                fontSize: 16,
-                                fontFamily: 'Alumni Sans',
                               ),
-                            ),
-                          )
-                              : Wrap(
-                            spacing: 8,
-                            runSpacing: 8,
-                            children: availableTags.map((tag) {
-                              final isSelected = selectedTags.contains(tag);
-                              return GestureDetector(
-                                onTap: () {
-                                  setState(() {
-                                    if (isSelected) {
-                                      selectedTags.remove(tag);
-                                    } else {
-                                      selectedTags.add(tag);
-                                    }
-                                  });
-                                },
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                                  decoration: BoxDecoration(
-                                    color: isSelected
-                                        ? const Color(0xFFEDE2CC)
-                                        : const Color(0x60B64B12),
-                                    borderRadius: BorderRadius.circular(20),
-                                  ),
+                              const SizedBox(height: 16),
+                              Container(
+                                padding: const EdgeInsets.all(16),
+                                decoration: BoxDecoration(
+                                  border: Border.all(color: const Color(0xFFDCC9A7), width: 2),
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: Wrap(
+                                  spacing: 8,
+                                  runSpacing: 8,
+                                  children: members.map((member) {
+                                    final isSelected = selectedMember == member;
+                                    return GestureDetector(
+                                      onTap: () {
+                                        setState(() {
+                                          selectedMember = member;
+                                        });
+                                      },
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                        decoration: BoxDecoration(
+                                          color: isSelected
+                                              ? const Color(0xFFEDE2CC)
+                                              : const Color(0x60B64B12),
+                                          borderRadius: BorderRadius.circular(20),
+                                        ),
+                                        child: Text(
+                                          member,
+                                          style: TextStyle(
+                                            color: isSelected ? Colors.black : Colors.white,
+                                            fontSize: 14,
+                                            fontFamily: 'Alumni Sans',
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        ),
+                                      ),
+                                    );
+                                  }).toList(),
+                                ),
+                              ),
+
+                              const SizedBox(height: 40),
+
+                              // Ý kiến section
+                              const Text(
+                                'Ý kiến',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 32,
+                                  fontFamily: 'Alumni Sans',
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                              const SizedBox(height: 16),
+                              Container(
+                                constraints: const BoxConstraints(minHeight: 192),
+                                padding: const EdgeInsets.all(16),
+                                decoration: BoxDecoration(
+                                  border: Border.all(color: const Color(0xFFEDE2CC), width: 2),
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: selectedStars == 0
+                                    ? const Center(
                                   child: Text(
-                                    tag,
+                                    'Vui lòng chọn số sao để xem gợi ý',
                                     style: TextStyle(
-                                      color: isSelected ? Colors.black : Colors.white,
-                                      fontSize: 14,
+                                      color: Colors.white70,
+                                      fontSize: 16,
                                       fontFamily: 'Alumni Sans',
-                                      fontWeight: FontWeight.w500,
                                     ),
                                   ),
+                                )
+                                    : Wrap(
+                                  spacing: 8,
+                                  runSpacing: 8,
+                                  children: availableTags.map((tag) {
+                                    final isSelected = selectedTags.contains(tag);
+                                    return GestureDetector(
+                                      onTap: () {
+                                        setState(() {
+                                          if (isSelected) {
+                                            selectedTags.remove(tag);
+                                          } else {
+                                            selectedTags.add(tag);
+                                          }
+                                        });
+                                      },
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                        decoration: BoxDecoration(
+                                          color: isSelected
+                                              ? const Color(0xFFEDE2CC)
+                                              : const Color(0x60B64B12),
+                                          borderRadius: BorderRadius.circular(20),
+                                        ),
+                                        child: Text(
+                                          tag,
+                                          style: TextStyle(
+                                            color: isSelected ? Colors.black : Colors.white,
+                                            fontSize: 14,
+                                            fontFamily: 'Alumni Sans',
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        ),
+                                      ),
+                                    );
+                                  }).toList(),
                                 ),
-                              );
-                            }).toList(),
+                              ),
+                            ],
                           ),
                         ),
-                      ],
-                    ),
+                      ),
+
+                      // Chữ GÓP Ý với viền màu F7912D
+                      Positioned(
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        child: Transform.translate(
+                          offset: const Offset(0, -55), // Thay đổi giá trị này: (x, y) để di chuyển tự do
+                          child: Center(
+                            child: Stack(
+                              children: [
+                                // Viền
+                                Text(
+                                  'GÓP Ý',
+                                  style: TextStyle(
+                                    fontSize: 96,
+                                    fontFamily: 'Alumni Sans',
+                                    fontWeight: FontWeight.w900,
+                                    foreground: Paint()
+                                      ..style = PaintingStyle.stroke
+                                      ..strokeWidth = 5
+                                      ..color = const Color(0xFFF7912D),
+                                  ),
+                                ),
+                                // Chữ chính
+                                const Text(
+                                  'GÓP Ý',
+                                  style: TextStyle(
+                                    color: Color(0xFF4A1A0F),
+                                    fontSize: 96,
+                                    fontFamily: 'Alumni Sans',
+                                    fontWeight: FontWeight.w900,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-
-                const SizedBox(height: 20),
               ],
             ),
           ),

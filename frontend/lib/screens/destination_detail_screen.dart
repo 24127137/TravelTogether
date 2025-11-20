@@ -157,8 +157,8 @@ class DestinationDetailScreen extends StatelessWidget {
                     },
                   ),
 
-                  ),
                 ),
+              ),
 
             ],
           ),

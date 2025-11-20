@@ -8,6 +8,7 @@
   "group_feedback": "Phản hồi nhóm",
   "about": "Giới thiệu",
   "logout": "ĐĂNG XUẤT",
+  "logout_confirmation": "Bạn có chắc chắn muốn đăng xuất?",
   "welcome": "Chào mừng đến Travel Together",
   "change_language": "Thay đổi ngôn ngữ",
   "home": "Trang chủ",
@@ -150,6 +151,9 @@
   "subtitle_viewpoint": "Điểm ngắm cảnh",
   "subtitle_natural_heritage": "Di sản thiên nhiên",
   "subtitle_beautiful_cave": "Hang động đẹp",
-  "subtitle_modern_museum": "Bảo tàng hiện đại"
+  "subtitle_modern_museum": "Bảo tàng hiện đại",
+  "exit_app": "Thoát ứng dụng",
+  "exit_app_confirmation": "Bạn có chắc muốn thoát khỏi Travel Together?",
+  "exit": "Thoát"
 }
 

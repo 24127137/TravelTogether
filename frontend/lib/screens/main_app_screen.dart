@@ -14,10 +14,17 @@ import 'destination_search_screen.dart';
 import 'settings_screen.dart';
 import 'private_screen.dart';
 import 'notification_screen.dart';
+import 'profile.dart';
 
 class MainAppScreen extends StatefulWidget {
   final int initialIndex;
-  const MainAppScreen({Key? key, this.initialIndex = 0}) : super(key: key);
+  final String accessToken;
+
+  const MainAppScreen({
+    Key? key,
+    this.initialIndex = 0,
+    required this.accessToken,
+  }) : super(key: key);
 
   @override
   State<MainAppScreen> createState() => _MainAppScreenState();
@@ -30,6 +37,7 @@ class _MainAppScreenState extends State<MainAppScreen> {
   bool _showExplore = false;
   bool _showBeforeGroup = false;
   bool _showSettings = false;
+  bool _showProfile = false;
 
   @override
   void initState() {
@@ -44,6 +52,7 @@ class _MainAppScreenState extends State<MainAppScreen> {
       _showExplore = false;
       _showBeforeGroup = false;
       _showSettings = false;
+      _showProfile = false;
     });
   }
 
@@ -81,6 +90,7 @@ class _MainAppScreenState extends State<MainAppScreen> {
       _showExplore = false;
       _showBeforeGroup = false;
       _showSettings = false;
+      _showProfile = false;
     });
   }
 
@@ -90,6 +100,17 @@ class _MainAppScreenState extends State<MainAppScreen> {
       _showExplore = false;
       _showBeforeGroup = false;
       _showSettings = true;
+      _showProfile = false;
+    });
+  }
+
+  void _openProfile() {
+    setState(() {
+      _showDetail = false;
+      _showExplore = false;
+      _showBeforeGroup = false;
+      _showSettings = false;
+      _showProfile = true;
     });
   }
 
@@ -97,17 +118,67 @@ class _MainAppScreenState extends State<MainAppScreen> {
     if (_selectedDestination != null) {
       Navigator.of(context).push(
         MaterialPageRoute(
-          builder: (context) => DestinationSearchScreen(cityId: _selectedDestination!.cityId),
+          builder: (context) =>
+              DestinationSearchScreen(cityId: _selectedDestination!.cityId),
         ),
       );
     }
   }
 
+  // Xử lý nút back của điện thoại
+  Future<bool> _handleBackButton() async {
+    // Nếu đang ở màn hình phụ (Settings, Detail, Explore, BeforeGroup, Profile)
+    if (_showSettings || _showDetail || _showExplore || _showBeforeGroup ||
+        _showProfile) {
+      // Nếu đang ở Profile, quay về Settings
+      if (_showProfile) {
+        _openSettings();
+        return false;
+      }
+      // Các trường hợp khác, đóng tất cả
+      _closeAllScreens();
+      return false; // Không thoát app
+    }
+
+    // Nếu đang ở tab khác ngoài Home (tab 0)
+    if (_selectedIndex != 0) {
+      setState(() {
+        _selectedIndex = 0; // Quay về tab Home
+      });
+      return false; // Không thoát app
+    }
+
+    // Nếu đang ở tab Home → Hiển thị dialog xác nhận thoát
+    final shouldExit = await showDialog<bool>(
+      context: context,
+      builder: (context) =>
+          AlertDialog(
+            title: Text('exit_app'.tr()),
+            content: Text('exit_app_confirmation'.tr()),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: Text('cancel'.tr()),
+              ),
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(true),
+                child: Text('exit'.tr()),
+              ),
+            ],
+          ),
+    );
+
+    return shouldExit ?? false; // Chỉ thoát khi user chọn "Thoát"
+  }
+
   @override
   Widget build(BuildContext context) {
     Widget mainContent;
-    if (_showSettings) {
-      mainContent = SettingsScreen(onBack: _closeAllScreens);
+    if (_showProfile) {
+      mainContent = ProfilePage(onBack: _openSettings);
+    } else if (_showSettings) {
+      mainContent =
+          SettingsScreen(onBack: _closeAllScreens, onProfileTap: _openProfile);
     } else if (_showBeforeGroup) {
       mainContent = BeforeGroup(onBack: _closeAllScreens);
     } else if (_showDetail && _selectedDestination != null) {
@@ -131,8 +202,8 @@ class _MainAppScreenState extends State<MainAppScreen> {
           onDestinationTap: _openDestinationDetail,
           onSettingsTap: _openSettings,
         ),
-        NotificationScreen(), // Thay đổi ở đây
-        MessagesScreen(),
+        NotificationScreen(),
+        MessagesScreen(accessToken: widget.accessToken),
         const PrivateScreen(),
       ];
       mainContent = IndexedStack(
@@ -140,18 +211,24 @@ class _MainAppScreenState extends State<MainAppScreen> {
         children: _screens,
       );
     }
-    return Scaffold(
-      extendBody: true, // ✅ Cho phép body kéo xuống dưới bottom bar
-      backgroundColor: Colors.transparent, // ✅ Nền trong suốt
-      body: Container(
-        decoration: const BoxDecoration(
-          color: Colors.white, // ✅ Màu nền (hoặc gradient nếu bạn muốn)
+
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (bool didPop, dynamic result) async {
+        if (!didPop) {
+          final shouldPop = await _handleBackButton();
+          if (shouldPop && mounted) {
+            Navigator.of(context).pop();
+          }
+        }
+      },
+      child: Scaffold(
+        extendBody: true, // Cho phép body kéo dài xuống dưới bottom bar
+        body: mainContent,
+        bottomNavigationBar: CustomBottomNavBar(
+          currentIndex: _selectedIndex,
+          onTap: _onItemTapped,
         ),
-        child: mainContent,
-      ),
-      bottomNavigationBar: CustomBottomNavBar(
-        currentIndex: _selectedIndex,
-        onTap: _onItemTapped,
       ),
     );
   }

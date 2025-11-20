@@ -3,7 +3,7 @@ import 'package:intl/intl.dart';
 import 'package:easy_localization/easy_localization.dart';
 import '../data/mock_messages.dart';
 import '../models/message.dart';
-
+//màn hình lúc chat
 class ChatboxScreen extends StatefulWidget {
   const ChatboxScreen({Key? key}) : super(key: key);
 

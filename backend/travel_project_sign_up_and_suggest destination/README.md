@@ -24,3 +24,4 @@ pip install pydantic-settings
 pip install supabase
 # (Lệnh này có nghĩa là: "Hãy cài pydantic, và cài thêm các gói phụ trợ [extras] cần thiết cho việc validate email").
 pip install "pydantic[email]"
+

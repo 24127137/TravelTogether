@@ -1,7 +1,8 @@
 import google.generativeai as genai
 import json
 from typing import List, Dict, Any
-from models import Destination, RecommendationOutput
+from recommend_models import RecommendationOutput
+from db_tables import Destination
 from config import settings # <-- Đọc "bí mật" từ config
 
 # Cấu hình model (Đọc key từ file config)
@@ -11,15 +12,19 @@ try:
     generation_config = genai.GenerationConfig(
         response_mime_type="application/json",
     )
+    
+    # === SỬA LỖI (GĐ 8.3): Đổi tên model về 'gemini-pro' (Ổn định) ===
     model = genai.GenerativeModel(
-        'gemini-2.5-flash-preview-09-2025',
+        'gemini-2.5-flash-preview-09-2025', # Model này chắc chắn được hỗ trợ
         generation_config=generation_config
     )
+    # ==========================================================
+    
 except Exception as e:
     print(f"LỖI: Không thể cấu hình Gemini. API Key có đúng không? Lỗi: {e}")
     model = None
 
-# SỬA ĐỔI (GĐ 4.3): Bỏ "reasoning" khỏi Schema
+# Schema JSON (bỏ "reasoning")
 JSON_OUTPUT_SCHEMA = {
     "type": "array",
     "items": {
@@ -48,7 +53,6 @@ async def rank_destinations_by_ai(
         )
     locations_text_blob = "\n".join(locations_text_list)
     
-    # SỬA ĐỔI (GĐ 4.3): Bỏ yêu cầu "reasoning" khỏi Prompt
     prompt = f"""
     Bạn là một chuyên gia du lịch cực kỳ thông minh.
     Nhiệm vụ của bạn là xếp hạng các địa điểm du lịch dựa trên sở thích của người dùng.
@@ -68,7 +72,7 @@ async def rank_destinations_by_ai(
         KHÔNG GIẢI THÍCH GÌ THÊM.
     """
 
-    print(f"--- Đang gửi prompt (GĐ 4.3: No Reasoning) đến AI. Phân tích {len(destinations)} địa điểm... ---")
+    print(f"--- Đang gửi prompt (GĐ 8.3) đến AI. Phân tích {len(destinations)} địa điểm... ---")
 
     try:
         response = await model.generate_content_async(prompt)
@@ -77,10 +81,9 @@ async def rank_destinations_by_ai(
 
         ranked_list_json = json.loads(raw_json_text)
         
-        # Chuyển đổi dicts thành Pydantic models (RecommendationOutput mới)
         ranked_list_models = [RecommendationOutput(**item) for item in ranked_list_json]
         return ranked_list_models
             
     except Exception as e:
         print(f"LỖI khi gọi AI (Ranking) hoặc xử lý JSON: {e}")
-        return []
+        raise Exception(f"Lỗi từ Google AI: {e}")

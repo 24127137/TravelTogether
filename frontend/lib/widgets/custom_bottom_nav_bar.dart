@@ -19,37 +19,44 @@ class CustomBottomNavBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      // Padding Bottom để chừa khoảng trống cho Safe Area (notch/home bar)
-      padding: EdgeInsets.only(bottom: MediaQuery.of(context).padding.bottom > 0 ? 10 : 0),
-      height: 90 + MediaQuery.of(context).padding.bottom, // Tăng chiều cao để chứa Safe Area
-      clipBehavior: Clip.antiAlias,
-      decoration: BoxDecoration(
-        color: const Color(0xFFEDE2CC),
-        // Ensure the bottom bar is rectangular (no rounded corners)
-        borderRadius: const BorderRadius.only(
-          topLeft: Radius.circular(40),
-          topRight: Radius.circular(40),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: const Color.fromRGBO(0, 0, 0, 0.1),
-            blurRadius: 100,
-            offset: const Offset(0, 4),
-          )
-        ],
+      height: 80 + MediaQuery.of(context).padding.bottom,
+      decoration: const BoxDecoration(
+        color: Colors.transparent,
       ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: [
-          // Index phải khớp với vị trí trong List<Widget> _screens ở MainAppScreen
-          _buildNavItem(context, Icons.home, 'home', 0),
-          _buildNavItem(context, Icons.notifications_none, 'notification', 1, hasBadge: true),
-          _buildNavItem(context, Icons.message_outlined, 'messages', 2),
-          _buildNavItem(context, Icons.person_outline, 'personal', 3),
-        ],
+      child: Container(
+        decoration: BoxDecoration(
+          color: const Color(0xFFEDE2CC),
+          borderRadius: const BorderRadius.only(
+            topLeft: Radius.circular(40),
+            topRight: Radius.circular(40),
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: const Color.fromRGBO(0, 0, 0, 0.1),
+              blurRadius: 100,
+              offset: const Offset(0, 4),
+            )
+          ],
+        ),
+        child: Padding(
+          padding: EdgeInsets.only(
+            top: 8, // Dịch icon và text lên trên
+            bottom: MediaQuery.of(context).padding.bottom,
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              _buildNavItem(context, Icons.home, 'home', 0),
+              _buildNavItem(context, Icons.notifications_none, 'notification', 1, hasBadge: true),
+              _buildNavItem(context, Icons.message_outlined, 'messages', 2),
+              _buildNavItem(context, Icons.person_outline, 'personal', 3),
+            ],
+          ),
+        ),
       ),
     );
   }
+
 
   Widget _buildNavItem(
       BuildContext context,

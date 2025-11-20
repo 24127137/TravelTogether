@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
 import '../data/mock_explore_items.dart';
 import '../models/destination_explore_item.dart';
-
+//File này là screen tên là <Destination_search> trong figma
 class DestinationSearchScreen extends StatefulWidget {
   final String cityId;
   const DestinationSearchScreen({Key? key, required this.cityId}) : super(key: key);
