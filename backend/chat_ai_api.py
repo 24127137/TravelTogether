@@ -1,147 +1,112 @@
 from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
-from typing import Dict, List, Any
-import os
-import uuid
-import asyncio
+from typing import List, Optional
+from sqlmodel import Session
 import logging
 
-import google.generativeai as genai
-from google.generativeai import GenerationConfig, GenerativeModel
+# Import Service
+from chat_ai_service import ChatService
+from database import get_session 
 
-from config import settings
 # -----------------------
-# Cấu hình an toàn cho API key (từ biến môi trường)
+# Pydantic Models (Schemas)
 # -----------------------
-genai.configure(api_key=settings.GEMINI_API_KEY)
 
-# Tạo model instance sử dụng gemini-2.5-flash (như yêu cầu)
-generation_config = GenerationConfig(
-    response_mime_type="text/plain"
-)
-
-# Tên model theo yêu cầu
-MODEL_NAME = "gemini-2.5-flash"
-
-try:
-    model = GenerativeModel(MODEL_NAME, generation_config=generation_config)
-except Exception as e:
-    # Ghi log và raise để dev biết cấu hình model có vấn đề
-    logging.exception("Không thể khởi tạo model Gemini: %s", e)
-    raise
-
-# ====================================================================
-# Storage (In-memory) và Helper Functions
-# ====================================================================
-
-# In-memory session store: session_id -> list of messages
-chat_sessions: Dict[str, List[Dict[str, str]]] = {}
-
-class NewSessionResponse(BaseModel):
-    session_id: str
-
-class SendRequest(BaseModel):
-    session_id: str
+class SendMessageRequest(BaseModel):
     message: str
 
-class SendResponse(BaseModel):
+class MessageResponse(BaseModel):
+    id: int
+    role: str  # "user" or "model"
+    content: str
+    message_type: str
+    image_url: Optional[str] = None
+    created_at: Optional[str] = None
+
+class SendMessageResponse(BaseModel):
     response: str
+    message_id: int
 
-# In-memory session store: session_id -> list of messages (each: {"role": "user"|"assistant", "text": "..."})
-chat_sessions: Dict[str, List[Dict[str, str]]] = {}
-
-# Helper: build prompt from history + incoming message
-def build_prompt(history: List[Dict[str, str]], user_message: str) -> str:
-    # Đơn giản: nối lịch sử theo thứ tự xuất hiện, mỗi message có role và text.
-    pieces = []
-    for msg in history:
-        role = msg.get("role", "user")
-        text = msg.get("text", "")
-        pieces.append(f"{role.upper()}: {text}")
-    pieces.append(f"USER: {user_message}")
-    pieces.append("ASSISTANT:")
-    # Bạn có thể tùy chỉnh hệ thống prompt / instruction ở đây
-    system_instruction = (
-        "Bạn là một trợ lý du lịch thân thiện, trả lời ngắn gọn, rõ ràng và lịch sự."
-    )
-    full_prompt = system_instruction + "\n\n" + "\n".join(pieces)
-    return full_prompt
-
-# Async helper to call Gemini model
-async def call_gemini_async(prompt: str, timeout: float = 30.0) -> str:
-    """
-    Gọi model.generate_content_async và trả về text output.
-    """
-    try:
-        # model.generate_content_async có thể là coroutine; gọi và chờ kết quả
-        response = await model.generate_content_async(prompt)
-        # response.text chứa plain text response (theo cấu hình response_mime_type)
-        text = getattr(response, "text", None)
-        if text is None:
-            # Fall back: try str(response)
-            text = str(response)
-        return text
-    except Exception as e:
-        logging.exception("Lỗi khi gọi Gemini: %s", e)
-        raise
+class ChatHistoryResponse(BaseModel):
+    user_id: str
+    messages: List[MessageResponse]
 
 # -----------------------
-# Endpoints
+# Router Configuration
 # -----------------------
+
 router = APIRouter(
-    prefix="/ai",  # Đặt prefix là /ai để phân biệt hoàn toàn với /chat của Group
-    tags=["GĐ 12 - AI Chat (Gemini)"]
+    prefix="/ai",
+    tags=["AI Chat (Gemini)"]
 )
 
-@router.post("/new_session", response_model=NewSessionResponse)
-async def create_ai_session():
+def get_chat_service(db: Session = Depends(get_session)) -> ChatService:
+    """Dependency injection untuk ChatService"""
+    return ChatService(db)
+
+@router.post("/send", response_model=SendMessageResponse)
+async def send_message(
+    payload: SendMessageRequest,
+    user_id: str,
+    service: ChatService = Depends(get_chat_service)
+):
     """
-    Tạo session chat AI mới, trả về session_id. 
-    (Endpoint này hoàn toàn khác biệt với API Group)
+    ✅ Gửi tin nhắn đến Gemini.
+    - Tự động lưu tin nhắn user và AI vào DB
+    - Trả về phản hồi từ AI
     """
-    session_id = uuid.uuid4().hex
-    chat_sessions[session_id] = []
-    logging.info(f"Tạo session AI mới: {session_id}")
-    return NewSessionResponse(session_id=session_id)
-
-@router.post("/send", response_model=SendResponse)
-async def send_ai_message(payload: SendRequest):
-    """
-    Gửi message đến Gemini (gemini-2.5-flash) theo session.
-    Body: {"session_id": "...", "message": "..."}
-    Trả về: {"response": "..."}
-    """
-    sid = payload.session_id
-    message_text = payload.message
-
-    if sid not in chat_sessions:
-        raise HTTPException(status_code=404, detail="Session_id không tồn tại")
-
-    # Lấy history và thêm message user
-    history = chat_sessions[sid]
-    history.append({"role": "user", "text": message_text})
-
-    # Xây prompt từ lịch sử + message mới
-    prompt = build_prompt(history, message_text)
-
-    # Gọi model (async)
     try:
-        ai_response_text = await asyncio.wait_for(call_gemini_async(prompt), timeout=30.0)
-    except asyncio.TimeoutError:
-        raise HTTPException(status_code=504, detail="Timeout khi gọi model Gemini")
-    except Exception as e:
-        logging.exception("Lỗi khi gọi model Gemini: %s", e)
-        raise HTTPException(status_code=500, detail=f"Lỗi nội bộ khi gọi AI: {e}")
-
-    # Lưu response vào history
-    history.append({"role": "assistant", "text": ai_response_text})
-
-    return SendResponse(response=ai_response_text)
-
-# -----------------------
-# Local run helper
-# -----------------------
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run("backend.gemini_chat_api:app", host="0.0.0.0", port=8000, reload=True)
+        response_text = await service.process_user_message(
+            user_id=user_id,
+            message=payload.message
+        )
+        
+        # Lấy message_id vừa lưu
+        messages = service._get_user_messages(user_id, limit=1)
+        message_id = messages[-1].id if messages else None
+        
+        return SendMessageResponse(
+            response=response_text,
+            message_id=message_id
+        )
     
+    except TimeoutError:
+        raise HTTPException(status_code=504, detail="AI phản hồi quá lâu, vui lòng thử lại.")
+    except Exception as e:
+        logging.exception("Error at send_message endpoint")
+        raise HTTPException(status_code=500, detail=f"Lỗi nội bộ: {str(e)}")
+
+@router.get("/chat-history", response_model=ChatHistoryResponse)
+async def get_chat_history(
+    user_id: str,
+    limit: int = 50,
+    service: ChatService = Depends(get_chat_service)
+):
+    """
+    Lấy lịch sử chat của user (tất cả tin nhắn).
+    """
+    try:
+        history = service.get_chat_history(user_id, limit=limit)
+        return ChatHistoryResponse(
+            user_id=user_id,
+            messages=[MessageResponse(**msg) for msg in history]
+        )
+    except Exception as e:
+        logging.error(f"Error getting chat history: {e}")
+        raise HTTPException(status_code=500, detail="Lỗi server khi lấy lịch sử")
+
+@router.delete("/clear-chat")
+async def clear_chat(
+    user_id: str,
+    service: ChatService = Depends(get_chat_service)
+):
+    """
+    Xóa toàn bộ lịch sử chat của user.
+    """
+    try:
+        service.delete_chat_history(user_id)
+        return {"message": "Lịch sử chat đã được xóa"}
+    except Exception as e:
+        logging.error(f"Error clearing chat: {e}")
+        raise HTTPException(status_code=500, detail="Lỗi server khi xóa lịch sử")
+
