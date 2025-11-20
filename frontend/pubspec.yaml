@@ -93,6 +93,10 @@ flutter:
     - assets/images/interests/specialty.jpg
     - assets/images/interests/vlog.jpg
     - assets/images/interests/rowing.jpg
+    - assets/images/arrow_initial.png
+    - assets/images/arrow_pressing.png
+    - assets/images/arrow_confirm.png
+    - assets/images/message.jpg
 
   fonts:
     - family: Poppins

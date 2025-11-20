@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
 import '../data/mock_explore_items.dart';
 import '../widgets/enter_bar.dart';
-//File này là screen tên là <Địa điểm trong thành phố> trong figma
+
 class DestinationExploreScreen extends StatelessWidget {
   final String cityId;
   final int? currentIndex;
@@ -27,14 +27,29 @@ class DestinationExploreScreen extends StatelessWidget {
     final cityItems = mockExploreItems.where((item) => item.cityId == cityId).toList();
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF7F3E8),
+      extendBodyBehindAppBar: true,
       extendBody: true,
       appBar: AppBar(
-        backgroundColor: const Color(0xFFF7F3E8),
+        backgroundColor: Colors.transparent,
         elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Color(0xFF3E3322)),
-          onPressed: onBack ?? () => Navigator.of(context).pop(),
+        leading: Container(
+          margin: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            shape: BoxShape.circle,
+          ),
+          child: IconButton(
+            icon: const Icon(Icons.arrow_back, color: Colors.black),
+            onPressed: () {
+              if (Navigator.canPop(context)) {
+                Navigator.pop(context);
+              } else {
+                print('Không thể pop, stack rỗng');
+                if (onBack != null) onBack!();
+              }
+            },
+
+          ),
         ),
         actions: [
           Padding(
@@ -46,79 +61,80 @@ class DestinationExploreScreen extends StatelessWidget {
           ),
         ],
       ),
-      body: ListView(
-        padding: EdgeInsets.fromLTRB(16,16,16, kBottomNavigationBarHeight + MediaQuery.of(context).padding.bottom + 16),
-        children: [
-          Text(
-            'explore_vietnam'.tr(),
-            style: const TextStyle(
-              color: Color(0xFF3E3322),
-              fontSize: 20,
-              fontFamily: 'Inter',
-              fontWeight: FontWeight.w500,
-              letterSpacing: 0.10,
-            ),
+      body: Container(
+        decoration: const BoxDecoration(
+          image: DecorationImage(
+            image: AssetImage('assets/images/landmarks.png'), // Đường dẫn hình nền của bạn
+            fit: BoxFit.cover,
           ),
-          const SizedBox(height: 24),
-          GestureDetector(
-            onTap: _triggerSearchCallback,
-            child: Container(
-              width: double.infinity,
-              height: 74,
-              decoration: BoxDecoration(
-                border: Border.all(color: const Color(0xFFDCC9A7), width: 2),
-                borderRadius: BorderRadius.circular(21),
-              ),
-              alignment: Alignment.centerLeft,
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: Text(
-                'search_place'.tr(),
-                style: const TextStyle(
-                  color: Color(0xFF3E3322),
-                  fontSize: 16,
-                  fontFamily: 'Roboto',
-                  fontWeight: FontWeight.w500,
+        ),
+        child: SingleChildScrollView(
+          physics: const NeverScrollableScrollPhysics(), // ✅ Không cho phép scroll
+          padding: EdgeInsets.fromLTRB(16, 16, 16, kBottomNavigationBarHeight + MediaQuery.of(context).padding.bottom + 16),
+          child: Column(
+            children: [
+              const SizedBox(height: 100),
+              GestureDetector(
+                onTap: _triggerSearchCallback,
+                child: Container(
+                  width: double.infinity,
+                  height: 74,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFEDE2CC),
+                    border: Border.all(color: const Color(0xFFB64B12), width: 2),
+                    borderRadius: BorderRadius.circular(21),
+                  ),
+                  alignment: Alignment.centerLeft,
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: Text(
+                    'search_place'.tr(),
+                    style: const TextStyle(
+                      color: Color(0xFF3E3322),
+                      fontSize: 16,
+                      fontFamily: 'Roboto',
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
                 ),
               ),
-            ),
+              const SizedBox(height: 12),
+              Text(
+                'featured_places'.tr(),
+                style: const TextStyle(
+                  color: Color(0xFFB99668),
+                  fontSize: 16,
+                  fontFamily: 'Poppins',
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 16),
+              SizedBox(
+                height: 380,
+                child: ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: cityItems.length,
+                  separatorBuilder: (_, __) => const SizedBox(width: 30),
+                  itemBuilder: (context, index) {
+                    final item = cityItems[index];
+                    return _buildPlaceCard(
+                      item.imageUrl,
+                      item.name,
+                      '', // Không dùng namePart2
+                      item.getSubtitle(context.locale.languageCode), // Dịch subtitle
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(height: 25),
+              Center(
+                child: EnterButton(
+                  onConfirm: onBeforeGroup ?? () {},  // ✅ Gọi callback sau khi animation hoàn thành
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 24),
-          Text(
-            'featured_places'.tr(),
-            style: const TextStyle(
-              color: Color(0xFFB99668),
-              fontSize: 16,
-              fontFamily: 'Poppins',
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          const SizedBox(height: 16),
-          SizedBox(
-            height: 441,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              itemCount: cityItems.length,
-              separatorBuilder: (_, __) => const SizedBox(width: 30),
-              itemBuilder: (context, index) {
-                final item = cityItems[index];
-                return _buildPlaceCard(
-                  item.imageUrl,
-                  item.name,
-                  '', // Không dùng namePart2
-                  item.getSubtitle(context.locale.languageCode), // Dịch subtitle
-                );
-              },
-            ),
-          ),
-          const SizedBox(height: 32),
-          Center(
-            child: EnterButton(
-              onConfirm: onBeforeGroup ?? () {},  // ✅ Gọi callback sau khi animation hoàn thành
-            ),
-          ),
-        ],
-      ),
-      // BottomNavigationBar removed: MainAppScreen provides the persistent BottomNavigationBar.
+        ),
+      ),// BottomNavigationBar removed: MainAppScreen provides the persistent BottomNavigationBar
     );
   }
 
