@@ -1,12 +1,14 @@
-from fastapi import Depends, HTTPException
+from fastapi import Depends, HTTPException, Request
 from fastapi.security import APIKeyHeader 
 from config import settings
 from supabase import create_client, Client
 from typing import Any
-
-# ====================================================================
-# "NGƯỜI BẢO VỆ" (Security Guard) (GĐ 8.5 - Thêm giới hạn độ dài)
-# ====================================================================
+import hashlib
+import json
+import base64
+from sqlmodel import Session, select
+from database import engine 
+from db_tables import TokenSecurity 
 
 # Khởi tạo client Supabase
 try:
@@ -16,66 +18,76 @@ except Exception as e:
     print(f"LỖI: Không thể khởi tạo Supabase Auth client (trong auth_guard): {e}")
     supabase_guard_client = None
 
-# 1. ĐỊNH NGHĨA "NƠI LẤY VÉ"
 api_key_scheme = APIKeyHeader(
     name="Authorization", 
-    description="Dán 'Bearer <token>' vào đây (Ví dụ: Bearer eyJ...)",
+    description="Bearer <token>",
     auto_error=False 
 )
 
+def hash_token(token: str) -> str:
+    """Băm token để so sánh với DB"""
+    return hashlib.sha256(token.encode()).hexdigest()
+
+def get_user_id_from_token(token: str) -> str:
+    """Giải mã nhanh JWT lấy UUID (sub)"""
+    try:
+        parts = token.split(".")
+        if len(parts) < 2: return None
+        payload = parts[1]
+        payload += "=" * ((4 - len(payload) % 4) % 4) 
+        decoded = base64.urlsafe_b64decode(payload)
+        return json.loads(decoded).get("sub")
+    except Exception:
+        return None
+
 async def get_current_user(
+    request: Request,
     token_str: str = Depends(api_key_scheme) 
 ) -> Any:
     """
-    "Người Bảo vệ" (Dependency)
-    Nhiệm vụ: Lấy "vé" (token) từ ô "Authorization", kiểm tra nó.
+    Guard V3: White-list Only + IP Protection
     """
     if not supabase_guard_client:
-        raise HTTPException(status_code=500, detail="Supabase client chưa được khởi tạo")
+        raise HTTPException(status_code=500, detail="Supabase client lỗi")
     
-    # 2. KIỂM TRA "VÉ" (TOKEN) CÓ RỖNG KHÔNG
-    if not token_str:
-        raise HTTPException(
-            status_code=401, 
-            detail="Chưa cung cấp token (Header 'Authorization')"
-        )
-    
-    # === THÊM MỚI (GĐ 8.5): Chặn lỗi (Vấn đề 3) token siêu dài ===
-    # Header "Authorization" (bao gồm "Bearer ") không bao giờ
-    # được dài hơn 8192 ký tự.
-    if len(token_str) > 8192:
-        raise HTTPException(
-            status_code=413, # 413 Payload Too Large
-            detail="Header 'Authorization' quá dài."
-        )
-    # ======================================================
-
-    # 3. KIỂM TRA ĐỊNH DẠNG "Bearer <token>"
-    if not token_str.startswith("Bearer "):
-         raise HTTPException(
-            status_code=401, 
-            detail="Token phải có định dạng 'Bearer <token>'"
-        )
+    if not token_str or not token_str.startswith("Bearer "):
+         raise HTTPException(status_code=401, detail="Token không hợp lệ")
         
-    # 4. TÁCH LẤY TOKEN THẬT
     real_token = token_str.split(" ")[1]
+    token_hash = hash_token(real_token)
     
+    # 1. LẤY UUID NHANH
+    user_uuid = get_user_id_from_token(real_token)
+    if not user_uuid:
+        raise HTTPException(status_code=401, detail="Token lỗi cấu trúc")
+
+    client_ip = request.client.host
+
+    # 2. KIỂM TRA DB (WHITELIST)
+    with Session(engine) as session:
+        active = session.exec(select(TokenSecurity).where(TokenSecurity.user_id == user_uuid)).first()
+        
+        # A. Nếu không có trong DB -> Chưa đăng nhập hoặc Đã SignOut
+        if not active:
+             raise HTTPException(status_code=401, detail="Phiên đăng nhập không tồn tại (Vui lòng đăng nhập lại).")
+
+        # B. Nếu Hash khác -> Token cũ (Đăng nhập máy khác)
+        if active.token_signature != token_hash:
+             raise HTTPException(status_code=401, detail="Phiên hết hạn (Tài khoản đang được dùng ở nơi khác).")
+        
+        # C. Nếu Hash khớp nhưng IP khác -> IP Mismatch (Hack)
+        if active.ip_address != client_ip:
+            print(f"SECURITY: User {user_uuid} đổi IP đột ngột. Gốc: {active.ip_address}, Mới: {client_ip}")
+            
+            # Xóa session ngay lập tức để chặn
+            session.delete(active)
+            session.commit()
+            
+            raise HTTPException(status_code=401, detail="Phát hiện IP bất thường. Phiên đã bị hủy để bảo vệ tài khoản.")
+
+    # 3. GỌI SUPABASE AUTH (Verify Expiration & Signature)
     try:
-        # 5. "Bảo vệ" gọi Supabase Auth: "Kiểm tra cái 'vé' (token) này"
         user_response = supabase_guard_client.auth.get_user(real_token)
-        
-        user = user_response.user
-        
-        if not user:
-             raise HTTPException(status_code=401, detail="Token hợp lệ nhưng không tìm thấy user")
-        
-        # 6. "Bảo vệ" trả về đối tượng User (chứa UUID, email...)
-        return user
-        
-    except Exception as e:
-        # 7. XỬ LÝ "VÉ HẾT HẠN"
-        print(f"LỖI BẢO MẬT (auth_guard): {e}")
-        raise HTTPException(
-            status_code=401, # 401 Unauthorized
-            detail="Token không hợp lệ hoặc đã hết hạn"
-        )
+        return user_response.user
+    except Exception:
+        raise HTTPException(status_code=401, detail="Token hết hạn")
