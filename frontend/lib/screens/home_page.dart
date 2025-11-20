@@ -8,6 +8,7 @@ import '../data/mock_destinations.dart';
 import '../models/destination.dart';
 import 'package:table_calendar/table_calendar.dart';
 import '../widgets/destination_search_modal.dart';
+import '../widgets/calendar_card.dart';
 
 class HomePage extends StatefulWidget {
   final void Function(Destination)? onDestinationTap;
@@ -391,7 +392,7 @@ class _CalendarOverlay extends StatelessWidget {
           alignment: Alignment.center,
           child: GestureDetector(
             onTap: () {},
-            child: _CalendarCard(
+            child: CalendarCard(
               focusedDay: focusedDay,
               rangeStart: rangeStart,
               rangeEnd: rangeEnd,
@@ -400,84 +401,6 @@ class _CalendarOverlay extends StatelessWidget {
               onClose: onClose,
             ),
           ),
-        ),
-      ),
-    );
-  }
-}
-
-class _CalendarCard extends StatelessWidget {
-  final DateTime focusedDay;
-  final DateTime? rangeStart;
-  final DateTime? rangeEnd;
-  final Function(DateTime, DateTime) onDaySelected;
-  final Function(DateTime) onPageChanged;
-  final VoidCallback onClose;
-
-  const _CalendarCard(
-      {required this.focusedDay,
-        this.rangeStart,
-        this.rangeEnd,
-        required this.onDaySelected,
-        required this.onPageChanged,
-        required this.onClose});
-
-  @override
-  Widget build(BuildContext context) {
-    const accentColor = Color(0xFFA15C20);
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 24),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text('select_date'.tr(),
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-            TableCalendar(
-              firstDay: DateTime.utc(2020, 1, 1),
-              lastDay: DateTime.utc(2030, 12, 31),
-              focusedDay: focusedDay,
-              rangeStartDay: rangeStart,
-              rangeEndDay: rangeEnd,
-              onDaySelected: onDaySelected,
-              onPageChanged: onPageChanged,
-              calendarStyle: CalendarStyle(
-                todayDecoration: BoxDecoration(
-                    color: accentColor.withAlpha((0.5 * 255).toInt()), shape: BoxShape.circle),
-                selectedDecoration: BoxDecoration(
-                    color: accentColor, shape: BoxShape.circle),
-                rangeStartDecoration: BoxDecoration(
-                    color: accentColor, shape: BoxShape.circle),
-                rangeEndDecoration: BoxDecoration(
-                    color: accentColor, shape: BoxShape.circle),
-                rangeHighlightColor: accentColor.withAlpha((0.5 * 255).toInt()),
-                // Keep default text colors for days but ensure header/selected visuals are clear.
-              ),
-              headerStyle: const HeaderStyle(
-                  formatButtonVisible: false, titleCentered: true),
-            ),
-            const SizedBox(height: 10),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: accentColor,
-                minimumSize: const Size(double.infinity, 50),
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(25)),
-              ),
-              onPressed: onClose,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text('select_date'.tr(),
-                      style: const TextStyle(color: Colors.white, fontSize: 16)),
-                  const SizedBox(width: 8),
-                  const Icon(Icons.arrow_forward, color: Colors.white, size: 20),
-                ],
-              ),
-            ),
-          ],
         ),
       ),
     );

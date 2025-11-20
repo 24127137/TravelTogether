@@ -81,9 +81,10 @@ class DestinationDetailScreen extends StatelessWidget {
               Positioned(
                 left: 16,
                 right: 16,
-                bottom: 0,
+                top: imageHeight - 120, // ← Thêm top để fix vị trí
+                bottom: kBottomNavigationBarHeight + 90,
                 child: Container(
-                  padding: const EdgeInsets.only(bottom: 100, top: 20),
+                  padding: const EdgeInsets.only(top: 20),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisSize: MainAxisSize.min,
@@ -114,7 +115,6 @@ class DestinationDetailScreen extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: 18),
-                      const SizedBox(height: 20),
                       Text(
                         'description'.tr(),
                         style: const TextStyle(
@@ -125,7 +125,8 @@ class DestinationDetailScreen extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: 6),
-                      Text(
+                      Expanded(
+                      child: Text(
                         dest.getDescription(context.locale.languageCode),
                         style: const TextStyle(
                           color: Colors.white,
@@ -133,6 +134,7 @@ class DestinationDetailScreen extends StatelessWidget {
                           fontFamily: 'Poppins',
                           height: 1.5,
                         ),
+                      ),
                       ),
                     ],
                   ),
@@ -143,7 +145,7 @@ class DestinationDetailScreen extends StatelessWidget {
               Positioned(
                 left: 0,
                 right: 0,
-                bottom: 24,
+                bottom: kBottomNavigationBarHeight + 35, // ← Đặt ngay trên thanh bar
                 child: Center(
                   child: EnterButton(
                     onConfirm: onContinue ?? () {

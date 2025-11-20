@@ -10,11 +10,13 @@ import '../models/destination.dart';
 import 'destination_detail_screen.dart';
 import 'destination_explore_screen.dart';
 import 'before_group_screen.dart';
+import 'group_creating.dart';
 import 'destination_search_screen.dart';
 import 'settings_screen.dart';
 import 'private_screen.dart';
 import 'notification_screen.dart';
 import 'profile.dart';
+import 'join_group_screen.dart';
 
 class MainAppScreen extends StatefulWidget {
   final int initialIndex;
@@ -36,8 +38,11 @@ class _MainAppScreenState extends State<MainAppScreen> {
   bool _showDetail = false;
   bool _showExplore = false;
   bool _showBeforeGroup = false;
+  bool _showGroupCreating = false;
   bool _showSettings = false;
   bool _showProfile = false;
+  bool _showJoinGroup = false;
+  String? _groupDestinationName;
 
   @override
   void initState() {
@@ -51,8 +56,10 @@ class _MainAppScreenState extends State<MainAppScreen> {
       _showDetail = false;
       _showExplore = false;
       _showBeforeGroup = false;
+      _showGroupCreating = false;
       _showSettings = false;
       _showProfile = false;
+      _showJoinGroup = false;
     });
   }
 
@@ -62,7 +69,9 @@ class _MainAppScreenState extends State<MainAppScreen> {
       _showDetail = true;
       _showExplore = false;
       _showBeforeGroup = false;
+      _showGroupCreating = false;
       _showSettings = false;
+      _selectedIndex = -1; // ← KHÔNG ửng màu icon nào
     });
   }
 
@@ -71,7 +80,9 @@ class _MainAppScreenState extends State<MainAppScreen> {
       _showDetail = false;
       _showExplore = true;
       _showBeforeGroup = false;
+      _showGroupCreating = false;
       _showSettings = false;
+      _selectedIndex = -1; // ← KHÔNG ửng màu icon nào
     });
   }
 
@@ -80,7 +91,22 @@ class _MainAppScreenState extends State<MainAppScreen> {
       _showDetail = false;
       _showExplore = false;
       _showBeforeGroup = true;
+      _showGroupCreating = false;
       _showSettings = false;
+      _selectedIndex = -1; // ← KHÔNG ửng màu icon nào
+    });
+  }
+
+  void _openGroupCreating(String? destinationName) {
+    setState(() {
+      _showDetail = false;
+      _showExplore = false;
+      _showBeforeGroup = false;
+      _showGroupCreating = true;
+      _showSettings = false;
+      _showProfile = false;
+      _groupDestinationName = destinationName;
+      _selectedIndex = -1; // ← KHÔNG ửng màu icon nào
     });
   }
 
@@ -89,6 +115,7 @@ class _MainAppScreenState extends State<MainAppScreen> {
       _showDetail = false;
       _showExplore = false;
       _showBeforeGroup = false;
+      _showGroupCreating = false;
       _showSettings = false;
       _showProfile = false;
     });
@@ -99,8 +126,10 @@ class _MainAppScreenState extends State<MainAppScreen> {
       _showDetail = false;
       _showExplore = false;
       _showBeforeGroup = false;
+      _showGroupCreating = false;
       _showSettings = true;
       _showProfile = false;
+      _selectedIndex = -1; // Đặt selectedIndex về -1 để không chọn tab nào
     });
   }
 
@@ -109,8 +138,23 @@ class _MainAppScreenState extends State<MainAppScreen> {
       _showDetail = false;
       _showExplore = false;
       _showBeforeGroup = false;
+      _showGroupCreating = false;
       _showSettings = false;
       _showProfile = true;
+      _selectedIndex = -1; // ← KHÔNG ửng màu icon nào
+    });
+  }
+
+  void _openJoinGroup() {
+    setState(() {
+      _showDetail = false;
+      _showExplore = false;
+      _showBeforeGroup = false;
+      _showGroupCreating = false;
+      _showSettings = false;
+      _showProfile = false;
+      _showJoinGroup = true; // ← Thêm flag mới
+      _selectedIndex = -1;
     });
   }
 
@@ -127,12 +171,24 @@ class _MainAppScreenState extends State<MainAppScreen> {
 
   // Xử lý nút back của điện thoại
   Future<bool> _handleBackButton() async {
-    // Nếu đang ở màn hình phụ (Settings, Detail, Explore, BeforeGroup, Profile)
+    // Nếu đang ở màn hình phụ (Settings, Detail, Explore, BeforeGroup, GroupCreating, Profile)
     if (_showSettings || _showDetail || _showExplore || _showBeforeGroup ||
-        _showProfile) {
+        _showGroupCreating || _showProfile) {
+      if (_showJoinGroup) {
+        setState(() {
+          _showJoinGroup = false;
+          _showBeforeGroup = true;
+        });
+        return false;
+      }
       // Nếu đang ở Profile, quay về Settings
       if (_showProfile) {
         _openSettings();
+        return false;
+      }
+      // Nếu đang ở GroupCreating, quay về BeforeGroup
+      if (_showGroupCreating) {
+        _openBeforeGroup();
         return false;
       }
       // Các trường hợp khác, đóng tất cả
@@ -174,13 +230,32 @@ class _MainAppScreenState extends State<MainAppScreen> {
   @override
   Widget build(BuildContext context) {
     Widget mainContent;
-    if (_showProfile) {
+    if (_showJoinGroup) {
+      mainContent = JoinGroupScreen(
+        onBack: () {
+          setState(() {
+            _showJoinGroup = false;
+            _showBeforeGroup = true;
+          });
+        },
+      );
+    }
+    else if (_showProfile) {
       mainContent = ProfilePage(onBack: _openSettings);
     } else if (_showSettings) {
       mainContent =
           SettingsScreen(onBack: _closeAllScreens, onProfileTap: _openProfile);
+    } else if (_showGroupCreating) {
+      mainContent = GroupCreatingScreen(
+        destinationName: _groupDestinationName,
+        onBack: _openBeforeGroup,
+      );
     } else if (_showBeforeGroup) {
-      mainContent = BeforeGroup(onBack: _closeAllScreens);
+      mainContent = BeforeGroup(
+        onBack: _closeAllScreens,
+        onCreateGroup: _openGroupCreating,
+        onJoinGroup: _openJoinGroup,
+      );
     } else if (_showDetail && _selectedDestination != null) {
       mainContent = DestinationDetailScreen(
         destination: _selectedDestination,
@@ -223,11 +298,23 @@ class _MainAppScreenState extends State<MainAppScreen> {
         }
       },
       child: Scaffold(
-        extendBody: true, // Cho phép body kéo dài xuống dưới bottom bar
-        body: mainContent,
-        bottomNavigationBar: CustomBottomNavBar(
-          currentIndex: _selectedIndex,
-          onTap: _onItemTapped,
+        extendBody: true,
+        body: Stack( // ← Thêm Stack
+          children: [
+            // Nội dung chính
+            mainContent,
+
+            // Thanh bar luôn ở trên cùng
+            Positioned(
+              bottom: 0,
+              left: 0,
+              right: 0,
+              child: CustomBottomNavBar(
+                currentIndex: _selectedIndex,
+                onTap: _onItemTapped,
+              ),
+            ),
+          ],
         ),
       ),
     );

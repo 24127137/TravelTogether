@@ -1,12 +1,20 @@
 /// File: before_group_screen.dart
 //File này là screen tên là Group or Solo trong figma
 import 'package:flutter/material.dart';
-
+import 'join_group_screen.dart';
 
 // Chuyển thành StatefulWidget để quản lý trạng thái của icon trái tim
 class BeforeGroup extends StatefulWidget {
   final VoidCallback? onBack;
-  const BeforeGroup({Key? key, this.onBack}) : super(key: key);
+  final Function(String? destinationName)? onCreateGroup;
+  final VoidCallback? onJoinGroup;
+
+  const BeforeGroup({
+    Key? key,
+    this.onBack,
+    this.onCreateGroup,
+    this.onJoinGroup,
+  }) : super(key: key);
 
   @override
   State<BeforeGroup> createState() => _BeforeGroupState();
@@ -28,8 +36,20 @@ class _BeforeGroupState extends State<BeforeGroup> {
       }
     });
     await Future.delayed(const Duration(milliseconds: 300));
-    if (widget.onBack != null) widget.onBack!();
+
+    if (cardType == 'Tạo nhóm') {
+      // Gọi callback để mở GroupCreatingScreen
+      if (widget.onCreateGroup != null) {
+        widget.onCreateGroup!('Đà Lạt'); // Có thể truyền tên địa điểm thực tế
+      }
+    } else {
+      // Gọi callback để mở JoinGroupScreen
+      if (widget.onJoinGroup != null) {
+        widget.onJoinGroup!();
+      }
+    }
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -48,18 +68,16 @@ class _BeforeGroupState extends State<BeforeGroup> {
           ),
 
           // Lớp 2: Nội dung có thể cuộn
-          // Sử dụng SingleChildScrollView để tránh lỗi overflow
-          Padding(
-            padding: EdgeInsets.only(
-              bottom: kBottomNavigationBarHeight + MediaQuery.of(context).padding.bottom + 16,
-            ),
+          SingleChildScrollView(
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20.0),
+              padding: EdgeInsets.only(
+                top: 100,
+                left: 20,
+                right: 20,
+                bottom: kBottomNavigationBarHeight + MediaQuery.of(context).padding.bottom + 40,
+              ),
               child: Column(
                 children: [
-                  // Thêm khoảng trống để né Header
-                  const SizedBox(height: 100),
-
                   // Card "Tạo nhóm"
                   // Sắp xếp lệch trái bằng Padding
                   Padding(
@@ -87,9 +105,6 @@ class _BeforeGroupState extends State<BeforeGroup> {
                       onTap: () => _handleCardTap('Gia nhập'),
                     ),
                   ),
-
-                  // Thêm khoảng trống để né BottomNavBar
-                  const SizedBox(height: 1),
                 ],
               ),
             ),
@@ -97,8 +112,6 @@ class _BeforeGroupState extends State<BeforeGroup> {
 
           // Lớp 3: Header cố định
           _buildHeader(),
-
-          // Lớp 4: (Đã loại bỏ Bottom Navigation Bar để sử dụng bar từ MainAppScreen)
         ],
       ),
     );
@@ -123,7 +136,6 @@ class _BeforeGroupState extends State<BeforeGroup> {
                 color: const Color(0xFFF0E7D8),
               ),
             ),
-            // Centered header text, moved slightly lower
             Positioned(
               top: 30,
               left: 0,
@@ -194,7 +206,6 @@ class _BeforeGroupState extends State<BeforeGroup> {
                 ],
               ),
             ),
-            // Text (đặt ở dưới cùng, nhích xuống để tránh chạm ảnh)
             Positioned(
               bottom: 1,
               left: 0,
