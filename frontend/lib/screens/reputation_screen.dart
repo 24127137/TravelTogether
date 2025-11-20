@@ -25,25 +25,25 @@ class ReputationScreen extends StatelessWidget {
     final groupRatings = [
       GroupRating(
         groupName: 'TÊN NHÓM 1',
-        groupAvatar: 'https://placehold.co/64x64',
+        groupAvatar: 'assets/images/dalat.jpg',
         rating: 4.5,
         keywords: ['Friendly', 'Punctual', 'Helpful'],
       ),
       GroupRating(
         groupName: 'TÊN NHÓM 2',
-        groupAvatar: 'https://placehold.co/64x64',
+        groupAvatar: 'assets/images/sapa.jpg',
         rating: 4.8,
         keywords: ['Professional', 'Fun'],
       ),
       GroupRating(
         groupName: 'TÊN NHÓM 3',
-        groupAvatar: 'https://placehold.co/64x64',
+        groupAvatar: 'assets/images/saigon.jpg',
         rating: 4.2,
         keywords: ['Organized', 'Friendly'],
       ),
       GroupRating(
         groupName: 'TÊN NHÓM 4',
-        groupAvatar: 'https://placehold.co/64x64',
+        groupAvatar: 'assets/images/halong.jpg',
         rating: 4.7,
         keywords: ['Reliable', 'Enthusiastic'],
       ),
@@ -77,12 +77,11 @@ class ReputationScreen extends StatelessWidget {
           SafeArea(
             child: Column(
               children: [
-                // Header
+                // Header với nút back
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 26, vertical: 15),
                   child: Row(
                     children: [
-                      // Back button
                       Container(
                         width: 44,
                         height: 44,
@@ -99,50 +98,84 @@ class ReputationScreen extends StatelessWidget {
                   ),
                 ),
 
-                // Title
-                const Padding(
-                  padding: EdgeInsets.only(top: 10),
-                  child: Text(
-                    'UY TÍN',
-                    style: TextStyle(
-                      color: Color(0xFFF49B57),
-                      fontSize: 96,
-                      fontFamily: 'Alumni Sans',
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                ),
+                const SizedBox(height: 10),
 
-                const SizedBox(height: 20),
-
-                // Content card
+                // Stack để đặt chữ UY TÍN chồng lên viền khung (giống GÓP Ý)
                 Expanded(
-                  child: Container(
-                    margin: const EdgeInsets.symmetric(horizontal: 19),
-                    decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha: 0.40),
-                      border: Border.all(color: const Color(0xFFEDE2CC), width: 6),
-                      borderRadius: BorderRadius.circular(30),
-                    ),
-                    child: ListView(
-                      padding: const EdgeInsets.all(24),
-                      children: [
-                        // User info section
-                        _UserInfoCard(userRating: userRating),
+                  child: Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      // Content card - bắt đầu từ giữa chữ UY TÍN
+                      Positioned(
+                        top: 50, // Một nửa chiều cao của text
+                        left: 20,
+                        right: 20,
+                        bottom: 20,
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: Colors.black.withOpacity(0.27), // Giống khung GÓP Ý
+                            border: Border.all(color: const Color(0xFFEDE2CC), width: 6),
+                            borderRadius: BorderRadius.circular(30),
+                          ),
+                          child: ListView(
+                            padding: const EdgeInsets.fromLTRB(24, 60, 24, 24),
+                            children: [
+                              // User info section
+                              _UserInfoCard(userRating: userRating),
 
-                        const SizedBox(height: 40),
+                              const SizedBox(height: 40),
 
-                        // Group ratings list
-                        ...groupRatings.map((rating) => Padding(
-                          padding: const EdgeInsets.only(bottom: 16),
-                          child: _GroupRatingCard(groupRating: rating),
-                        )),
-                      ],
-                    ),
+                              // Group ratings list
+                              ...groupRatings.map((rating) => Padding(
+                                padding: const EdgeInsets.only(bottom: 16),
+                                child: _GroupRatingCard(groupRating: rating),
+                              )),
+                            ],
+                          ),
+                        ),
+                      ),
+
+                      // Chữ UY TÍN với viền màu F7912D (giống GÓP Ý)
+                      Positioned(
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        child: Transform.translate(
+                          offset: const Offset(0, -55), // Giống với GÓP Ý
+                          child: Center(
+                            child: Stack(
+                              children: [
+                                // Viền
+                                Text(
+                                  'UY TÍN',
+                                  style: TextStyle(
+                                    fontSize: 96,
+                                    fontFamily: 'Alumni Sans',
+                                    fontWeight: FontWeight.w900,
+                                    foreground: Paint()
+                                      ..style = PaintingStyle.stroke
+                                      ..strokeWidth = 5
+                                      ..color = const Color(0xFFF7912D),
+                                  ),
+                                ),
+                                // Chữ chính
+                                const Text(
+                                  'UY TÍN',
+                                  style: TextStyle(
+                                    color: Color(0xFF4A1A0F),
+                                    fontSize: 96,
+                                    fontFamily: 'Alumni Sans',
+                                    fontWeight: FontWeight.w900,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-
-                const SizedBox(height: 20),
               ],
             ),
           ),
@@ -172,7 +205,7 @@ class _UserInfoCard extends StatelessWidget {
               decoration: const BoxDecoration(
                 shape: BoxShape.circle,
                 image: DecorationImage(
-                  image: NetworkImage("https://placehold.co/77x77"),
+                  image: AssetImage("assets/images/avatar.jpg"),
                   fit: BoxFit.cover,
                 ),
               ),
@@ -248,7 +281,7 @@ class _GroupRatingCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 85,
+      height: 128 ,
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
         color: const Color(0xFFDCC9A7),
@@ -258,12 +291,12 @@ class _GroupRatingCard extends StatelessWidget {
         children: [
           // Group avatar
           Container(
-            width: 64,
-            height: 64,
+            width: 105,
+            height: 105,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(10),
               image: DecorationImage(
-                image: NetworkImage(groupRating.groupAvatar),
+                image: AssetImage(groupRating.groupAvatar),
                 fit: BoxFit.cover,
               ),
             ),
@@ -317,6 +350,7 @@ class _GroupRatingCard extends StatelessWidget {
                 // Keywords tags
                 Wrap(
                   spacing: 6,
+                  runSpacing: 6,
                   children: groupRating.keywords.map((keyword) {
                     return Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),

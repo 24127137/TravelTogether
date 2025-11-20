@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:intl/date_symbol_data_local.dart';
 
 import 'screens/onboarding.dart';
 import 'screens/main_app_screen.dart';
@@ -10,6 +11,10 @@ import 'services/auth_service.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await EasyLocalization.ensureInitialized();
+
+  // Initialize date formatting for locales
+  await initializeDateFormatting('vi_VN', null);
+  await initializeDateFormatting('en_US', null);
 
   WidgetsFlutterBinding.ensureInitialized();
   await Supabase.initialize(

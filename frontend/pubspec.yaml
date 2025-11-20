@@ -64,6 +64,7 @@ flutter:
 
   assets:
     - assets/images/
+    - assets/images/group_creating/
     - assets/translations/
     - assets/images/travel_plan.png
     - assets/images/nen_canhantrang.png
@@ -114,6 +115,9 @@ flutter:
     - family: AlumniSans
       fonts:
         - asset: assets/fonts/AlumniSans-Italic-VariableFont_wght.ttf
+    - family: DMSerifDisplay
+      fonts:
+        - asset: assets/fonts/DMSerifDisplay-Regular.ttf
     - family: Inter
       fonts:
         - asset: assets/fonts/Inter-VariableFont_opsz,wght.ttf

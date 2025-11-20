@@ -2,11 +2,16 @@
 //File này là screen tên là Group or Solo trong figma
 import 'package:flutter/material.dart';
 
-
 // Chuyển thành StatefulWidget để quản lý trạng thái của icon trái tim
 class BeforeGroup extends StatefulWidget {
   final VoidCallback? onBack;
-  const BeforeGroup({Key? key, this.onBack}) : super(key: key);
+  final Function(String? destinationName)? onCreateGroup;
+
+  const BeforeGroup({
+    Key? key,
+    this.onBack,
+    this.onCreateGroup,
+  }) : super(key: key);
 
   @override
   State<BeforeGroup> createState() => _BeforeGroupState();
@@ -28,7 +33,16 @@ class _BeforeGroupState extends State<BeforeGroup> {
       }
     });
     await Future.delayed(const Duration(milliseconds: 300));
-    if (widget.onBack != null) widget.onBack!();
+
+    if (cardType == 'Tạo nhóm') {
+      // Gọi callback để mở GroupCreatingScreen
+      if (widget.onCreateGroup != null) {
+        widget.onCreateGroup!('Đà Lạt'); // Có thể truyền tên địa điểm thực tế
+      }
+    } else {
+      // Xử lý "Gia nhập" - quay lại
+      if (widget.onBack != null) widget.onBack!();
+    }
   }
 
   @override
@@ -43,35 +57,35 @@ class _BeforeGroupState extends State<BeforeGroup> {
         children: [
           // Lớp 1: Ảnh nền
           Image.asset(
-            'assets/images/danang.jpg',
+            'assets/images/group.png',
             fit: BoxFit.cover,
           ),
 
           // Lớp 2: Nội dung có thể cuộn
-          // Sử dụng SingleChildScrollView để tránh lỗi overflow
           SingleChildScrollView(
-            padding: EdgeInsets.only(bottom: kBottomNavigationBarHeight + MediaQuery.of(context).padding.bottom + 16),
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20.0),
+              padding: EdgeInsets.only(
+                top: 100,
+                left: 20,
+                right: 20,
+                bottom: kBottomNavigationBarHeight + MediaQuery.of(context).padding.bottom + 40,
+              ),
               child: Column(
                 children: [
-                  // Thêm khoảng trống để né Header
-                  const SizedBox(height: 100),
-
                   // Card "Tạo nhóm"
                   // Sắp xếp lệch trái bằng Padding
                   Padding(
                     padding: const EdgeInsets.only(right: 80.0),
                     child: _buildGroupCard(
                       title: 'Tạo nhóm',
-                      imagePath: 'assets/images/dalat.jpg',
+                      imagePath: 'assets/images/create.jpg',
                       titleColor: const Color(0xFF723B12),
                       isFavorite: _isTaoNhomFav,
                       onTap: () => _handleCardTap('Tạo nhóm'),
                     ),
                   ),
 
-                  const SizedBox(height: 30),
+                  const SizedBox(height: 20),
 
                   // Card "Gia nhập"
                   // Sắp xếp lệch phải bằng Padding
@@ -79,15 +93,12 @@ class _BeforeGroupState extends State<BeforeGroup> {
                     padding: const EdgeInsets.only(left: 80.0),
                     child: _buildGroupCard(
                       title: 'Gia nhập',
-                      imagePath: 'assets/images/phuquoc.jpg',
+                      imagePath: 'assets/images/join.jpg',
                       titleColor: const Color(0xFF8A724C),
                       isFavorite: _isGiaNhapFav,
                       onTap: () => _handleCardTap('Gia nhập'),
                     ),
                   ),
-
-                  // Thêm khoảng trống để né BottomNavBar
-                  const SizedBox(height: 120),
                 ],
               ),
             ),
@@ -95,8 +106,6 @@ class _BeforeGroupState extends State<BeforeGroup> {
 
           // Lớp 3: Header cố định
           _buildHeader(),
-
-          // Lớp 4: (Đã loại bỏ Bottom Navigation Bar để sử dụng bar từ MainAppScreen)
         ],
       ),
     );
@@ -118,37 +127,9 @@ class _BeforeGroupState extends State<BeforeGroup> {
               child: Container(
                 width: MediaQuery.of(context).size.width, // Full width
                 height: 70,
-                color: const Color(0x70DCC9A7),
-              ),
-            ),
-            Positioned(
-              left: 72,
-              top: 1,
-              child: Container(
-                width: 100,
-                height: 69,
                 color: const Color(0xFFF0E7D8),
               ),
             ),
-            Positioned(
-              left: 15,
-              top: 21,
-              child: Container(
-                width: 53,
-                height: 42,
-                color: const Color(0xFFF0E7D8),
-              ),
-            ),
-            Positioned(
-              left: 312,
-              top: 18,
-              child: Container(
-                width: 88,
-                height: 42,
-                color: const Color(0xFFF0E7D8),
-              ),
-            ),
-            // Centered header text, moved slightly lower
             Positioned(
               top: 30,
               left: 0,
@@ -183,7 +164,7 @@ class _BeforeGroupState extends State<BeforeGroup> {
       onTap: onTap,
       child: Container(
         width: 295,
-        height: 333,
+        height: 295,
         decoration: BoxDecoration(
           color: const Color(0xFFEDE2CC),
           borderRadius: BorderRadius.circular(15),
@@ -198,7 +179,7 @@ class _BeforeGroupState extends State<BeforeGroup> {
               child: Stack(
                 children: [
                   Container(
-                    height: 257,
+                    height: 240,
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(10),
                       image: DecorationImage(
@@ -219,9 +200,8 @@ class _BeforeGroupState extends State<BeforeGroup> {
                 ],
               ),
             ),
-            // Text (đặt ở dưới cùng, nhích xuống để tránh chạm ảnh)
             Positioned(
-              bottom: 5,
+              bottom: 1,
               left: 0,
               right: 0,
               child: Center(
@@ -229,8 +209,8 @@ class _BeforeGroupState extends State<BeforeGroup> {
                   title,
                   style: TextStyle(
                     color: titleColor,
-                    fontSize: 35,
-                    fontFamily: 'Inter',
+                    fontSize: 25,
+                    fontFamily: 'Alumni Sans',
                     fontWeight: FontWeight.w700,
                     decoration: TextDecoration.none,
                   ),
