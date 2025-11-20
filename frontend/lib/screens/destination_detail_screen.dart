@@ -5,7 +5,7 @@ import '../models/destination.dart';
 import '../data/mock_destinations.dart';
 import '../screens/destination_explore_screen.dart';
 import '../widgets/enter_bar.dart'; // Import thêm
-//File này là screen tên là <Mô tả thành phố> trong figma
+
 class DestinationDetailScreen extends StatelessWidget {
   final Destination? destination;
   final VoidCallback? onBack;
@@ -69,9 +69,9 @@ class DestinationDetailScreen extends StatelessWidget {
                 top: 12,
                 left: 12,
                 child: CircleAvatar(
-                  backgroundColor: Colors.black45,
+                  backgroundColor: Colors.white,
                   child: IconButton(
-                    icon: const Icon(Icons.arrow_back, color: Colors.white),
+                    icon: const Icon(Icons.arrow_back, color: Colors.black),
                     onPressed: onBack ?? () => Navigator.of(context).pop(),
                   ),
                 ),
@@ -148,15 +148,18 @@ class DestinationDetailScreen extends StatelessWidget {
                   child: EnterButton(
                     onConfirm: onContinue ?? () {
                       print('DestinationDetail: nút Tiếp tục bấm, cityId=${dest.cityId}');
-                      WidgetsBinding.instance.addPostFrameCallback((_) {
-                        Navigator.of(context, rootNavigator: true).push(MaterialPageRoute(
-                          builder: (_) => DestinationExploreScreen(cityId: dest.cityId),
-                        ));
-                      });
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => DestinationExploreScreen(cityId: dest.cityId),
+                        ),
+                      );
                     },
                   ),
+
                 ),
               ),
+
             ],
           ),
         ),

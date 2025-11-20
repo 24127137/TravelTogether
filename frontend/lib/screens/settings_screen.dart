@@ -3,10 +3,10 @@
 
 import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'login.dart';
-import 'profile.dart';
-//File này là screen tên là <Settings> trong figma
+import 'information_screen.dart';
+import 'reputation_screen.dart';
+import 'feedback_screen.dart';
+
 class SettingsScreen extends StatefulWidget {
   final VoidCallback onBack;
   final VoidCallback? onProfileTap;
@@ -26,7 +26,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return Container(
       decoration: const BoxDecoration(
         image: DecorationImage(
-          image: AssetImage('assets/images/halong.jpg'),
+          image: AssetImage('assets/images/Settings.png'),
           fit: BoxFit.cover,
         ),
       ),
@@ -35,12 +35,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
           children: [
             // Phần header cam
             Container(
+              margin: const EdgeInsets.symmetric(horizontal: 10),
               padding: const EdgeInsets.all(20.0),
               decoration: BoxDecoration(
                 color: const Color(0xFFA15C20).withValues(alpha: 0.85),
                 borderRadius: const BorderRadius.only(
-                  bottomLeft: Radius.circular(30),
-                  bottomRight: Radius.circular(30),
+                  topLeft: Radius.circular(40),
+                  topRight: Radius.circular(40),
+                  bottomLeft: Radius.circular(40),
+                  bottomRight: Radius.circular(40),
                 ),
               ),
               child: Column(
@@ -54,12 +57,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           width: 40,
                           height: 40,
                           decoration: const BoxDecoration(
-                            color: Color(0xFFA15C20),
+                            color: Color(0xFFEDE2CC),
                             shape: BoxShape.circle,
                           ),
                           child: const Icon(
                             Icons.arrow_back_ios_new,
-                            color: Color(0xFFFFFFFF),
+                            color: Color(0xFF1B1E28),
                             size: 20,
                           ),
                         ),
@@ -78,17 +81,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                   const SizedBox(height: 30),
                   // Phần thông tin người dùng (KHÔNG có box màu be bao quanh)
-                  InkWell(
-                    onTap: () {
-                      if (widget.onProfileTap != null) {
-                        widget.onProfileTap!();
-                      } else {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (context) => const ProfilePage()),
-                        );
-                      }
-                    },
+                  GestureDetector(
+                    onTap: widget.onProfileTap,
                     child: Row(
                       children: [
                         // Avatar với viền cam
@@ -128,25 +122,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                   color: Color(0xFFEDE2CC),
                                   fontFamily: 'Poppins',
                                 ),
-                              ),
-                            ],
-                          ),
+                            ),
+                          ],
                         ),
-                        // Icon mũi tên
-                        const Icon(
-                          Icons.chevron_right,
-                          color: Color(0xFFFFFFFF),
-                          size: 30,
-                        ),
-                      ],
-                    ),
+                      ),
+                      // Icon mũi tên
+                      const Icon(
+                        Icons.chevron_right,
+                        color: Color(0xFFFFFFFF),
+                        size: 30,
+                      ),
+                    ],
                   ),
-
+                  ),
                   const SizedBox(height: 20),
                 ],
               ),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 40),
             // Các tùy chọn cài đặt
             _buildSettingTile(
               icon: Icons.language,
@@ -161,11 +154,56 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 context.setLocale(const Locale('en'));
               },
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 40),
             _buildSettingTile(
               icon: Icons.chat_bubble_outline,
               title: _showGroupFeedback ? 'group_feedback'.tr() : 'reputation'.tr(),
-              onTap: () {},
+              onTap: () {
+                // Navigate dựa vào trạng thái hiện tại
+                if (_showGroupFeedback) {
+                  // Đang hiển thị "Phản hồi nhóm" → sang FeedbackScreen
+                  Navigator.push(
+                    context,
+                    PageRouteBuilder(
+                      pageBuilder: (context, animation, secondaryAnimation) => const FeedbackScreen(),
+                      transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                        const begin = Offset(1.0, 0.0);
+                        const end = Offset.zero;
+                        const curve = Curves.easeInOut;
+
+                        var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+                        var offsetAnimation = animation.drive(tween);
+
+                        return SlideTransition(
+                          position: offsetAnimation,
+                          child: child,
+                        );
+                      },
+                    ),
+                  );
+                } else {
+                  // Đang hiển thị "Uy tín" → sang ReputationScreen
+                  Navigator.push(
+                    context,
+                    PageRouteBuilder(
+                      pageBuilder: (context, animation, secondaryAnimation) => const ReputationScreen(),
+                      transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                        const begin = Offset(1.0, 0.0);
+                        const end = Offset.zero;
+                        const curve = Curves.easeInOut;
+
+                        var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+                        var offsetAnimation = animation.drive(tween);
+
+                        return SlideTransition(
+                          position: offsetAnimation,
+                          child: child,
+                        );
+                      },
+                    ),
+                  );
+                }
+              },
               onLeftTap: () {
                 // Bấm < = quay lại "Phản hồi nhóm"
                 setState(() {
@@ -179,11 +217,31 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 });
               },
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 40),
             _buildSettingTile(
               icon: Icons.info_outline,
               title: 'about'.tr(),
-              onTap: () {},
+              onTap: () {
+                Navigator.push(
+                  context,
+                  PageRouteBuilder(
+                    pageBuilder: (context, animation, secondaryAnimation) => const InformationScreen(),
+                    transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                      const begin = Offset(1.0, 0.0);
+                      const end = Offset.zero;
+                      const curve = Curves.easeInOut;
+
+                      var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+                      var offsetAnimation = animation.drive(tween);
+
+                      return SlideTransition(
+                        position: offsetAnimation,
+                        child: child,
+                      );
+                    },
+                  ),
+                );
+              },
               onLeftTap: null,
               onRightTap: null,
               hideArrows: true,
@@ -197,82 +255,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 height: 55,
                 child: ElevatedButton(
                   onPressed: () {
-                    // Hiển thị dialog xác nhận
-                    showDialog(
-                      context: context,
-                      builder: (BuildContext dialogContext) => AlertDialog(
-                        backgroundColor: const Color(0xFFEDE2CC),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        title: Text(
-                          'logout'.tr(),
-                          style: const TextStyle(
-                            color: Color(0xFFA15C20),
-                            fontFamily: 'Poppins',
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        content: Text(
-                          'logout_confirmation'.tr(),
-                          style: const TextStyle(
-                            color: Color(0xFFA15C20),
-                            fontFamily: 'Poppins',
-                          ),
-                        ),
-                        actions: [
-                          TextButton(
-                            onPressed: () {
-                              Navigator.of(dialogContext).pop();
-                            },
-                            child: Text(
-                              'cancel'.tr(),
-                              style: const TextStyle(
-                                color: Color(0xFFA15C20),
-                                fontFamily: 'Poppins',
-                              ),
-                            ),
-                          ),
-                          ElevatedButton(
-                            onPressed: () async {
-                              // Đóng dialog
-                              Navigator.of(dialogContext).pop();
-
-                              // Xóa access token
-                              final prefs = await SharedPreferences.getInstance();
-                              await prefs.remove('access_token');
-                              await prefs.remove('refresh_token');
-
-                              // Đợi một chút để dialog đóng hoàn toàn
-                              await Future.delayed(const Duration(milliseconds: 100));
-
-                              // Quay về trang đăng nhập và xóa toàn bộ navigation stack
-                              if (!context.mounted) return;
-
-                              Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
-                                MaterialPageRoute(
-                                  builder: (context) => const LoginScreen(),
-                                ),
-                                    (route) => false,
-                              );
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFFB64B12),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                            ),
-                            child: Text(
-                              'confirm'.tr(),
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontFamily: 'Poppins',
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    );
+                    // Xử lý đăng xuất
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFFB64B12),
@@ -309,9 +292,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
     bool hideArrows = false,
   }) {
     return Container(
+      height: 80,
       margin: const EdgeInsets.symmetric(horizontal: 20),
       decoration: BoxDecoration(
-        color: const Color(0xFFEDE2CC).withValues(alpha: 0.9),
+        color: const Color(0xFFDCC9A7).withValues(alpha: 0.9),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
           color: const Color(0xFFA15C20),
@@ -370,4 +354,3 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 }
-
