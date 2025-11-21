@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:easy_localization/easy_localization.dart';
 
 class InformationScreen extends StatelessWidget {
   const InformationScreen({super.key});
@@ -18,32 +19,6 @@ class InformationScreen extends StatelessWidget {
             ),
           ),
 
-          // Back button
-          SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.only(left: 26, top: 15),
-              child: Align(
-                alignment: Alignment.topLeft,
-                child: Container(
-                  width: 44,
-                  height: 44,
-                  decoration: const BoxDecoration(
-                    color: Color(0xFFF6F6F8),
-                    shape: BoxShape.circle,
-                  ),
-                  child: IconButton(
-                    icon: const Icon(Icons.arrow_back, color: Colors.black),
-                    onPressed: () {
-                      Navigator.of(context).pop();
-                    },
-                  ),
-                ),
-              ),
-            ),
-          ),
-
-
-          // Content có thể scroll
           CustomScrollView(
             slivers: [
               // Spacer để tạo khoảng trống ban đầu
@@ -102,10 +77,10 @@ class InformationScreen extends StatelessWidget {
                         const SizedBox(height: 20),
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                          color: Colors.black.withOpacity(0.43),
-                          child: const Text(
-                            'SỨ MỆNH',
-                            style: TextStyle(
+                          color: Colors.black.withValues(alpha: 0.43),
+                          child: Text(
+                            'info.mission_title'.tr(),
+                            style: const TextStyle(
                               color: Colors.white,
                               fontSize: 40,
                               fontFamily: 'Alumni Sans',
@@ -119,12 +94,9 @@ class InformationScreen extends StatelessWidget {
                         Container(
                           width: screenWidth - 32,
                           padding: const EdgeInsets.all(12),
-                          child: const Text(
-                            '   Bạn đã bao giờ dừng lại để ngắm nhìn những dãy núi hùng vĩ phía Bắc chưa?\n'
-                                '   Bạn có từng đắm mình trong làn nước trong xanh của biển miền Trung, hay lặng nhìn cánh đồng lúa vàng óng ở đồng bằng sông Cửu Long?\n'
-                                '   Bạn có cảm thấy lòng mình rung động trước vẻ cổ kính của những đô thị nghìn năm tuổi?\n\n'
-                                '   Ứng dụng của chúng tôi được tạo ra để giúp bạn khám phá, cảm nhận và lan toả những điều tuyệt vời ấy.',
-                            style: TextStyle(
+                          child: Text(
+                            'info.mission_text'.tr(),
+                            style: const TextStyle(
                               color: Colors.white,
                               fontSize: 13,
                               fontFamily: 'Times New Roman',
@@ -156,11 +128,11 @@ class InformationScreen extends StatelessWidget {
                                 crossAxisAlignment: CrossAxisAlignment.end,
                                 children: [
                                   Container(
-                                    color: Colors.black.withOpacity(0.43),
-                                    child: const Text(
-                                      'Khám phá những điểm đến và những người có cùng sở thích với bạn.',
+                                    color: Colors.black.withValues(alpha: 0.43),
+                                    child: Text(
+                                      'info.discovery_caption'.tr(),
                                       textAlign: TextAlign.right,
-                                      style: TextStyle(
+                                      style: const TextStyle(
                                         color: Colors.white,
                                         fontSize: 22,
                                         fontFamily: 'Times New Roman',
@@ -171,12 +143,10 @@ class InformationScreen extends StatelessWidget {
                                   ),
 
                                   const SizedBox(height: 20),
-                                  const Text(
-                                    'Mỗi hành trình là cơ hội để bạn tìm thấy không chỉ cảnh đẹp, mà còn những tâm hồn đồng điệu.\n\n'
-                                        'Khám phá những vùng đất mới, gặp gỡ những người chia sẻ cùng năng lượng và sở thích.\n\n'
-                                        'Hãy để chuyến đi của bạn bắt đầu bằng sự kết nối và cảm hứng.',
+                                  Text(
+                                    'info.discovery_text'.tr(),
                                     textAlign: TextAlign.right,
-                                    style: TextStyle(
+                                    style: const TextStyle(
                                       color: Colors.white,
                                       fontSize: 13,
                                       fontFamily: 'Times New Roman',
@@ -190,13 +160,13 @@ class InformationScreen extends StatelessWidget {
                           ],
                         ),
 
-// SECTION 3: Matching
+                        // SECTION 3: Matching
                         const SizedBox(height: 60),
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                          child: const Text(
-                            '"Matching"',
-                            style: TextStyle(
+                          child: Text(
+                            'info.matching_title'.tr(),
+                            style: const TextStyle(
                               color: Colors.white,
                               fontSize: 40,
                               fontFamily: 'Alumni Sans',
@@ -206,7 +176,7 @@ class InformationScreen extends StatelessWidget {
                         ),
 
                         const SizedBox(height: 30),
-// Left text + Right image (image đè lên text)
+                        // Left text + Right image (image đè lên text)
                         SizedBox(
                           height: 320,
                           child: Stack(
@@ -220,14 +190,12 @@ class InformationScreen extends StatelessWidget {
                                 child: Container(
                                   padding: const EdgeInsets.all(16),
                                   decoration: BoxDecoration(
-                                    color: Colors.black.withOpacity(0.53),
+                                    color: Colors.black.withValues(alpha: 0.53),
                                     borderRadius: BorderRadius.circular(30),
                                   ),
-                                  child: const Text(
-                                    '  Du lịch không chỉ là đi, mà còn là cùng nhau trải nghiệm.\n\n'
-                                        '  Ứng dụng giúp bạn tìm thấy người có chung phong cách du lịch – thư giãn, khám phá hay phiêu lưu.\n\n'
-                                        '  Hãy bắt đầu hành trình với những người thật sự hiểu bạn.',
-                                    style: TextStyle(
+                                  child: Text(
+                                    'info.matching_text'.tr(),
+                                    style: const TextStyle(
                                       color: Colors.white,
                                       fontSize: 11,
                                       fontFamily: 'Times New Roman',
@@ -261,7 +229,7 @@ class InformationScreen extends StatelessWidget {
                         ),
 
                         const SizedBox(height: 30),
-// Bottom: Image left (đè lên text) + Text right
+                        // Bottom: Image left (đè lên text) + Text right
                         SizedBox(
                           height: 340,
                           child: Stack(
@@ -278,14 +246,12 @@ class InformationScreen extends StatelessWidget {
                                   ),
                                   padding: const EdgeInsets.all(16),
                                   decoration: BoxDecoration(
-                                    color: Colors.black.withOpacity(0.57),
+                                    color: Colors.black.withValues(alpha: 0.57),
                                     borderRadius: BorderRadius.circular(20),
                                   ),
-                                  child: const Text(
-                                    '  Chia sẻ ý tưởng, lập lịch trình và cùng nhau viết nên câu chuyện hành trình riêng.\n\n'
-                                        '  Từng điểm đến sẽ trở nên đáng nhớ hơn khi được đồng hành bởi những người bạn mới.\n\n'
-                                        '  Vì niềm vui du lịch không chỉ đến từ nơi ta đến, mà từ người cùng ta đi.',
-                                    style: TextStyle(
+                                  child: Text(
+                                    'info.share_text'.tr(),
+                                    style: const TextStyle(
                                       color: Colors.white,
                                       fontSize: 11,
                                       fontFamily: 'Times New Roman',
@@ -327,6 +293,30 @@ class InformationScreen extends StatelessWidget {
                 ),
               ),
             ],
+          ),
+
+          // Back button should be on top so it's clickable
+          SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.only(left: 26, top: 15),
+              child: Align(
+                alignment: Alignment.topLeft,
+                child: Container(
+                  width: 44,
+                  height: 44,
+                  decoration: const BoxDecoration(
+                    color: Color(0xFFF6F6F8),
+                    shape: BoxShape.circle,
+                  ),
+                  child: IconButton(
+                    icon: const Icon(Icons.arrow_back, color: Colors.black),
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                    },
+                  ),
+                ),
+              ),
+            ),
           ),
         ],
       ),
