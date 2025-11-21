@@ -13,9 +13,12 @@ import 'before_group_screen.dart';
 import 'group_creating.dart';
 import 'destination_search_screen.dart';
 import 'settings_screen.dart';
-import 'private_screen.dart';
 import 'notification_screen.dart';
 import 'profile.dart';
+import 'join_group_screen.dart';
+import 'group_state_screen.dart';
+import 'travel_plan_screen.dart';
+import 'personal_section.dart';
 
 class MainAppScreen extends StatefulWidget {
   final int initialIndex;
@@ -40,6 +43,9 @@ class _MainAppScreenState extends State<MainAppScreen> {
   bool _showGroupCreating = false;
   bool _showSettings = false;
   bool _showProfile = false;
+  bool _showJoinGroup = false;
+  bool _showGroupState = false;
+  bool _showTravelPlan = false;
   String? _groupDestinationName;
 
   @override
@@ -57,6 +63,9 @@ class _MainAppScreenState extends State<MainAppScreen> {
       _showGroupCreating = false;
       _showSettings = false;
       _showProfile = false;
+      _showJoinGroup = false;
+      _showGroupState = false;
+      _showTravelPlan = false;
     });
   }
 
@@ -68,6 +77,7 @@ class _MainAppScreenState extends State<MainAppScreen> {
       _showBeforeGroup = false;
       _showGroupCreating = false;
       _showSettings = false;
+      _selectedIndex = -1;
     });
   }
 
@@ -78,6 +88,7 @@ class _MainAppScreenState extends State<MainAppScreen> {
       _showBeforeGroup = false;
       _showGroupCreating = false;
       _showSettings = false;
+      _selectedIndex = -1;
     });
   }
 
@@ -88,6 +99,7 @@ class _MainAppScreenState extends State<MainAppScreen> {
       _showBeforeGroup = true;
       _showGroupCreating = false;
       _showSettings = false;
+      _selectedIndex = -1;
     });
   }
 
@@ -100,6 +112,7 @@ class _MainAppScreenState extends State<MainAppScreen> {
       _showSettings = false;
       _showProfile = false;
       _groupDestinationName = destinationName;
+      _selectedIndex = -1;
     });
   }
 
@@ -111,6 +124,10 @@ class _MainAppScreenState extends State<MainAppScreen> {
       _showGroupCreating = false;
       _showSettings = false;
       _showProfile = false;
+      _showGroupState = false;
+      _showTravelPlan = false;
+      _showJoinGroup = false;
+      _selectedIndex = 0; // Quay về Home tab
     });
   }
 
@@ -122,6 +139,36 @@ class _MainAppScreenState extends State<MainAppScreen> {
       _showGroupCreating = false;
       _showSettings = true;
       _showProfile = false;
+      _selectedIndex = -1;
+    });
+  }
+
+  void _openGroupState() {
+    setState(() {
+      _showDetail = false;
+      _showExplore = false;
+      _showBeforeGroup = false;
+      _showGroupCreating = false;
+      _showSettings = false;
+      _showProfile = false;
+      _showJoinGroup = false;
+      _showGroupState = true;
+      _selectedIndex = -1;
+    });
+  }
+
+  void _openTravelPlan() {
+    setState(() {
+      _showDetail = false;
+      _showExplore = false;
+      _showBeforeGroup = false;
+      _showGroupCreating = false;
+      _showSettings = false;
+      _showProfile = false;
+      _showJoinGroup = false;
+      _showGroupState = false;
+      _showTravelPlan = true;
+      _selectedIndex = -1;
     });
   }
 
@@ -133,6 +180,20 @@ class _MainAppScreenState extends State<MainAppScreen> {
       _showGroupCreating = false;
       _showSettings = false;
       _showProfile = true;
+      _selectedIndex = -1;
+    });
+  }
+
+  void _openJoinGroup() {
+    setState(() {
+      _showDetail = false;
+      _showExplore = false;
+      _showBeforeGroup = false;
+      _showGroupCreating = false;
+      _showSettings = false;
+      _showProfile = false;
+      _showJoinGroup = true;
+      _selectedIndex = -1;
     });
   }
 
@@ -140,7 +201,8 @@ class _MainAppScreenState extends State<MainAppScreen> {
     if (_selectedDestination != null) {
       Navigator.of(context).push(
         MaterialPageRoute(
-          builder: (context) => DestinationSearchScreen(cityId: _selectedDestination!.cityId),
+          builder: (context) =>
+              DestinationSearchScreen(cityId: _selectedDestination!.cityId),
         ),
       );
     }
@@ -148,18 +210,49 @@ class _MainAppScreenState extends State<MainAppScreen> {
 
   // Xử lý nút back của điện thoại
   Future<bool> _handleBackButton() async {
-    // Nếu đang ở màn hình phụ (Settings, Detail, Explore, BeforeGroup, GroupCreating, Profile)
-    if (_showSettings || _showDetail || _showExplore || _showBeforeGroup || _showGroupCreating || _showProfile) {
+    // Nếu đang ở màn hình phụ (Settings, Detail, Explore, BeforeGroup, GroupCreating, Profile, JoinGroup, GroupState, TravelPlan)
+    if (_showSettings || _showDetail || _showExplore || _showBeforeGroup ||
+        _showGroupCreating || _showProfile || _showGroupState || _showTravelPlan || _showJoinGroup) {
+
+      // Nếu đang ở JoinGroup, quay về BeforeGroup
+      if (_showJoinGroup) {
+        setState(() {
+          _showJoinGroup = false;
+          _showBeforeGroup = true;
+        });
+        return false;
+      }
+
+      // Nếu đang ở GroupState, quay về tab Personal (tab 3)
+      if (_showGroupState) {
+        setState(() {
+          _showGroupState = false;
+          _selectedIndex = 3;
+        });
+        return false;
+      }
+
+      // Nếu đang ở TravelPlan, quay về tab Personal (tab 3)
+      if (_showTravelPlan) {
+        setState(() {
+          _showTravelPlan = false;
+          _selectedIndex = 3;
+        });
+        return false;
+      }
+
       // Nếu đang ở Profile, quay về Settings
       if (_showProfile) {
         _openSettings();
         return false;
       }
+
       // Nếu đang ở GroupCreating, quay về BeforeGroup
       if (_showGroupCreating) {
         _openBeforeGroup();
         return false;
       }
+
       // Các trường hợp khác, đóng tất cả
       _closeAllScreens();
       return false; // Không thoát app
@@ -176,20 +269,21 @@ class _MainAppScreenState extends State<MainAppScreen> {
     // Nếu đang ở tab Home → Hiển thị dialog xác nhận thoát
     final shouldExit = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text('exit_app'.tr()),
-        content: Text('exit_app_confirmation'.tr()),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: Text('cancel'.tr()),
+      builder: (context) =>
+          AlertDialog(
+            title: Text('exit_app'.tr()),
+            content: Text('exit_app_confirmation'.tr()),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: Text('cancel'.tr()),
+              ),
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(true),
+                child: Text('exit'.tr()),
+              ),
+            ],
           ),
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: Text('exit'.tr()),
-          ),
-        ],
-      ),
     );
 
     return shouldExit ?? false; // Chỉ thoát khi user chọn "Thoát"
@@ -198,10 +292,41 @@ class _MainAppScreenState extends State<MainAppScreen> {
   @override
   Widget build(BuildContext context) {
     Widget mainContent;
-    if (_showProfile) {
+
+    if (_showTravelPlan) {
+      mainContent = TravelPlanScreen(
+        onBack: () {
+          setState(() {
+            _showTravelPlan = false;
+            _selectedIndex = 3;
+          });
+        },
+      );
+    } else if (_showGroupState) {
+      mainContent = GroupStateScreen(
+        onBack: () {
+          setState(() {
+            _showGroupState = false;
+            _selectedIndex = 3;
+          });
+        },
+      );
+    } else if (_showJoinGroup) {
+      mainContent = JoinGroupScreen(
+        onBack: () {
+          setState(() {
+            _showJoinGroup = false;
+            _showBeforeGroup = true;
+          });
+        },
+      );
+    } else if (_showProfile) {
       mainContent = ProfilePage(onBack: _openSettings);
     } else if (_showSettings) {
-      mainContent = SettingsScreen(onBack: _closeAllScreens, onProfileTap: _openProfile);
+      mainContent = SettingsScreen(
+        onBack: _closeAllScreens,
+        onProfileTap: _openProfile,
+      );
     } else if (_showGroupCreating) {
       mainContent = GroupCreatingScreen(
         destinationName: _groupDestinationName,
@@ -211,6 +336,7 @@ class _MainAppScreenState extends State<MainAppScreen> {
       mainContent = BeforeGroup(
         onBack: _closeAllScreens,
         onCreateGroup: _openGroupCreating,
+        onJoinGroup: _openJoinGroup,
       );
     } else if (_showDetail && _selectedDestination != null) {
       mainContent = DestinationDetailScreen(
@@ -235,7 +361,10 @@ class _MainAppScreenState extends State<MainAppScreen> {
         ),
         NotificationScreen(),
         MessagesScreen(accessToken: widget.accessToken),
-        const PrivateScreen(),
+        PersonalSection(
+          onGroupStateTap: _openGroupState,
+          onTravelPlanTap: _openTravelPlan,
+        ),
       ];
       mainContent = IndexedStack(
         index: _selectedIndex,
@@ -255,10 +384,19 @@ class _MainAppScreenState extends State<MainAppScreen> {
       },
       child: Scaffold(
         extendBody: true, // Cho phép body kéo dài xuống dưới bottom bar
-        body: mainContent,
-        bottomNavigationBar: CustomBottomNavBar(
-          currentIndex: _selectedIndex,
-          onTap: _onItemTapped,
+        body: Stack(
+          children: [
+            mainContent,
+            Positioned(
+              bottom: 0,
+              left: 0,
+              right: 0,
+              child: CustomBottomNavBar(
+                currentIndex: _selectedIndex,
+                onTap: _onItemTapped,
+              ),
+            ),
+          ],
         ),
       ),
     );

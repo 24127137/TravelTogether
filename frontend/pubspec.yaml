@@ -45,6 +45,7 @@ dependencies:
   path_provider_android: ^2.2.4
   hive_flutter: ^1.1.0
   sign_in_with_apple: ^6.1.2
+  confetti: ^0.7.0
 
 dev_dependencies:
   flutter_test:
@@ -98,6 +99,7 @@ flutter:
     - assets/images/arrow_pressing.png
     - assets/images/arrow_confirm.png
     - assets/images/message.jpg
+    - assets/images/group_avatar.jpg
 
   fonts:
     - family: Poppins

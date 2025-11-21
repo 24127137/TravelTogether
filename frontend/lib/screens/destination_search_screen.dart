@@ -77,27 +77,33 @@ class _DestinationSearchScreenState extends State<DestinationSearchScreen> {
   Widget _buildHeader() {
     return Container(
       width: double.infinity,
-      height: 64, // tăng chiều cao header để nút X nằm hoàn toàn trong header
       color: const Color(0xFFB99668),
       child: SafeArea(
         bottom: false,
-        child: Stack(
-          children: [
-            Positioned(
-              top: 6, // chỉnh top từ 16 thành 8 để nút X dịch lên sát mép trên header
-              right: 8,
-              child: GestureDetector(
-                onTap: () {
-                  Navigator.of(context).maybePop();
-                },
-                child: const Icon(
-                  Icons.close,
-                  color: Colors.black,
-                  size: 32,
+        child: Container(
+          height: 56, // Chiều cao đủ cho nút X
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+          child: Stack(
+            children: [
+              Positioned(
+                top: 0,
+                right: 0,
+                child: GestureDetector(
+                  onTap: () {
+                    Navigator.of(context).maybePop();
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.all(4),
+                    child: const Icon(
+                      Icons.close,
+                      color: Colors.black,
+                      size: 32,
+                    ),
+                  ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

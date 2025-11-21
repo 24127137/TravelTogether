@@ -10,6 +10,7 @@ class CalendarCard extends StatelessWidget {
   final Function(DateTime) onPageChanged;
   final VoidCallback onClose;
   final Color? accentColor;
+  final EdgeInsetsGeometry? margin;
 
   const CalendarCard({
     Key? key,
@@ -20,13 +21,14 @@ class CalendarCard extends StatelessWidget {
     required this.onPageChanged,
     required this.onClose,
     this.accentColor,
+    this.margin,
   }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     final Color effectiveAccentColor = accentColor ?? const Color(0xFFA15C20);
     return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 24),
+      margin: margin ?? const EdgeInsets.symmetric(horizontal: 24),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
       child: Padding(
         padding: const EdgeInsets.all(16.0),

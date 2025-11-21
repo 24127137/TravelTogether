@@ -1,16 +1,19 @@
 /// File: before_group_screen.dart
 //File này là screen tên là Group or Solo trong figma
 import 'package:flutter/material.dart';
+import 'join_group_screen.dart';
 
 // Chuyển thành StatefulWidget để quản lý trạng thái của icon trái tim
 class BeforeGroup extends StatefulWidget {
   final VoidCallback? onBack;
   final Function(String? destinationName)? onCreateGroup;
+  final VoidCallback? onJoinGroup;
 
   const BeforeGroup({
     Key? key,
     this.onBack,
     this.onCreateGroup,
+    this.onJoinGroup,
   }) : super(key: key);
 
   @override
@@ -40,8 +43,10 @@ class _BeforeGroupState extends State<BeforeGroup> {
         widget.onCreateGroup!('Đà Lạt'); // Có thể truyền tên địa điểm thực tế
       }
     } else {
-      // Xử lý "Gia nhập" - quay lại
-      if (widget.onBack != null) widget.onBack!();
+      // Gọi callback để mở JoinGroupScreen
+      if (widget.onJoinGroup != null) {
+        widget.onJoinGroup!();
+      }
     }
   }
 
@@ -222,6 +227,4 @@ class _BeforeGroupState extends State<BeforeGroup> {
       ),
     );
   }
-
-  // Note: Bottom navigation logic is handled by MainAppScreen; this screen only shows content.
 }

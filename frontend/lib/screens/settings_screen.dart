@@ -49,7 +49,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
             final tileHeight = 80.0 * scaleFactor;
             final buttonHeight = 55.0 * scaleFactor;
             final headerPadding = 20.0 * scaleFactor;
-            final tilePaddingH = 16.0 * scaleFactor;
+            final tilePaddingH = 20.0 * scaleFactor;
+            final tilePaddingV = 18.0 * scaleFactor;
 
             return SingleChildScrollView(
               child: ConstrainedBox(
@@ -65,7 +66,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         padding: EdgeInsets.all(headerPadding),
                         decoration: BoxDecoration(
                           color: const Color(0xFFA15C20).withValues(alpha: 0.85),
-                          borderRadius: const BorderRadius.all(Radius.circular(40)),
+                          borderRadius: const BorderRadius.only(
+                            topLeft: Radius.circular(40),
+                            topRight: Radius.circular(40),
+                            bottomLeft: Radius.circular(40),
+                            bottomRight: Radius.circular(40),
+                          ),
                         ),
                         child: Column(
                           children: [
@@ -177,6 +183,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         height: tileHeight,
                         scaleFactor: scaleFactor,
                         paddingH: tilePaddingH,
+                        paddingV: tilePaddingV,
                       ),
                       SizedBox(height: verticalSpacing),
                       _buildSettingTile(
@@ -241,6 +248,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         height: tileHeight,
                         scaleFactor: scaleFactor,
                         paddingH: tilePaddingH,
+                        paddingV: tilePaddingV,
                       ),
                       SizedBox(height: verticalSpacing),
                       _buildSettingTile(
@@ -277,7 +285,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       const Spacer(),
                       // Nút đăng xuất
                       Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 20, vertical: 30 * scaleFactor),
+                        padding: EdgeInsets.only(
+                          left: 20,
+                          right: 20,
+                          top: 20 * scaleFactor,
+                          bottom: 20 * scaleFactor,
+                        ),
                         child: SizedBox(
                           width: double.infinity,
                           height: buttonHeight,
@@ -305,6 +318,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           ),
                         ),
                       ),
+                      // Padding để tránh bị bottom bar đè lên
+                      SizedBox(height: kBottomNavigationBarHeight + 20),
                     ],
                   ),
                 ),
@@ -326,6 +341,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     double height = 80,
     double scaleFactor = 1.0,
     double paddingH = 16,
+    double paddingV = 18,
   }) {
     return Container(
       height: height,
