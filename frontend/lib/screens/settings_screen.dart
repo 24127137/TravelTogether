@@ -31,253 +31,286 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ),
       ),
       child: SafeArea(
-        child: Column(
-          children: [
-            // Phần header cam
-            Container(
-              margin: const EdgeInsets.symmetric(horizontal: 10),
-              padding: const EdgeInsets.all(20.0),
-              decoration: BoxDecoration(
-                color: const Color(0xFFA15C20).withValues(alpha: 0.85),
-                borderRadius: const BorderRadius.only(
-                  topLeft: Radius.circular(40),
-                  topRight: Radius.circular(40),
-                  bottomLeft: Radius.circular(40),
-                  bottomRight: Radius.circular(40),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            // Responsive scaling dựa trên chiều cao màn hình
+            final screenHeight = constraints.maxHeight;
+
+            // Scale factor: màn hình càng nhỏ, factor càng nhỏ
+            // Baseline: 800px = scale 1.0, 600px = scale 0.75
+            final scaleFactor = (screenHeight / 800).clamp(0.7, 1.0);
+
+            // Tất cả sizes scale theo tỷ lệ màn hình
+            final headerFontSize = 32.0 * scaleFactor;
+            final avatarRadius = 35.0 * scaleFactor;
+            final userNameSize = 20.0 * scaleFactor;
+            final userEmailSize = 14.0 * scaleFactor;
+            final verticalSpacing = 40.0 * scaleFactor;
+            final tileHeight = 80.0 * scaleFactor;
+            final buttonHeight = 55.0 * scaleFactor;
+            final headerPadding = 20.0 * scaleFactor;
+            final tilePaddingH = 16.0 * scaleFactor;
+
+            return SingleChildScrollView(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  minHeight: constraints.maxHeight,
                 ),
-              ),
-              child: Column(
-                children: [
-                  // Header với nút back và tiêu đề
-                  Row(
+                child: IntrinsicHeight(
+                  child: Column(
                     children: [
-                      GestureDetector(
-                        onTap: widget.onBack,
-                        child: Container(
-                          width: 40,
-                          height: 40,
-                          decoration: const BoxDecoration(
-                            color: Color(0xFFEDE2CC),
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(
-                            Icons.arrow_back_ios_new,
-                            color: Color(0xFF1B1E28),
-                            size: 20,
-                          ),
+                      // Phần header cam
+                      Container(
+                        margin: const EdgeInsets.symmetric(horizontal: 10),
+                        padding: EdgeInsets.all(headerPadding),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFA15C20).withValues(alpha: 0.85),
+                          borderRadius: const BorderRadius.all(Radius.circular(40)),
                         ),
-                      ),
-                      const SizedBox(width: 16),
-                      Text(
-                        'settings'.tr(),
-                        style: const TextStyle(
-                          fontSize: 32,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFFEDE2CC),
-                          fontFamily: 'Poppins',
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 30),
-                  // Phần thông tin người dùng (KHÔNG có box màu be bao quanh)
-                  GestureDetector(
-                    onTap: widget.onProfileTap,
-                    child: Row(
-                      children: [
-                        // Avatar với viền cam
-                        Container(
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            border: Border.all(
-                              color: const Color(0xFFFF6B00),
-                              width: 4,
-                            ),
-                          ),
-                          child: const CircleAvatar(
-                            radius: 35,
-                            backgroundImage: AssetImage('assets/images/avatar.jpg'),
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        // Thông tin user
-                        const Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Sir. EUGENE',
-                                style: TextStyle(
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.bold,
-                                  color: Color(0xFFFFFFFF),
-                                  fontFamily: 'Poppins',
+                        child: Column(
+                          children: [
+                            // Header với nút back và tiêu đề
+                            Row(
+                              children: [
+                                GestureDetector(
+                                  onTap: widget.onBack,
+                                  child: Container(
+                                    width: 40,
+                                    height: 40,
+                                    decoration: const BoxDecoration(
+                                      color: Color(0xFFEDE2CC),
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: const Icon(
+                                      Icons.arrow_back_ios_new,
+                                      color: Color(0xFF1B1E28),
+                                      size: 20,
+                                    ),
+                                  ),
                                 ),
+                                const SizedBox(width: 16),
+                                Flexible(
+                                  child: Text(
+                                    'settings'.tr(),
+                                    style: TextStyle(
+                                      fontSize: headerFontSize,
+                                      fontWeight: FontWeight.bold,
+                                      color: const Color(0xFFEDE2CC),
+                                      fontFamily: 'Poppins',
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            SizedBox(height: 30 * scaleFactor),
+                            // Phần thông tin người dùng
+                            GestureDetector(
+                              onTap: widget.onProfileTap,
+                              child: Row(
+                                children: [
+                                  // Avatar với viền cam
+                                  Container(
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      border: Border.all(
+                                        color: const Color(0xFFFF6B00),
+                                        width: 4,
+                                      ),
+                                    ),
+                                    child: CircleAvatar(
+                                      radius: avatarRadius,
+                                      backgroundImage: const AssetImage('assets/images/avatar.jpg'),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 16),
+                                  // Thông tin user
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          'Sir. EUGENE',
+                                          style: TextStyle(
+                                            fontSize: userNameSize,
+                                            fontWeight: FontWeight.bold,
+                                            color: const Color(0xFFFFFFFF),
+                                            fontFamily: 'Poppins',
+                                          ),
+                                        ),
+                                        SizedBox(height: 4 * scaleFactor),
+                                        Text(
+                                          'abc@gmail.com',
+                                          style: TextStyle(
+                                            fontSize: userEmailSize,
+                                            color: const Color(0xFFEDE2CC),
+                                            fontFamily: 'Poppins',
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  // Icon mũi tên
+                                  const Icon(
+                                    Icons.chevron_right,
+                                    color: Color(0xFFFFFFFF),
+                                    size: 30,
+                                  ),
+                                ],
                               ),
-                              SizedBox(height: 4),
-                              Text(
-                                'abc@gmail.com',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  color: Color(0xFFEDE2CC),
-                                  fontFamily: 'Poppins',
-                                ),
                             ),
+                            SizedBox(height: 20 * scaleFactor),
                           ],
                         ),
                       ),
-                      // Icon mũi tên
-                      const Icon(
-                        Icons.chevron_right,
-                        color: Color(0xFFFFFFFF),
-                        size: 30,
+                      SizedBox(height: verticalSpacing),
+                      // Các tùy chọn cài đặt
+                      _buildSettingTile(
+                        icon: Icons.language,
+                        title: context.locale.languageCode == 'en' ? 'english'.tr() : 'vietnamese'.tr(),
+                        onTap: () {},
+                        onLeftTap: () {
+                          context.setLocale(const Locale('vi'));
+                        },
+                        onRightTap: () {
+                          context.setLocale(const Locale('en'));
+                        },
+                        height: tileHeight,
+                        scaleFactor: scaleFactor,
+                        paddingH: tilePaddingH,
+                      ),
+                      SizedBox(height: verticalSpacing),
+                      _buildSettingTile(
+                        icon: Icons.chat_bubble_outline,
+                        title: _showGroupFeedback ? 'group_feedback'.tr() : 'reputation'.tr(),
+                        onTap: () {
+                          // Navigate dựa vào trạng thái hiện tại
+                          if (_showGroupFeedback) {
+                            // Đang hiển thị "Phản hồi nhóm" → sang FeedbackScreen
+                            Navigator.push(
+                              context,
+                              PageRouteBuilder(
+                                pageBuilder: (context, animation, secondaryAnimation) => const FeedbackScreen(),
+                                transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                                  const begin = Offset(1.0, 0.0);
+                                  const end = Offset.zero;
+                                  const curve = Curves.easeInOut;
+
+                                  var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+                                  var offsetAnimation = animation.drive(tween);
+
+                                  return SlideTransition(
+                                    position: offsetAnimation,
+                                    child: child,
+                                  );
+                                },
+                              ),
+                            );
+                          } else {
+                            // Đang hiển thị "Uy tín" → sang ReputationScreen
+                            Navigator.push(
+                              context,
+                              PageRouteBuilder(
+                                pageBuilder: (context, animation, secondaryAnimation) => const ReputationScreen(),
+                                transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                                  const begin = Offset(1.0, 0.0);
+                                  const end = Offset.zero;
+                                  const curve = Curves.easeInOut;
+
+                                  var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+                                  var offsetAnimation = animation.drive(tween);
+
+                                  return SlideTransition(
+                                    position: offsetAnimation,
+                                    child: child,
+                                  );
+                                },
+                              ),
+                            );
+                          }
+                        },
+                        onLeftTap: () {
+                          setState(() {
+                            _showGroupFeedback = true;
+                          });
+                        },
+                        onRightTap: () {
+                          setState(() {
+                            _showGroupFeedback = false;
+                          });
+                        },
+                        height: tileHeight,
+                        scaleFactor: scaleFactor,
+                        paddingH: tilePaddingH,
+                      ),
+                      SizedBox(height: verticalSpacing),
+                      _buildSettingTile(
+                        icon: Icons.info_outline,
+                        title: 'about'.tr(),
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            PageRouteBuilder(
+                              pageBuilder: (context, animation, secondaryAnimation) => const InformationScreen(),
+                              transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                                const begin = Offset(1.0, 0.0);
+                                const end = Offset.zero;
+                                const curve = Curves.easeInOut;
+
+                                var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+                                var offsetAnimation = animation.drive(tween);
+
+                                return SlideTransition(
+                                  position: offsetAnimation,
+                                  child: child,
+                                );
+                              },
+                            ),
+                          );
+                        },
+                        onLeftTap: null,
+                        onRightTap: null,
+                        hideArrows: true,
+                        height: tileHeight,
+                        scaleFactor: scaleFactor,
+                        paddingH: tilePaddingH,
+                      ),
+                      const Spacer(),
+                      // Nút đăng xuất
+                      Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 20, vertical: 30 * scaleFactor),
+                        child: SizedBox(
+                          width: double.infinity,
+                          height: buttonHeight,
+                          child: ElevatedButton(
+                            onPressed: () {
+                              // Xử lý đăng xuất
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFFB64B12),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(30),
+                              ),
+                              elevation: 3,
+                            ),
+                            child: Text(
+                              'logout'.tr(),
+                              style: TextStyle(
+                                fontSize: 18.0 * scaleFactor,
+                                fontWeight: FontWeight.bold,
+                                color: const Color(0xFFFFFFFF),
+                                fontFamily: 'Poppins',
+                                letterSpacing: 1.2,
+                              ),
+                            ),
+                          ),
+                        ),
                       ),
                     ],
                   ),
-                  ),
-                  const SizedBox(height: 20),
-                ],
-              ),
-            ),
-            const SizedBox(height: 40),
-            // Các tùy chọn cài đặt
-            _buildSettingTile(
-              icon: Icons.language,
-              title: context.locale.languageCode == 'en' ? 'english'.tr() : 'vietnamese'.tr(),
-              onTap: () {},
-              onLeftTap: () {
-                // Bấm < = chuyển về tiếng Việt
-                context.setLocale(const Locale('vi'));
-              },
-              onRightTap: () {
-                // Bấm > = chuyển sang tiếng Anh
-                context.setLocale(const Locale('en'));
-              },
-            ),
-            const SizedBox(height: 40),
-            _buildSettingTile(
-              icon: Icons.chat_bubble_outline,
-              title: _showGroupFeedback ? 'group_feedback'.tr() : 'reputation'.tr(),
-              onTap: () {
-                // Navigate dựa vào trạng thái hiện tại
-                if (_showGroupFeedback) {
-                  // Đang hiển thị "Phản hồi nhóm" → sang FeedbackScreen
-                  Navigator.push(
-                    context,
-                    PageRouteBuilder(
-                      pageBuilder: (context, animation, secondaryAnimation) => const FeedbackScreen(),
-                      transitionsBuilder: (context, animation, secondaryAnimation, child) {
-                        const begin = Offset(1.0, 0.0);
-                        const end = Offset.zero;
-                        const curve = Curves.easeInOut;
-
-                        var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
-                        var offsetAnimation = animation.drive(tween);
-
-                        return SlideTransition(
-                          position: offsetAnimation,
-                          child: child,
-                        );
-                      },
-                    ),
-                  );
-                } else {
-                  // Đang hiển thị "Uy tín" → sang ReputationScreen
-                  Navigator.push(
-                    context,
-                    PageRouteBuilder(
-                      pageBuilder: (context, animation, secondaryAnimation) => const ReputationScreen(),
-                      transitionsBuilder: (context, animation, secondaryAnimation, child) {
-                        const begin = Offset(1.0, 0.0);
-                        const end = Offset.zero;
-                        const curve = Curves.easeInOut;
-
-                        var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
-                        var offsetAnimation = animation.drive(tween);
-
-                        return SlideTransition(
-                          position: offsetAnimation,
-                          child: child,
-                        );
-                      },
-                    ),
-                  );
-                }
-              },
-              onLeftTap: () {
-                // Bấm < = quay lại "Phản hồi nhóm"
-                setState(() {
-                  _showGroupFeedback = true;
-                });
-              },
-              onRightTap: () {
-                // Bấm > = chuyển sang "Uy tín"
-                setState(() {
-                  _showGroupFeedback = false;
-                });
-              },
-            ),
-            const SizedBox(height: 40),
-            _buildSettingTile(
-              icon: Icons.info_outline,
-              title: 'about'.tr(),
-              onTap: () {
-                Navigator.push(
-                  context,
-                  PageRouteBuilder(
-                    pageBuilder: (context, animation, secondaryAnimation) => const InformationScreen(),
-                    transitionsBuilder: (context, animation, secondaryAnimation, child) {
-                      const begin = Offset(1.0, 0.0);
-                      const end = Offset.zero;
-                      const curve = Curves.easeInOut;
-
-                      var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
-                      var offsetAnimation = animation.drive(tween);
-
-                      return SlideTransition(
-                        position: offsetAnimation,
-                        child: child,
-                      );
-                    },
-                  ),
-                );
-              },
-              onLeftTap: null,
-              onRightTap: null,
-              hideArrows: true,
-            ),
-            const Spacer(),
-            // Nút đăng xuất
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 30),
-              child: SizedBox(
-                width: double.infinity,
-                height: 55,
-                child: ElevatedButton(
-                  onPressed: () {
-                    // Xử lý đăng xuất
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFB64B12),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(30),
-                    ),
-                    elevation: 3,
-                  ),
-                  child: Text(
-                    'logout'.tr(),
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFFFFFFFF),
-                      fontFamily: 'Poppins',
-                      letterSpacing: 1.2,
-                    ),
-                  ),
                 ),
               ),
-            ),
-          ],
+            );
+          },
         ),
       ),
     );
@@ -290,9 +323,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
     VoidCallback? onLeftTap,
     VoidCallback? onRightTap,
     bool hideArrows = false,
+    double height = 80,
+    double scaleFactor = 1.0,
+    double paddingH = 16,
   }) {
     return Container(
-      height: 80,
+      height: height,
       margin: const EdgeInsets.symmetric(horizontal: 20),
       decoration: BoxDecoration(
         color: const Color(0xFFDCC9A7).withValues(alpha: 0.9),
@@ -308,42 +344,47 @@ class _SettingsScreenState extends State<SettingsScreen> {
           onTap: onTap,
           borderRadius: BorderRadius.circular(20),
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+            padding: EdgeInsets.symmetric(horizontal: paddingH, vertical: height * 0.2),
             child: Row(
               children: [
                 Icon(
                   icon,
                   color: const Color(0xFFA15C20),
-                  size: 26,
+                  size: height * 0.3,
                 ),
-                const SizedBox(width: 12),
+                SizedBox(width: 8 * scaleFactor),
                 if (!hideArrows)
                   GestureDetector(
                     onTap: onLeftTap,
-                    child: const Icon(
+                    child: Icon(
                       Icons.chevron_left,
-                      color: Color(0xFFA15C20),
-                      size: 26,
+                      color: const Color(0xFFA15C20),
+                      size: height * 0.3,
                     ),
                   ),
-                const Spacer(),
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontSize: 17,
-                    color: Color(0xFFA15C20),
-                    fontFamily: 'Inter',
-                    fontWeight: FontWeight.w500,
+                SizedBox(width: 6 * scaleFactor),
+                Expanded(
+                  child: Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 17.0 * scaleFactor,
+                      color: const Color(0xFFA15C20),
+                      fontFamily: 'Inter',
+                      fontWeight: FontWeight.w500,
+                    ),
+                    textAlign: TextAlign.center,
+                    overflow: TextOverflow.visible,
+                    maxLines: 2,
                   ),
                 ),
-                const Spacer(),
+                SizedBox(width: 6 * scaleFactor),
                 if (!hideArrows)
                   GestureDetector(
                     onTap: onRightTap,
-                    child: const Icon(
+                    child: Icon(
                       Icons.chevron_right,
-                      color: Color(0xFFA15C20),
-                      size: 26,
+                      color: const Color(0xFFA15C20),
+                      size: height * 0.3,
                     ),
                   ),
               ],

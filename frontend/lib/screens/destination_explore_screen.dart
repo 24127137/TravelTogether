@@ -48,7 +48,6 @@ class DestinationExploreScreen extends StatelessWidget {
                 if (onBack != null) onBack!();
               }
             },
-
           ),
         ),
         actions: [
@@ -61,80 +60,107 @@ class DestinationExploreScreen extends StatelessWidget {
           ),
         ],
       ),
-      body: Container(
-        decoration: const BoxDecoration(
-          image: DecorationImage(
-            image: AssetImage('assets/images/landmarks.png'), // Đường dẫn hình nền của bạn
-            fit: BoxFit.cover,
-          ),
-        ),
-        child: SingleChildScrollView(
-          physics: const NeverScrollableScrollPhysics(), // ✅ Không cho phép scroll
-          padding: EdgeInsets.fromLTRB(16, 16, 16, kBottomNavigationBarHeight + MediaQuery.of(context).padding.bottom + 16),
-          child: Column(
-            children: [
-              const SizedBox(height: 100),
-              GestureDetector(
-                onTap: _triggerSearchCallback,
-                child: Container(
-                  width: double.infinity,
-                  height: 74,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFEDE2CC),
-                    border: Border.all(color: const Color(0xFFB64B12), width: 2),
-                    borderRadius: BorderRadius.circular(21),
-                  ),
-                  alignment: Alignment.centerLeft,
-                  padding: const EdgeInsets.symmetric(horizontal: 24),
-                  child: Text(
-                    'search_place'.tr(),
-                    style: const TextStyle(
-                      color: Color(0xFF3E3322),
-                      fontSize: 16,
-                      fontFamily: 'Roboto',
-                      fontWeight: FontWeight.w500,
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          // Responsive scaling dựa trên chiều cao màn hình
+          final screenHeight = constraints.maxHeight;
+
+          // Scale factor: baseline 800px = 1.0
+          final scaleFactor = (screenHeight / 800).clamp(0.7, 1.0);
+
+          // Tất cả sizes scale theo tỷ lệ
+          final topPadding = 100.0 * scaleFactor;
+          final searchBarHeight = 74.0 * scaleFactor;
+          final searchBarFontSize = 16.0 * scaleFactor;
+          final titleFontSize = 16.0 * scaleFactor;
+          final cardHeight = 380.0 * scaleFactor;
+          final cardWidth = 282.01 * scaleFactor;
+          final spacing1 = 12.0 * scaleFactor;
+          final spacing2 = 16.0 * scaleFactor;
+          final spacing3 = 25.0 * scaleFactor;
+
+          // Tính toán bottom padding an toàn để không bị che
+          final bottomPadding = MediaQuery.of(context).padding.bottom +
+                                 kBottomNavigationBarHeight +
+                                 (20.0 * scaleFactor);
+
+          return Container(
+            decoration: const BoxDecoration(
+              image: DecorationImage(
+                image: AssetImage('assets/images/landmarks.png'),
+                fit: BoxFit.cover,
+              ),
+            ),
+            child: SingleChildScrollView(
+              padding: EdgeInsets.fromLTRB(16, 16, 16, bottomPadding),
+              child: Column(
+                children: [
+                  SizedBox(height: topPadding),
+                  GestureDetector(
+                    onTap: _triggerSearchCallback,
+                    child: Container(
+                      width: double.infinity,
+                      height: searchBarHeight,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFEDE2CC),
+                        border: Border.all(color: const Color(0xFFB64B12), width: 2),
+                        borderRadius: BorderRadius.circular(21),
+                      ),
+                      alignment: Alignment.centerLeft,
+                      padding: EdgeInsets.symmetric(horizontal: 24 * scaleFactor),
+                      child: Text(
+                        'search_place'.tr(),
+                        style: TextStyle(
+                          color: const Color(0xFF3E3322),
+                          fontSize: searchBarFontSize,
+                          fontFamily: 'Roboto',
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
                     ),
                   ),
-                ),
+                  SizedBox(height: spacing1),
+                  Text(
+                    'featured_places'.tr(),
+                    style: TextStyle(
+                      color: const Color(0xFFB99668),
+                      fontSize: titleFontSize,
+                      fontFamily: 'Poppins',
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  SizedBox(height: spacing2),
+                  SizedBox(
+                    height: cardHeight,
+                    child: ListView.separated(
+                      scrollDirection: Axis.horizontal,
+                      itemCount: cityItems.length,
+                      separatorBuilder: (_, __) => SizedBox(width: 30 * scaleFactor),
+                      itemBuilder: (context, index) {
+                        final item = cityItems[index];
+                        return _buildPlaceCard(
+                          item.imageUrl,
+                          item.name,
+                          '', // Không dùng namePart2
+                          item.getSubtitle(context.locale.languageCode), // Dịch subtitle
+                          cardWidth,
+                          scaleFactor,
+                        );
+                      },
+                    ),
+                  ),
+                  SizedBox(height: spacing3),
+                  Center(
+                    child: EnterButton(
+                      onConfirm: onBeforeGroup ?? () {},
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(height: 12),
-              Text(
-                'featured_places'.tr(),
-                style: const TextStyle(
-                  color: Color(0xFFB99668),
-                  fontSize: 16,
-                  fontFamily: 'Poppins',
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const SizedBox(height: 16),
-              SizedBox(
-                height: 380,
-                child: ListView.separated(
-                  scrollDirection: Axis.horizontal,
-                  itemCount: cityItems.length,
-                  separatorBuilder: (_, __) => const SizedBox(width: 30),
-                  itemBuilder: (context, index) {
-                    final item = cityItems[index];
-                    return _buildPlaceCard(
-                      item.imageUrl,
-                      item.name,
-                      '', // Không dùng namePart2
-                      item.getSubtitle(context.locale.languageCode), // Dịch subtitle
-                    );
-                  },
-                ),
-              ),
-              const SizedBox(height: 25),
-              Center(
-                child: EnterButton(
-                  onConfirm: onBeforeGroup ?? () {},  // ✅ Gọi callback sau khi animation hoàn thành
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),// BottomNavigationBar removed: MainAppScreen provides the persistent BottomNavigationBar
+            ),
+          );
+        },
+      ),
     );
   }
 
@@ -143,6 +169,8 @@ class DestinationExploreScreen extends StatelessWidget {
       String namePart1,
       String namePart2,
       String subtitle,
+      double cardWidth,
+      double scaleFactor,
       ) {
     return StatefulBuilder(
       builder: (context, setState) {
@@ -155,9 +183,9 @@ class DestinationExploreScreen extends StatelessWidget {
                 isFavorite.value = !fav;
               },
               child: Container(
-                width: 282.01,
-                height: 180,
-                margin: const EdgeInsets.only(right: 8),
+                width: cardWidth,
+                height: 180 * scaleFactor,
+                margin: EdgeInsets.only(right: 8 * scaleFactor),
                 decoration: BoxDecoration(
                   color: const Color(0xFFD9D9D9),
                   borderRadius: BorderRadius.circular(30),
@@ -172,18 +200,18 @@ class DestinationExploreScreen extends StatelessWidget {
                     ),
                     // Trái tim ở góc phải trên
                     Positioned(
-                      right: 16,
-                      top: 16,
+                      right: 16 * scaleFactor,
+                      top: 16 * scaleFactor,
                       child: GestureDetector(
                         onTap: () {
                           isFavorite.value = !fav;
                         },
                         child: Container(
-                          width: 32,
-                          height: 32,
+                          width: 32 * scaleFactor,
+                          height: 32 * scaleFactor,
                           decoration: BoxDecoration(
                             color: Colors.white,
-                            borderRadius: BorderRadius.circular(16),
+                            borderRadius: BorderRadius.circular(16 * scaleFactor),
                             boxShadow: [
                               BoxShadow(
                                 color: Colors.black.withValues(alpha: 0.08),
@@ -195,38 +223,38 @@ class DestinationExploreScreen extends StatelessWidget {
                           child: Icon(
                             Icons.favorite,
                             color: fav ? Colors.red : Colors.black.withValues(alpha: 0.2),
-                            size: 22,
+                            size: 22 * scaleFactor,
                           ),
                         ),
                       ),
                     ),
                     // Nội dung tên, subtitle
                     Positioned(
-                      left: 20,
-                      bottom: 20,
-                      right: 20,
+                      left: 20 * scaleFactor,
+                      bottom: 20 * scaleFactor,
+                      right: 20 * scaleFactor,
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
                             namePart1,
-                            style: const TextStyle(
+                            style: TextStyle(
                               color: Colors.white,
-                              fontSize: 16,
+                              fontSize: 16 * scaleFactor,
                               fontFamily: 'Roboto',
                               fontWeight: FontWeight.w600,
-                              shadows: [Shadow(color: Colors.black26, blurRadius: 2)],
+                              shadows: const [Shadow(color: Colors.black26, blurRadius: 2)],
                             ),
                           ),
-                          const SizedBox(height: 4),
+                          SizedBox(height: 4 * scaleFactor),
                           Text(
                             subtitle,
-                            style: const TextStyle(
-                              color: Color(0xFFC9C8C8),
-                              fontSize: 13,
+                            style: TextStyle(
+                              color: const Color(0xFFC9C8C8),
+                              fontSize: 13 * scaleFactor,
                               fontFamily: 'Roboto',
                               fontWeight: FontWeight.w400,
-                              shadows: [Shadow(color: Colors.black12, blurRadius: 1)],
+                              shadows: const [Shadow(color: Colors.black12, blurRadius: 1)],
                             ),
                           ),
                         ],

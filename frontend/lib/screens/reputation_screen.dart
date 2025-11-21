@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:easy_localization/easy_localization.dart';
 
 // Data models
 class GroupRating {
@@ -50,6 +51,7 @@ class ReputationScreen extends StatelessWidget {
     ];
 
     return Scaffold(
+      resizeToAvoidBottomInset: false,
       body: Stack(
         children: [
           // Background with decorative stripes
@@ -75,108 +77,139 @@ class ReputationScreen extends StatelessWidget {
 
           // Main content
           SafeArea(
-            child: Column(
-              children: [
-                // Header với nút back
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 26, vertical: 15),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 44,
-                        height: 44,
-                        decoration: const BoxDecoration(
-                          color: Color(0xFFF6F6F8),
-                          shape: BoxShape.circle,
-                        ),
-                        child: IconButton(
-                          icon: const Icon(Icons.arrow_back, color: Colors.black),
-                          onPressed: () => Navigator.pop(context),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                // Responsive scaling dựa trên chiều cao màn hình
+                final screenHeight = constraints.maxHeight;
 
-                const SizedBox(height: 10),
+                // Scale factor: baseline 800px = 1.0, 600px = 0.75
+                final scaleFactor = (screenHeight / 800).clamp(0.65, 1.0);
 
-                // Stack để đặt chữ UY TÍN chồng lên viền khung (giống GÓP Ý)
-                Expanded(
-                  child: Stack(
-                    clipBehavior: Clip.none,
-                    children: [
-                      // Content card - bắt đầu từ giữa chữ UY TÍN
-                      Positioned(
-                        top: 50, // Một nửa chiều cao của text
-                        left: 20,
-                        right: 20,
-                        bottom: 20,
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: Colors.black.withOpacity(0.27), // Giống khung GÓP Ý
-                            border: Border.all(color: const Color(0xFFEDE2CC), width: 6),
-                            borderRadius: BorderRadius.circular(30),
-                          ),
-                          child: ListView(
-                            padding: const EdgeInsets.fromLTRB(24, 60, 24, 24),
-                            children: [
-                              // User info section
-                              _UserInfoCard(userRating: userRating),
+                // Language scale: shorten big title in English because English word can be longer
+                final langScale = context.locale.languageCode == 'en' ? 0.65 : 1.0;
 
-                              const SizedBox(height: 40),
+                // Tất cả sizes scale theo tỷ lệ
+                final titleFontSize = 96.0 * scaleFactor * langScale;
+                final titleOffset = -55.0 * scaleFactor;
+                final contentTopPosition = 50.0 * scaleFactor;
+                final contentTopPadding = 60.0 * scaleFactor;
+                final headerVerticalPadding = 15.0 * scaleFactor;
+                final bottomPadding = 20.0 * scaleFactor;
+                final listPaddingH = 24.0 * scaleFactor;
+                final listPaddingBottom = 24.0 * scaleFactor;
+                final itemSpacing = 16.0 * scaleFactor;
+                final userCardGap = 40.0 * scaleFactor;
+                final strokeWidth = 5.0 * scaleFactor;
 
-                              // Group ratings list
-                              ...groupRatings.map((rating) => Padding(
-                                padding: const EdgeInsets.only(bottom: 16),
-                                child: _GroupRatingCard(groupRating: rating),
-                              )),
-                            ],
-                          ),
-                        ),
-                      ),
-
-                      // Chữ UY TÍN với viền màu F7912D (giống GÓP Ý)
-                      Positioned(
-                        top: 0,
-                        left: 0,
-                        right: 0,
-                        child: Transform.translate(
-                          offset: const Offset(0, -55), // Giống với GÓP Ý
-                          child: Center(
-                            child: Stack(
-                              children: [
-                                // Viền
-                                Text(
-                                  'UY TÍN',
-                                  style: TextStyle(
-                                    fontSize: 96,
-                                    fontFamily: 'Alumni Sans',
-                                    fontWeight: FontWeight.w900,
-                                    foreground: Paint()
-                                      ..style = PaintingStyle.stroke
-                                      ..strokeWidth = 5
-                                      ..color = const Color(0xFFF7912D),
-                                  ),
-                                ),
-                                // Chữ chính
-                                const Text(
-                                  'UY TÍN',
-                                  style: TextStyle(
-                                    color: Color(0xFF4A1A0F),
-                                    fontSize: 96,
-                                    fontFamily: 'Alumni Sans',
-                                    fontWeight: FontWeight.w900,
-                                  ),
-                                ),
-                              ],
+                return Column(
+                  children: [
+                    // Header với nút back
+                    Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 26, vertical: headerVerticalPadding),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 44,
+                            height: 44,
+                            decoration: const BoxDecoration(
+                              color: Color(0xFFF6F6F8),
+                              shape: BoxShape.circle,
+                            ),
+                            child: IconButton(
+                              icon: const Icon(Icons.arrow_back, color: Colors.black),
+                              onPressed: () => Navigator.pop(context),
                             ),
                           ),
-                        ),
+                        ],
                       ),
-                    ],
-                  ),
-                ),
-              ],
+                    ),
+
+                    SizedBox(height: 10 * scaleFactor),
+
+                    // Stack để đặt chữ UY TÍN chồng lên viền khung (giống GÓP Ý)
+                    Expanded(
+                      child: Stack(
+                        clipBehavior: Clip.none,
+                        children: [
+                          // Content card - bắt đầu từ giữa chữ UY TÍN
+                          Positioned(
+                            top: contentTopPosition,
+                            left: 20,
+                            right: 20,
+                            bottom: bottomPadding,
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: Colors.black.withValues(alpha: 0.27),
+                                border: Border.all(color: const Color(0xFFEDE2CC), width: 6),
+                                borderRadius: BorderRadius.circular(30),
+                              ),
+                              child: ListView(
+                                padding: EdgeInsets.fromLTRB(
+                                  listPaddingH,
+                                  contentTopPadding,
+                                  listPaddingH,
+                                  listPaddingBottom
+                                ),
+                                children: [
+                                  // User info section
+                                  _UserInfoCard(userRating: userRating, scaleFactor: scaleFactor),
+
+                                  SizedBox(height: userCardGap),
+
+                                  // Group ratings list
+                                  ...groupRatings.map((rating) => Padding(
+                                    padding: EdgeInsets.only(bottom: itemSpacing),
+                                    child: _GroupRatingCard(groupRating: rating, scaleFactor: scaleFactor),
+                                  )),
+                                ],
+                              ),
+                            ),
+                          ),
+
+                          // Chữ UY TÍN với viền màu F7912D (giống GÓP Ý)
+                          Positioned(
+                            top: 0,
+                            left: 0,
+                            right: 0,
+                            child: Transform.translate(
+                              offset: Offset(0, titleOffset),
+                              child: Center(
+                                child: Stack(
+                                  children: [
+                                    // Viền
+                                    Text(
+                                      'reputation'.tr(),
+                                      style: TextStyle(
+                                        fontSize: titleFontSize,
+                                        fontFamily: 'Alumni Sans',
+                                        fontWeight: FontWeight.w900,
+                                        foreground: Paint()
+                                          ..style = PaintingStyle.stroke
+                                          ..strokeWidth = strokeWidth
+                                          ..color = const Color(0xFFF7912D),
+                                      ),
+                                    ),
+                                    // Chữ chính
+                                    Text(
+                                      'reputation'.tr(),
+                                      style: TextStyle(
+                                        color: const Color(0xFF4A1A0F),
+                                        fontSize: titleFontSize,
+                                        fontFamily: 'Alumni Sans',
+                                        fontWeight: FontWeight.w900,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                );
+              },
             ),
           ),
         ],
@@ -188,11 +221,23 @@ class ReputationScreen extends StatelessWidget {
 // User info card with avatar, name, email and star rating
 class _UserInfoCard extends StatelessWidget {
   final double userRating;
+  final double scaleFactor;
 
-  const _UserInfoCard({required this.userRating});
+  const _UserInfoCard({required this.userRating, this.scaleFactor = 1.0});
 
   @override
   Widget build(BuildContext context) {
+    // Tất cả sizes scale theo tỷ lệ màn hình
+    final avatarSize = 77.0 * scaleFactor;
+    final nameFontSize = 24.0 * scaleFactor;
+    final emailFontSize = 16.0 * scaleFactor;
+    final starSize = 32.0 * scaleFactor;
+    final starContainerHeight = 47.0 * scaleFactor;
+    final starSpacing = 6.0 * scaleFactor;
+    final spaceBetween = 26.0 * scaleFactor;
+    final verticalGap = 20.0 * scaleFactor;
+    final nameEmailGap = 4.0 * scaleFactor;
+
     return Column(
       children: [
         // Avatar and user details
@@ -200,8 +245,8 @@ class _UserInfoCard extends StatelessWidget {
           children: [
             // Avatar
             Container(
-              width: 77,
-              height: 77,
+              width: avatarSize,
+              height: avatarSize,
               decoration: const BoxDecoration(
                 shape: BoxShape.circle,
                 image: DecorationImage(
@@ -210,27 +255,27 @@ class _UserInfoCard extends StatelessWidget {
                 ),
               ),
             ),
-            const SizedBox(width: 26),
+            SizedBox(width: spaceBetween),
             // Name and email
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                children: const [
+                children: [
                   Text(
                     'Nguyễn Khánh Toàn',
                     style: TextStyle(
                       color: Colors.white,
-                      fontSize: 24,
+                      fontSize: nameFontSize,
                       fontFamily: 'Alegreya',
                       fontWeight: FontWeight.w800,
                     ),
                   ),
-                  SizedBox(height: 4),
+                  SizedBox(height: nameEmailGap),
                   Text(
                     'abc@gmail.com',
                     style: TextStyle(
                       color: Colors.white,
-                      fontSize: 16,
+                      fontSize: emailFontSize,
                       fontFamily: 'Alegreya',
                       fontWeight: FontWeight.w500,
                     ),
@@ -241,11 +286,11 @@ class _UserInfoCard extends StatelessWidget {
           ],
         ),
 
-        const SizedBox(height: 20),
+        SizedBox(height: verticalGap),
 
         // Star rating container
         Container(
-          height: 47,
+          height: starContainerHeight,
           decoration: BoxDecoration(
             color: const Color(0xFFB64B12),
             border: Border.all(color: const Color(0xFFB64B12), width: 3),
@@ -255,13 +300,13 @@ class _UserInfoCard extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: List.generate(5, (index) {
               return Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 6),
+                padding: EdgeInsets.symmetric(horizontal: starSpacing),
                 child: Icon(
                   index < userRating.floor()
                       ? Icons.star
                       : (index < userRating ? Icons.star_half : Icons.star_border),
                   color: const Color(0xFFFFD700),
-                  size: 32,
+                  size: starSize,
                 ),
               );
             }),
@@ -275,14 +320,26 @@ class _UserInfoCard extends StatelessWidget {
 // Group rating card with avatar, name, rating and keywords
 class _GroupRatingCard extends StatelessWidget {
   final GroupRating groupRating;
+  final double scaleFactor;
 
-  const _GroupRatingCard({required this.groupRating});
+  const _GroupRatingCard({required this.groupRating, this.scaleFactor = 1.0});
 
   @override
   Widget build(BuildContext context) {
+    // Tất cả sizes scale theo tỷ lệ màn hình
+    final containerHeight = 128.0 * scaleFactor;
+    final avatarSize = 105.0 * scaleFactor;
+    final nameFontSize = 15.0 * scaleFactor;
+    final ratingFontSize = 12.0 * scaleFactor;
+    final starSize = 14.0 * scaleFactor;
+    final tagFontSize = 10.0 * scaleFactor;
+    final tagPaddingH = 8.0 * scaleFactor;
+    final cardPadding = 10.0 * scaleFactor;
+    final spaceBetween = 14.0 * scaleFactor;
+
     return Container(
-      height: 128 ,
-      padding: const EdgeInsets.all(10),
+      height: containerHeight,
+      padding: EdgeInsets.all(cardPadding),
       decoration: BoxDecoration(
         color: const Color(0xFFDCC9A7),
         borderRadius: BorderRadius.circular(20),
@@ -291,8 +348,8 @@ class _GroupRatingCard extends StatelessWidget {
         children: [
           // Group avatar
           Container(
-            width: 105,
-            height: 105,
+            width: avatarSize,
+            height: avatarSize,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(10),
               image: DecorationImage(
@@ -302,7 +359,7 @@ class _GroupRatingCard extends StatelessWidget {
             ),
           ),
 
-          const SizedBox(width: 14),
+          SizedBox(width: spaceBetween),
 
           // Group info
           Expanded(
@@ -313,9 +370,9 @@ class _GroupRatingCard extends StatelessWidget {
                 // Group name
                 Text(
                   groupRating.groupName,
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: Colors.black,
-                    fontSize: 15,
+                    fontSize: nameFontSize,
                     fontFamily: 'Alumni Sans',
                     fontWeight: FontWeight.w600,
                   ),
@@ -329,18 +386,18 @@ class _GroupRatingCard extends StatelessWidget {
                   children: [
                     Text(
                       groupRating.rating.toStringAsFixed(1),
-                      style: const TextStyle(
+                      style: TextStyle(
                         color: Colors.black,
-                        fontSize: 12,
+                        fontSize: ratingFontSize,
                         fontFamily: 'Alumni Sans',
                         fontWeight: FontWeight.w500,
                       ),
                     ),
                     const SizedBox(width: 4),
-                    const Icon(
+                    Icon(
                       Icons.star,
-                      color: Color(0xFFFFD700),
-                      size: 14,
+                      color: const Color(0xFFFFD700),
+                      size: starSize,
                     ),
                   ],
                 ),
@@ -353,16 +410,16 @@ class _GroupRatingCard extends StatelessWidget {
                   runSpacing: 6,
                   children: groupRating.keywords.map((keyword) {
                     return Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      padding: EdgeInsets.symmetric(horizontal: tagPaddingH, vertical: 2),
                       decoration: BoxDecoration(
                         color: Colors.black.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Text(
-                        keyword,
-                        style: const TextStyle(
+                        keyword.tr(),
+                        style: TextStyle(
                           color: Colors.black,
-                          fontSize: 10,
+                          fontSize: tagFontSize,
                           fontFamily: 'Alumni Sans',
                           fontWeight: FontWeight.w500,
                         ),
