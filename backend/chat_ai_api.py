@@ -9,16 +9,11 @@ import logging
 import google.generativeai as genai
 from google.generativeai import GenerationConfig, GenerativeModel
 
+from config import settings
 # -----------------------
 # Cấu hình an toàn cho API key (từ biến môi trường)
 # -----------------------
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-if not GEMINI_API_KEY:
-    raise RuntimeError(
-        "GEMINI_API_KEY không được thiết lập. Vui lòng export GEMINI_API_KEY trong môi trường trước khi chạy."
-    )
-
-genai.configure(api_key=GEMINI_API_KEY)
+genai.configure(api_key=settings.GEMINI_API_KEY)
 
 # Tạo model instance sử dụng gemini-2.5-flash (như yêu cầu)
 generation_config = GenerationConfig(
