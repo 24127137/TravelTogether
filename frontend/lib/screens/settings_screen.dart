@@ -1,6 +1,3 @@
-/// File: settings_screen.dart
-/// Mô tả: Màn hình cài đặt với giao diện tiếng Việt
-
 import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'information_screen.dart';
@@ -122,18 +119,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                   color: Color(0xFFEDE2CC),
                                   fontFamily: 'Poppins',
                                 ),
-                            ),
-                          ],
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
-                      // Icon mũi tên
-                      const Icon(
-                        Icons.chevron_right,
-                        color: Color(0xFFFFFFFF),
-                        size: 30,
-                      ),
-                    ],
-                  ),
+                        // Icon mũi tên
+                        const Icon(
+                          Icons.chevron_right,
+                          color: Color(0xFFFFFFFF),
+                          size: 30,
+                        ),
+                      ],
+                    ),
                   ),
                   const SizedBox(height: 20),
                 ],
@@ -277,6 +274,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
               ),
             ),
+            const SizedBox(height: 70),
           ],
         ),
       ),

@@ -7,7 +7,7 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'screens/onboarding.dart';
 import 'screens/main_app_screen.dart';
 import 'services/auth_service.dart';
-
+import 'screens/group_matcing_announcement_screen.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await EasyLocalization.ensureInitialized();
@@ -101,12 +101,20 @@ class _SplashScreenState extends State<SplashScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFF8A724C),
       body: Center(
-        child: Image.asset(
-          'assets/images/logo.jpg',
-          width: 150,
-          height: 150,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Image.asset(
+              'assets/images/logo.jpg',
+              width: 150,
+              height: 150,
+            ), // đến đây thôi
+          ],
         ),
       ),
     );
   }
+
 }
+
+
