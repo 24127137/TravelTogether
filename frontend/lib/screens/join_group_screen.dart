@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:my_travel_app/screens/home_page.dart';
 import 'package:my_travel_app/screens/messages_screen.dart';
 import 'package:my_travel_app/screens/notification_screen.dart';
-import 'package:my_travel_app/screens/private_screen.dart';
 import '../widgets/custom_bottom_nav_bar.dart';
 import 'dart:ui';
 import 'package:confetti/confetti.dart';

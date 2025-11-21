@@ -3,6 +3,8 @@ import 'package:intl/intl.dart';
 import 'package:easy_localization/easy_localization.dart';
 import '../data/mock_messages.dart';
 import '../models/message.dart';
+import 'member_screen(Host).dart';
+
 //màn hình lúc chat
 class ChatboxScreen extends StatefulWidget {
   const ChatboxScreen({Key? key}) : super(key: key);
@@ -116,9 +118,95 @@ class _ChatboxScreenState extends State<ChatboxScreen> {
         centerTitle: true,
         toolbarHeight: 100,
         actions: [
+          // IconButton(
+          //   icon: const Icon(Icons.people_outline, color: Colors.white, size: 28),
+          //   onPressed: () {
+          //     Navigator.push(
+          //       context,
+          //       MaterialPageRoute(
+          //         builder: (context) => MemberScreenHost(
+          //           groupName: "1 tháng 2 lần", // hoặc lấy từ data thực
+          //           currentMembers: 7,
+          //           maxMembers: 10,
+          //           members: [], // truyền data thực
+          //           pendingRequests: [], // truyền data thực
+          //         ),
+          //       ),
+          //     );
+          //   },
+          // ),
           IconButton(
             icon: const Icon(Icons.people_outline, color: Colors.white, size: 28),
-            onPressed: () {},
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => MemberScreenHost(
+                    groupName: "1 tháng 2 lần",
+                    currentMembers: 8,
+                    maxMembers: 12,
+                    members: [
+                      Member(
+                        id: "1",
+                        name: "Nguyễn Văn An",
+                        email: "an.nguyen@gmail.com",
+                        avatarUrl: "https://randomuser.me/api/portraits/men/1.jpg",
+                      ),
+                      Member(
+                        id: "2",
+                        name: "Trần Thị Bình",
+                        email: "binh.tran@gmail.com",
+                        avatarUrl: "https://randomuser.me/api/portraits/women/2.jpg",
+                      ),
+                      Member(
+                        id: "3",
+                        name: "Lê Hoàng Cường",
+                        email: "cuong.le@gmail.com",
+                        avatarUrl: "https://randomuser.me/api/portraits/men/3.jpg",
+                      ),
+                      Member(
+                        id: "4",
+                        name: "Phạm Minh Đức",
+                        email: "duc.pham@gmail.com",
+                        avatarUrl: "https://randomuser.me/api/portraits/men/4.jpg",
+                      ),
+                      Member(
+                        id: "5",
+                        name: "Hoàng Thị Lan",
+                        email: "lan.hoang@gmail.com",
+                        avatarUrl: "https://randomuser.me/api/portraits/women/5.jpg",
+                      ),
+                    ],
+                    pendingRequests: [
+                      PendingRequest(
+                        id: "p1",
+                        name: "Vũ Quang Hải",
+                        rating: 4.8,
+                        keywords: ["Thân thiện", "Đúng giờ", "Vui vẻ"],
+                      ),
+                      PendingRequest(
+                        id: "p2",
+                        name: "Đỗ Thị Mai",
+                        rating: 4.5,
+                        keywords: ["Hòa đồng", "Năng động"],
+                      ),
+                      PendingRequest(
+                        id: "p3",
+                        name: "Ngô Văn Nam",
+                        rating: 4.2,
+                        keywords: ["Lịch sự", "Chăm chỉ", "Tích cực"],
+                      ),
+                      PendingRequest(
+                        id: "p4",
+                        name: "Bùi Thị Oanh",
+                        rating: 4.7,
+                        keywords: ["Nhiệt tình", "Dễ thương"],
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
           ),
         ],
       ),

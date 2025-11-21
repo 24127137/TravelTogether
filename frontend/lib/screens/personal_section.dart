@@ -5,9 +5,17 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'travel_plan_screen.dart';
+import 'group_state_screen.dart';
 
 class PersonalSection extends StatelessWidget {
-  const PersonalSection({Key? key}) : super(key: key);
+  final VoidCallback? onGroupStateTap;
+  final VoidCallback? onTravelPlanTap;
+
+  const PersonalSection({
+    Key? key,
+    this.onGroupStateTap,
+    this.onTravelPlanTap,
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -19,7 +27,6 @@ class PersonalSection extends StatelessWidget {
         height: screenSize.height,
         child: Stack(
           children: [
-            // Full-screen background
             Container(
               width: double.infinity,
               height: double.infinity,
@@ -30,15 +37,12 @@ class PersonalSection extends StatelessWidget {
                 ),
               ),
             ),
-
-            // 2 mảnh ghép puzzle với hiệu ứng đẹp
             Center(
               child: SizedBox(
                 width: screenSize.width * 0.8,
                 height: screenSize.height * 0.55,
                 child: Stack(
                   children: [
-                    // Mảnh ghép trên
                     Positioned(
                       left: 0,
                       right: 0,
@@ -55,17 +59,10 @@ class PersonalSection extends StatelessWidget {
                         const Color(0xFFCD7F32),
                         isTop: true,
                         onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => const TravelPlanScreen(),
-                            ),
-                          );
+                          onTravelPlanTap?.call();
                         },
                       ),
                     ),
-
-                    // Mảnh ghép dưới
                     Positioned(
                       left: 0,
                       right: 0,
@@ -82,15 +79,7 @@ class PersonalSection extends StatelessWidget {
                         const Color(0xFFCD7F32),
                         isTop: false,
                         onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => Scaffold(
-                                appBar: AppBar(title: Text('status'.tr())),
-                                body: Center(child: Text('status'.tr())),
-                              ),
-                            ),
-                          );
+                          onGroupStateTap?.call();
                         },
                       ),
                     ),
@@ -140,7 +129,6 @@ class PersonalSection extends StatelessWidget {
           ),
           child: Stack(
             children: [
-              // Pattern decoration (optional)
               Positioned.fill(
                 child: CustomPaint(
                   painter: PatternPainter(
@@ -149,16 +137,12 @@ class PersonalSection extends StatelessWidget {
                   ),
                 ),
               ),
-
-              // Border
               CustomPaint(
                 painter: PuzzleBorderPainter(
                   borderColor: borderColor,
                   isTop: isTop,
                 ),
               ),
-
-              // Text ở giữa
               Center(
                 child: Padding(
                   padding: EdgeInsets.only(
@@ -185,15 +169,11 @@ class PersonalSection extends StatelessWidget {
                   ),
                 ),
               ),
-
-              // Icon ở góc
               Positioned(
-                // Lộ trình (isTop = true): góc phải dưới
-                // Tình trạng (isTop = false): góc trái trên
                 right: isTop ? 16 : null,
                 left: isTop ? null : 16,
                 bottom: isTop ? 70 : null,
-                top: isTop ? null : 70, // Tránh phần lõm
+                top: isTop ? null : 70,
                 child: Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
@@ -222,7 +202,7 @@ class PersonalSection extends StatelessWidget {
   }
 }
 
-// Clipper cho mảnh ghép trên (có lồi ở dưới)
+// Tách các class ra ngoài PersonalSection
 class TopPuzzleClipper extends CustomClipper<Path> {
   @override
   Path getClip(Size size) {
@@ -232,29 +212,19 @@ class TopPuzzleClipper extends CustomClipper<Path> {
     final notchRadius = 30.0;
     final cornerRadius = 16.0;
 
-    // Bo góc trên trái
     path.moveTo(cornerRadius, 0);
     path.quadraticBezierTo(0, 0, 0, cornerRadius);
     path.lineTo(0, h - notchRadius * 2 - cornerRadius);
-
-    // Bo góc dưới trái (trước lồi)
     path.quadraticBezierTo(0, h - notchRadius * 2, cornerRadius, h - notchRadius * 2);
     path.lineTo(w * 0.35, h - notchRadius * 2);
-
-    // Lồi hình tròn ở dưới
     path.arcToPoint(
       Offset(w * 0.65, h - notchRadius * 2),
       radius: Radius.circular(notchRadius),
       clockwise: false,
     );
-
     path.lineTo(w - cornerRadius, h - notchRadius * 2);
-
-    // Bo góc dưới phải (sau lồi)
     path.quadraticBezierTo(w, h - notchRadius * 2, w, h - notchRadius * 2 - cornerRadius);
     path.lineTo(w, cornerRadius);
-
-    // Bo góc trên phải
     path.quadraticBezierTo(w, 0, w - cornerRadius, 0);
     path.close();
 
@@ -265,7 +235,6 @@ class TopPuzzleClipper extends CustomClipper<Path> {
   bool shouldReclip(CustomClipper<Path> oldClipper) => false;
 }
 
-// Clipper cho mảnh ghép dưới (có lõm ở trên - khớp với lồi của mảnh trên)
 class BottomPuzzleClipper extends CustomClipper<Path> {
   @override
   Path getClip(Size size) {
@@ -275,30 +244,20 @@ class BottomPuzzleClipper extends CustomClipper<Path> {
     final notchRadius = 30.0;
     final cornerRadius = 16.0;
 
-    // Bắt đầu từ góc trên trái (sau lõm)
     path.moveTo(0, notchRadius * 2 + cornerRadius);
     path.quadraticBezierTo(0, notchRadius * 2, cornerRadius, notchRadius * 2);
     path.lineTo(w * 0.35, notchRadius * 2);
-
-    // Lõm hình tròn ở trên (khớp với lồi của mảnh trên)
     path.arcToPoint(
       Offset(w * 0.65, notchRadius * 2),
       radius: Radius.circular(notchRadius),
-      clockwise: false, // Lõm vào trong
+      clockwise: false,
       largeArc: false,
     );
-
     path.lineTo(w - cornerRadius, notchRadius * 2);
-
-    // Bo góc trên phải
     path.quadraticBezierTo(w, notchRadius * 2, w, notchRadius * 2 + cornerRadius);
     path.lineTo(w, h - cornerRadius);
-
-    // Bo góc dưới phải
     path.quadraticBezierTo(w, h, w - cornerRadius, h);
     path.lineTo(cornerRadius, h);
-
-    // Bo góc dưới trái
     path.quadraticBezierTo(0, h, 0, h - cornerRadius);
     path.close();
 
@@ -309,8 +268,6 @@ class BottomPuzzleClipper extends CustomClipper<Path> {
   bool shouldReclip(CustomClipper<Path> oldClipper) => false;
 }
 
-
-// Painter để vẽ viền cho mảnh ghép
 class PuzzleBorderPainter extends CustomPainter {
   final Color borderColor;
   final bool isTop;
@@ -348,7 +305,6 @@ class PuzzleBorderPainter extends CustomPainter {
       path.quadraticBezierTo(w, 0, w - cornerRadius, 0);
       path.close();
     } else {
-      // Viền cho mảnh dưới (có lõm ở trên)
       path.moveTo(0, notchRadius * 2 + cornerRadius);
       path.quadraticBezierTo(0, notchRadius * 2, cornerRadius, notchRadius * 2);
       path.lineTo(w * 0.35, notchRadius * 2);
@@ -356,7 +312,7 @@ class PuzzleBorderPainter extends CustomPainter {
         Offset(w * 0.65, notchRadius * 2),
         radius: Radius.circular(notchRadius),
         clockwise: false,
-        largeArc: false,// Lõm vào trong
+        largeArc: false,
       );
       path.lineTo(w - cornerRadius, notchRadius * 2);
       path.quadraticBezierTo(w, notchRadius * 2, w, notchRadius * 2 + cornerRadius);
@@ -367,7 +323,6 @@ class PuzzleBorderPainter extends CustomPainter {
       path.close();
     }
 
-
     canvas.drawPath(path, paint);
   }
 
@@ -375,7 +330,6 @@ class PuzzleBorderPainter extends CustomPainter {
   bool shouldRepaint(CustomPainter oldDelegate) => false;
 }
 
-// Painter để vẽ pattern trang trí
 class PatternPainter extends CustomPainter {
   final bool isTop;
   final Color color;
@@ -388,7 +342,6 @@ class PatternPainter extends CustomPainter {
       ..color = color
       ..style = PaintingStyle.fill;
 
-    // Vẽ các chấm tròn trang trí
     for (var i = 0; i < 5; i++) {
       for (var j = 0; j < 8; j++) {
         final x = size.width * (j / 8) + 20;

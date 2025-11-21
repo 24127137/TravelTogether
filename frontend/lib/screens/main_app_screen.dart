@@ -1,6 +1,3 @@
-/// File: main_app_screen.dart
-/// Mô tả: Widget container chính quản lý các tab và bottom bar, giao diện tiếng Việt.
-
 import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'home_page.dart';
@@ -13,10 +10,12 @@ import 'before_group_screen.dart';
 import 'group_creating.dart';
 import 'destination_search_screen.dart';
 import 'settings_screen.dart';
-import 'private_screen.dart';
 import 'notification_screen.dart';
 import 'profile.dart';
 import 'join_group_screen.dart';
+import 'group_state_screen.dart';
+import 'travel_plan_screen.dart';
+import 'personal_section.dart';
 
 class MainAppScreen extends StatefulWidget {
   final int initialIndex;
@@ -42,6 +41,9 @@ class _MainAppScreenState extends State<MainAppScreen> {
   bool _showSettings = false;
   bool _showProfile = false;
   bool _showJoinGroup = false;
+  bool _showGroupState = false;
+  bool _showTravelPlan = false;
+  bool _showPersonal = false;
   String? _groupDestinationName;
 
   @override
@@ -60,6 +62,8 @@ class _MainAppScreenState extends State<MainAppScreen> {
       _showSettings = false;
       _showProfile = false;
       _showJoinGroup = false;
+      _showGroupState = false;
+      _showTravelPlan = false;
     });
   }
 
@@ -71,7 +75,7 @@ class _MainAppScreenState extends State<MainAppScreen> {
       _showBeforeGroup = false;
       _showGroupCreating = false;
       _showSettings = false;
-      _selectedIndex = -1; // ← KHÔNG ửng màu icon nào
+      _selectedIndex = -1;
     });
   }
 
@@ -82,7 +86,7 @@ class _MainAppScreenState extends State<MainAppScreen> {
       _showBeforeGroup = false;
       _showGroupCreating = false;
       _showSettings = false;
-      _selectedIndex = -1; // ← KHÔNG ửng màu icon nào
+      _selectedIndex = -1;
     });
   }
 
@@ -93,7 +97,7 @@ class _MainAppScreenState extends State<MainAppScreen> {
       _showBeforeGroup = true;
       _showGroupCreating = false;
       _showSettings = false;
-      _selectedIndex = -1; // ← KHÔNG ửng màu icon nào
+      _selectedIndex = -1;
     });
   }
 
@@ -106,7 +110,7 @@ class _MainAppScreenState extends State<MainAppScreen> {
       _showSettings = false;
       _showProfile = false;
       _groupDestinationName = destinationName;
-      _selectedIndex = -1; // ← KHÔNG ửng màu icon nào
+      _selectedIndex = -1;
     });
   }
 
@@ -118,6 +122,9 @@ class _MainAppScreenState extends State<MainAppScreen> {
       _showGroupCreating = false;
       _showSettings = false;
       _showProfile = false;
+      _showGroupState = false;
+      _showTravelPlan = false;
+      _showJoinGroup = false;
     });
   }
 
@@ -129,7 +136,36 @@ class _MainAppScreenState extends State<MainAppScreen> {
       _showGroupCreating = false;
       _showSettings = true;
       _showProfile = false;
-      _selectedIndex = -1; // Đặt selectedIndex về -1 để không chọn tab nào
+      _selectedIndex = -1;
+    });
+  }
+
+  void _openGroupState() {
+    setState(() {
+      _showDetail = false;
+      _showExplore = false;
+      _showBeforeGroup = false;
+      _showGroupCreating = false;
+      _showSettings = false;
+      _showProfile = false;
+      _showJoinGroup = false;
+      _showGroupState = true;
+      _selectedIndex = -1;
+    });
+  }
+
+  void _openTravelPlan() {
+    setState(() {
+      _showDetail = false;
+      _showExplore = false;
+      _showBeforeGroup = false;
+      _showGroupCreating = false;
+      _showSettings = false;
+      _showProfile = false;
+      _showJoinGroup = false;
+      _showGroupState = false;
+      _showTravelPlan = true;
+      _selectedIndex = -1;
     });
   }
 
@@ -141,7 +177,7 @@ class _MainAppScreenState extends State<MainAppScreen> {
       _showGroupCreating = false;
       _showSettings = false;
       _showProfile = true;
-      _selectedIndex = -1; // ← KHÔNG ửng màu icon nào
+      _selectedIndex = -1;
     });
   }
 
@@ -153,7 +189,7 @@ class _MainAppScreenState extends State<MainAppScreen> {
       _showGroupCreating = false;
       _showSettings = false;
       _showProfile = false;
-      _showJoinGroup = true; // ← Thêm flag mới
+      _showJoinGroup = true;
       _selectedIndex = -1;
     });
   }
@@ -169,11 +205,10 @@ class _MainAppScreenState extends State<MainAppScreen> {
     }
   }
 
-  // Xử lý nút back của điện thoại
   Future<bool> _handleBackButton() async {
-    // Nếu đang ở màn hình phụ (Settings, Detail, Explore, BeforeGroup, GroupCreating, Profile)
     if (_showSettings || _showDetail || _showExplore || _showBeforeGroup ||
-        _showGroupCreating || _showProfile) {
+        _showGroupCreating || _showProfile || _showGroupState || _showTravelPlan) {
+
       if (_showJoinGroup) {
         setState(() {
           _showJoinGroup = false;
@@ -181,30 +216,44 @@ class _MainAppScreenState extends State<MainAppScreen> {
         });
         return false;
       }
-      // Nếu đang ở Profile, quay về Settings
+
+      if (_showGroupState) {
+        setState(() {
+          _showGroupState = false;
+          _selectedIndex = 3;
+        });
+        return false;
+      }
+
+      if (_showTravelPlan) {
+        setState(() {
+          _showTravelPlan = false;
+          _selectedIndex = 3;
+        });
+        return false;
+      }
+
       if (_showProfile) {
         _openSettings();
         return false;
       }
-      // Nếu đang ở GroupCreating, quay về BeforeGroup
+
       if (_showGroupCreating) {
         _openBeforeGroup();
         return false;
       }
-      // Các trường hợp khác, đóng tất cả
+
       _closeAllScreens();
-      return false; // Không thoát app
+      return false;
     }
 
-    // Nếu đang ở tab khác ngoài Home (tab 0)
     if (_selectedIndex != 0) {
       setState(() {
-        _selectedIndex = 0; // Quay về tab Home
+        _selectedIndex = 0;
       });
-      return false; // Không thoát app
+      return false;
     }
 
-    // Nếu đang ở tab Home → Hiển thị dialog xác nhận thoát
     final shouldExit = await showDialog<bool>(
       context: context,
       builder: (context) =>
@@ -224,13 +273,32 @@ class _MainAppScreenState extends State<MainAppScreen> {
           ),
     );
 
-    return shouldExit ?? false; // Chỉ thoát khi user chọn "Thoát"
+    return shouldExit ?? false;
   }
 
   @override
   Widget build(BuildContext context) {
     Widget mainContent;
-    if (_showJoinGroup) {
+
+    if (_showTravelPlan) {
+      mainContent = TravelPlanScreen(
+        onBack: () {
+          setState(() {
+            _showTravelPlan = false;
+            _selectedIndex = 3;
+          });
+        },
+      );
+    } else if (_showGroupState) {
+      mainContent = GroupStateScreen(
+        onBack: () {
+          setState(() {
+            _showGroupState = false;
+            _selectedIndex = 3;
+          });
+        },
+      );
+    } else if (_showJoinGroup) {
       mainContent = JoinGroupScreen(
         onBack: () {
           setState(() {
@@ -239,12 +307,10 @@ class _MainAppScreenState extends State<MainAppScreen> {
           });
         },
       );
-    }
-    else if (_showProfile) {
+    } else if (_showProfile) {
       mainContent = ProfilePage(onBack: _openSettings);
     } else if (_showSettings) {
-      mainContent =
-          SettingsScreen(onBack: _closeAllScreens, onProfileTap: _openProfile);
+      mainContent = SettingsScreen(onBack: _closeAllScreens);
     } else if (_showGroupCreating) {
       mainContent = GroupCreatingScreen(
         destinationName: _groupDestinationName,
@@ -279,7 +345,10 @@ class _MainAppScreenState extends State<MainAppScreen> {
         ),
         NotificationScreen(),
         MessagesScreen(accessToken: widget.accessToken),
-        const PrivateScreen(),
+        PersonalSection(
+          onGroupStateTap: _openGroupState,
+          onTravelPlanTap: _openTravelPlan,
+        ),
       ];
       mainContent = IndexedStack(
         index: _selectedIndex,
@@ -299,12 +368,9 @@ class _MainAppScreenState extends State<MainAppScreen> {
       },
       child: Scaffold(
         extendBody: true,
-        body: Stack( // ← Thêm Stack
+        body: Stack(
           children: [
-            // Nội dung chính
             mainContent,
-
-            // Thanh bar luôn ở trên cùng
             Positioned(
               bottom: 0,
               left: 0,
