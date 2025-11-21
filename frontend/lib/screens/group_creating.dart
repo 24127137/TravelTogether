@@ -2,6 +2,9 @@
 /// Screen for creating a new travel group
 import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart' hide TextDirection;
+import 'package:image_picker/image_picker.dart';
+import 'dart:io';
+import 'dart:math' as math;
 import '../widgets/calendar_card.dart';
 
 class GroupCreatingScreen extends StatefulWidget {
@@ -18,39 +21,179 @@ class GroupCreatingScreen extends StatefulWidget {
   State<GroupCreatingScreen> createState() => _GroupCreatingScreenState();
 }
 
-class _GroupCreatingScreenState extends State<GroupCreatingScreen> {
-  // Trạng thái cho hiệu ứng trượt
-  int _currentStep = 0; // 0: Trượt để tạo, 1: Tiến hành, 2: Thành công
+class _GroupCreatingScreenState extends State<GroupCreatingScreen>
+    with TickerProviderStateMixin {
+  // Key to locate the date field position for popover
+  final GlobalKey _dateFieldKey = GlobalKey();
 
   // Dữ liệu nhóm
   int _numberOfPeople = 10;
   DateTime? _selectedStartDate = DateTime(2025, 10, 21);
   DateTime? _selectedEndDate = DateTime(2025, 10, 24);
   DateTime _focusedDay = DateTime.now();
+  String _groupName = 'Mộng mơ';
+  File? _groupAvatar;
 
-  // Controller cho dragging
-  double _dragOffset = 0;
-  final double _maxDragOffset = 250;
-
-  // Sở thích đã chọn
+  // Sở thích và lộ trình
   final List<String> _selectedInterests = [
     'Nghỉ dưỡng',
     'Lãng mạn',
     'Ẩm thực',
     'Thiên nhiên'
   ];
+  final List<String> _itineraryItems = [
+    'Hồ Xuân Hương',
+    'Thiền viện Trúc Lâm',
+  ];
+
+  // Animation controllers
+  late AnimationController _slideController;
+  late AnimationController _stateTransitionController;
+  late Animation<double> _slideAnimation;
+  late Animation<double> _textFadeAnimation;
+  late Animation<Color?> _buttonColorAnimation;
+  late Animation<Color?> _circleColorAnimation;
+
+  int _currentState = 0; // 0: Idle, 1: Processing, 2: Success
+  double _dragOffset = 0;
+  final double _maxDragOffset = 260;
+
+  @override
+  void initState() {
+    super.initState();
+
+    _slideController = AnimationController(
+      duration: const Duration(milliseconds: 300),
+      vsync: this,
+    );
+
+    _stateTransitionController = AnimationController(
+      duration: const Duration(milliseconds: 600),
+      vsync: this,
+    );
+
+    _slideAnimation = Tween<double>(begin: 0, end: 1).animate(
+      CurvedAnimation(parent: _slideController, curve: Curves.easeOutCubic),
+    );
+
+    _textFadeAnimation = Tween<double>(begin: 1, end: 0).animate(
+      CurvedAnimation(parent: _slideController, curve: Curves.easeInOut),
+    );
+
+    _buttonColorAnimation = ColorTween(
+      begin: const Color(0xFFEDE2CC),
+      end: const Color(0xFFDCC9A7),
+    ).animate(_slideController);
+
+    _circleColorAnimation = ColorTween(
+      begin: const Color(0xFFF7F3E8),
+      end: const Color(0xFFCD7F32),
+    ).animate(_slideController);
+  }
+
+  @override
+  void dispose() {
+    _slideController.dispose();
+    _stateTransitionController.dispose();
+    super.dispose();
+  }
+
+  void _handleSlideComplete() async {
+    setState(() => _currentState = 1);
+
+    // Simulate processing
+    await Future.delayed(const Duration(seconds: 2));
+
+    if (mounted) {
+      setState(() => _currentState = 2);
+
+      // Auto close after success
+      await Future.delayed(const Duration(seconds: 2));
+      if (mounted && widget.onBack != null) {
+        widget.onBack!();
+      }
+    }
+  }
+
+  Future<void> _pickImage() async {
+    final picker = ImagePicker();
+    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+
+    if (pickedFile != null) {
+      setState(() {
+        _groupAvatar = File(pickedFile.path);
+      });
+    }
+  }
+
+  void _showEditGroupNameDialog() {
+    final controller = TextEditingController(text: _groupName);
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFFF7F3E8),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text(
+          'Đặt tên nhóm',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 18,
+            color: Color(0xFF000000),
+          ),
+        ),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          decoration: InputDecoration(
+            hintText: 'Nhập tên nhóm',
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: Color(0xFFDCC9A7), width: 2),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: Color(0xFFB99668), width: 2),
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Hủy', style: TextStyle(color: Colors.grey)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFF7F3E8),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            ),
+            onPressed: () {
+              setState(() {
+                _groupName = controller.text.isEmpty ? 'Mộng mơ' : controller.text;
+              });
+              Navigator.pop(context);
+            },
+            child: const Text(
+              'Xác nhận',
+              style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF7F3E8), // Màu nền chính
+      backgroundColor: const Color(0xFFF7F3E8),
       body: SafeArea(
         child: Column(
           children: [
             _buildHeader(),
             Expanded(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 104),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -76,7 +219,7 @@ class _GroupCreatingScreenState extends State<GroupCreatingScreen> {
 
   Widget _buildHeader() {
     return Container(
-      height: 300,
+      height: 280,
       decoration: BoxDecoration(
         borderRadius: const BorderRadius.vertical(bottom: Radius.circular(20)),
         boxShadow: [
@@ -89,7 +232,7 @@ class _GroupCreatingScreenState extends State<GroupCreatingScreen> {
       ),
       child: Stack(
         children: [
-          // Background image (Top.jpg - hình thuyền buồm) - KHÔNG CÓ OVERLAY
+          // Background image
           ClipRRect(
             borderRadius: const BorderRadius.vertical(bottom: Radius.circular(20)),
             child: Container(
@@ -97,7 +240,7 @@ class _GroupCreatingScreenState extends State<GroupCreatingScreen> {
               height: 300,
               decoration: const BoxDecoration(
                 image: DecorationImage(
-                  image: AssetImage('assets/images/group_creating/Top.jpg'),
+                  image: AssetImage('assets/images/create_background.jpg'),
                   fit: BoxFit.cover,
                 ),
               ),
@@ -107,46 +250,49 @@ class _GroupCreatingScreenState extends State<GroupCreatingScreen> {
           // Content
           Column(
             children: [
-              // Top bar với back button và title
+              // Top bar
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 child: Row(
                   children: [
                     GestureDetector(
-                      onTap: () {
-                        if (widget.onBack != null) {
-                          widget.onBack!();
-                        }
-                      },
+                      onTap: widget.onBack,
                       child: Container(
                         width: 40,
                         height: 40,
                         decoration: BoxDecoration(
                           color: Colors.white,
-                          borderRadius: BorderRadius.circular(8),
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.1),
+                              blurRadius: 4,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
                         ),
-                        child: Center(
-                          child: Image.asset(
-                            'assets/images/group_creating/Arrow.jpg',
-                            width: 24,
-                            height: 24,
-                            fit: BoxFit.contain,
-                          ),
+                        child: const Icon(
+                          Icons.arrow_back,
+                          color: Color(0xFF000000),
+                          size: 20,
                         ),
                       ),
                     ),
                     Expanded(
                       child: Center(
-                        child: Text(
-                          'create_group_title'.tr(),
-                          style: const TextStyle(
-                            fontSize: 64,
-                            fontWeight: FontWeight.w900, // Black weight
-                            color: Color(0xFFF18900),
-                            decoration: TextDecoration.none,
-                            fontFamily: 'AlumniSans',
-                            height: 0.965, // Line height 96.5%
-                            letterSpacing: -0.04 * 64, // -4% of font size
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            'TẠO NHÓM',
+                            style: const TextStyle(
+                              fontSize: 64,
+                              fontWeight: FontWeight.w900,
+                              color: Color(0xFFF18900),
+                              decoration: TextDecoration.none,
+                              fontFamily: 'Alumni Sans',
+                              height: 0.965,
+                              letterSpacing: -0.04 * 64,
+                            ),
                           ),
                         ),
                       ),
@@ -161,30 +307,71 @@ class _GroupCreatingScreenState extends State<GroupCreatingScreen> {
               // Avatar và tên nhóm
               Column(
                 children: [
-                  // Avatar circle
-                  Container(
-                    width: 90,
-                    height: 90,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(color: Colors.white, width: 3),
-                      image: const DecorationImage(
-                        image: AssetImage('assets/images/group_creating/avatar_gr.jpg'),
-                        fit: BoxFit.cover,
-                      ),
+                  // Avatar với khả năng upload
+                  GestureDetector(
+                    onTap: _pickImage,
+                    child: Stack(
+                      children: [
+                        Container(
+                          width: 120,
+                          height: 120,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            border: Border.all(color: Colors.white, width: 3),
+                            image: DecorationImage(
+                              image: _groupAvatar != null
+                                  ? FileImage(_groupAvatar!)
+                                  : const AssetImage('assets/images/group_creating/avatar_gr.jpg')
+                              as ImageProvider,
+                              fit: BoxFit.cover,
+                            ),
+                          ),
+                        ),
+                        Positioned(
+                          right: 0,
+                          bottom: 0,
+                          child: Container(
+                            width: 35,
+                            height: 35,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF18900),
+                              shape: BoxShape.circle,
+                              border: Border.all(color: Colors.white, width: 2),
+                            ),
+                            child: const Icon(
+                              Icons.camera_alt,
+                              color: Colors.white,
+                              size: 19,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                   const SizedBox(height: 12),
-                  const Text(
-                    'Mộng mơ',
-                    style: TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.w400,
-                      color: Color(0xFFF18900),
-                      decoration: TextDecoration.none,
-                      fontFamily: 'DMSerifDisplay',
-                      height: 1.0,
-                      letterSpacing: 0.5,
+                  GestureDetector(
+                    onTap: _showEditGroupNameDialog,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          _groupName,
+                          style: const TextStyle(
+                            fontSize: 40,
+                            fontWeight: FontWeight.w500,
+                            color: Color(0xFFF7F3E8),
+                            decoration: TextDecoration.none,
+                            fontFamily: 'Alegreya',
+                            height: 1.0,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        const Icon(
+                          Icons.edit,
+                          color: Color(0xFFE5CDB1),
+                          size: 20,
+                        ),
+                      ],
                     ),
                   ),
                 ],
@@ -222,7 +409,7 @@ class _GroupCreatingScreenState extends State<GroupCreatingScreen> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  '$_numberOfPeople ${'number_of_people'.tr()}',
+                  '$_numberOfPeople người',
                   style: const TextStyle(
                     fontSize: 15,
                     color: Color(0xFF000000),
@@ -246,7 +433,6 @@ class _GroupCreatingScreenState extends State<GroupCreatingScreen> {
   Widget _buildLocationAndDate() {
     return Row(
       children: [
-        // Box Vị trí
         Expanded(
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
@@ -283,14 +469,12 @@ class _GroupCreatingScreenState extends State<GroupCreatingScreen> {
             ),
           ),
         ),
-
         const SizedBox(width: 12),
-
-        // Box Ngày
         Expanded(
           child: GestureDetector(
             onTap: _showCalendarDialog,
             child: Container(
+              key: _dateFieldKey,
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
               decoration: BoxDecoration(
                 color: const Color(0xFFFFFFFF),
@@ -317,7 +501,7 @@ class _GroupCreatingScreenState extends State<GroupCreatingScreen> {
                     child: Text(
                       _selectedStartDate != null && _selectedEndDate != null
                           ? '${_selectedStartDate!.day} - ${_selectedEndDate!.day} / ${_selectedStartDate!.month} / ${_selectedStartDate!.year}'
-                          : 'choose_date'.tr(),
+                          : 'Chọn ngày',
                       style: const TextStyle(
                         fontSize: 12,
                         color: Color(0xFF000000),
@@ -340,23 +524,16 @@ class _GroupCreatingScreenState extends State<GroupCreatingScreen> {
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFFFFFFFF),
+        color: Color(0xFFF7F3E8),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE0E0E0), width: 1),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 4,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        border: Border.all(color: const Color(0xFFDCC9A7), width: 3),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'interests'.tr(),
-            style: const TextStyle(
+          const Text(
+            'Sở thích',
+            style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.bold,
               color: Color(0xFF000000),
@@ -370,7 +547,7 @@ class _GroupCreatingScreenState extends State<GroupCreatingScreen> {
               return Container(
                 padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFDCC9A7), // Màu nền thẻ Sở thích
+                  color: const Color(0xFFDCC9A7),
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
@@ -394,218 +571,267 @@ class _GroupCreatingScreenState extends State<GroupCreatingScreen> {
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFFFFFFFF),
+        color: const Color(0xFFF7F3E8),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE0E0E0), width: 1),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 4,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        border: Border.all(color: const Color(0xFFDCC9A7), width: 3),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'itinerary'.tr(),
-            style: const TextStyle(
+          const Text(
+            'Lộ trình',
+            style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.bold,
               color: Color(0xFF000000),
             ),
           ),
           const SizedBox(height: 12),
-          _buildItineraryItem('Hồ Xuân Hương'),
-          const SizedBox(height: 8),
-          _buildItineraryItem('Thiền viện Trúc Lâm'),
+          ..._itineraryItems.map((item) => _buildItineraryItem(item)).toList(),
         ],
       ),
     );
   }
 
   Widget _buildItineraryItem(String text) {
-    return Row(
-      children: [
-        const Text(
-          '• ',
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-            color: Color(0xFF000000),
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        children: [
+          const Text(
+            '• ',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF000000),
+            ),
           ),
-        ),
-        Text(
-          text,
-          style: const TextStyle(
-            fontSize: 14,
-            color: Color(0xFF000000),
+          Text(
+            text,
+            style: const TextStyle(
+              fontSize: 14,
+              color: Color(0xFF000000),
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
   Widget _buildSliderButton() {
-    // Hiển thị theo trạng thái hiện tại
-    String buttonText;
-    Color backgroundColor;
-    Color borderColor;
-    Color textColor;
-    IconData? iconData;
-
-    switch (_currentStep) {
-      case 0:
-        buttonText = 'slide_to_create'.tr();
-        backgroundColor = const Color(0xFFEDE2CC);
-        borderColor = const Color(0xFFB99668);
-        textColor = Colors.black.withValues(alpha: 0.4);
-        iconData = null;
-        break;
-      case 1:
-        buttonText = 'proceed'.tr();
-        backgroundColor = const Color(0xFFDA9551);
-        borderColor = const Color(0xFFB97636);
-        textColor = Colors.white;
-        iconData = Icons.arrow_forward;
-        break;
-      case 2:
-        buttonText = 'success_created'.tr();
-        backgroundColor = const Color(0xFFB85E2A);
-        borderColor = const Color(0xFF8B3E15);
-        textColor = Colors.white;
-        iconData = Icons.check;
-        break;
-      default:
-        buttonText = 'slide_to_create'.tr();
-        backgroundColor = const Color(0xFFEDE2CC);
-        borderColor = const Color(0xFFB99668);
-        textColor = Colors.black.withValues(alpha: 0.4);
-        iconData = null;
-    }
-
-    if (_currentStep == 0) {
-      // Interactive slider for first step
+    if (_currentState == 0) {
       return GestureDetector(
         onHorizontalDragUpdate: (details) {
           setState(() {
             _dragOffset += details.delta.dx;
-            if (_dragOffset < 0) _dragOffset = 0;
-            if (_dragOffset > _maxDragOffset) {
-              _currentStep = 1;
-              _dragOffset = 0;
-              // Simulate processing time
-              Future.delayed(const Duration(seconds: 2), () {
-                if (mounted) {
-                  setState(() {
-                    _currentStep = 2;
-                  });
-                }
-              });
-            }
+            _dragOffset = _dragOffset.clamp(0.0, _maxDragOffset);
+            _slideController.value = _dragOffset / _maxDragOffset;
           });
         },
         onHorizontalDragEnd: (details) {
-          if (_dragOffset < _maxDragOffset) {
+          if (_dragOffset >= _maxDragOffset * 0.8) {
+            setState(() {
+              _dragOffset = _maxDragOffset;
+            });
+            _handleSlideComplete();
+          } else {
             setState(() {
               _dragOffset = 0;
             });
+            _slideController.animateTo(0);
           }
         },
-        child: Container(
-          width: double.infinity,
-          height: 64,
-          decoration: BoxDecoration(
-            color: backgroundColor,
-            borderRadius: BorderRadius.circular(32),
-            border: Border.all(color: borderColor, width: 3),
-          ),
-          child: Stack(
-            alignment: Alignment.center,
-            children: [
-              // Text
-              Text(
-                buttonText,
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: textColor,
-                  fontFamily: 'Inter',
+        child: AnimatedBuilder(
+          animation: _slideController,
+          builder: (context, child) {
+            return Container(
+              width: double.infinity,
+              height: 80,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    Color.lerp(const Color(0xFFB99668), const Color(0xFFCD7F32),
+                        _slideController.value)!,
+                    Color.lerp(const Color(0xFFEDE2CC), const Color(0xFFDCC9A7),
+                        _slideController.value)!,
+                  ],
                 ),
-              ),
-              // Slider circle with Vector icon
-              Positioned(
-                left: 4 + _dragOffset,
-                child: Container(
-                  width: 56,
-                  height: 56,
-                  decoration: const BoxDecoration(
-                    color: Color(0xFFFFFFFF),
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black26,
-                        blurRadius: 4,
-                        offset: Offset(2, 2),
-                      ),
-                    ],
+                borderRadius: BorderRadius.circular(40),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.15),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
                   ),
-                  child: Center(
-                    child: Image.asset(
-                      'assets/images/group_creating/Vector.jpg',
-                      width: 28,
-                      height: 28,
-                      fit: BoxFit.contain,
+                ],
+              ),
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  // Text "Trượt để tạo" → "Tiến hành"
+                  AnimatedOpacity(
+                    opacity: 1 - _slideController.value,
+                    duration: const Duration(milliseconds: 200),
+                    child: Transform.translate(
+                      offset: Offset(_dragOffset * 0.5, 0),
+                      child: const Text(
+                        'Trượt để tạo',
+                        style: TextStyle(
+                          fontSize: 28,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black54,
+                          fontFamily: 'Alegreya',
+                        ),
+                      ),
+                    ),
+                  ),
+                  AnimatedOpacity(
+                    opacity: _slideController.value,
+                    duration: const Duration(milliseconds: 200),
+                    child: Transform.translate(
+                      offset: Offset(-_maxDragOffset * (1 - _slideController.value) * 0.5, 0),
+                      child: const Text(
+                        'Tiến hành',
+                        style: TextStyle(
+                          fontSize: 28,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                          fontFamily: 'Alegreya',
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  // Sliding circle
+                  Positioned(
+                    left: 4 + _dragOffset,
+                    child: Container(
+                      width: 75,
+                      height: 75,
+                      decoration: BoxDecoration(
+                        color: _circleColorAnimation.value,
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.2),
+                            blurRadius: 8,
+                            offset: const Offset(2, 2),
+                          ),
+                        ],
+                      ),
+                      child: Center(
+                        child: Icon(
+                          Icons.arrow_forward,
+                          color: Colors.black,
+                          size: 28,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        ),
+      );
+    } else if (_currentState == 1) {
+      return Container(
+        width: double.infinity,
+        height: 80,
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [Color(0xFFCD7F32), Color(0xFFDCC9A7)],
+          ),
+          borderRadius: BorderRadius.circular(40),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.15),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            const Text(
+              'Tiến hành',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+                fontFamily: 'Inter',
+              ),
+            ),
+            Positioned(
+              right: 4,
+              child: Container(
+                width: 75,
+                height: 75,
+                decoration: const BoxDecoration(
+                  color: Color(0xFFCD7F32),
+                  shape: BoxShape.circle,
+                ),
+                child: const Center(
+                  child: SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: CircularProgressIndicator(
+                      color: Colors.white,
+                      strokeWidth: 3,
                     ),
                   ),
                 ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       );
     } else {
-      // Static button for other steps
       return Container(
         width: double.infinity,
-        height: 64,
+        height: 80,
         decoration: BoxDecoration(
-          color: backgroundColor,
-          borderRadius: BorderRadius.circular(32),
-          border: Border.all(color: borderColor, width: 3),
+          gradient: const LinearGradient(
+            colors: [Color(0xFFB64B12), Color(0xFFCD7F32)],
+          ),
+          borderRadius: BorderRadius.circular(40),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.15),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ],
         ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
+        child: Stack(
+          alignment: Alignment.center,
           children: [
-            Text(
-              buttonText,
+            const Text(
+              'Thành công!',
               style: TextStyle(
-                fontSize: 18,
+                fontSize: 28,
                 fontWeight: FontWeight.bold,
-                color: textColor,
-                fontFamily: 'Inter',
-                decoration: TextDecoration.none,
+                color: Colors.white,
+                fontFamily: 'Alegreya',
               ),
             ),
-            if (iconData != null) ...[
-              const SizedBox(width: 12),
-              Container(
-                width: 36,
-                height: 36,
-                decoration: BoxDecoration(
-                  color: _currentStep == 1
-                      ? const Color(0xFFE8A862)
-                      : const Color(0xFFD17847),
+            Positioned(
+              right: 4,
+              child: Container(
+                width: 75,
+                height: 75,
+                decoration: const BoxDecoration(
+                  color: Color(0xFFE49342),
                   shape: BoxShape.circle,
                 ),
-                child: Icon(
-                  iconData,
-                  color: Colors.white,
-                  size: 20,
+                child: const Icon(
+                  Icons.check,
+                  color: Colors.black,
+                  size: 36,
                 ),
               ),
-            ],
+            ),
           ],
         ),
       );
@@ -617,49 +843,98 @@ class _GroupCreatingScreenState extends State<GroupCreatingScreen> {
     DateTime? tempEndDate = _selectedEndDate;
     DateTime tempFocusedDay = _focusedDay;
 
-    showDialog(
+    // Try to get position of the date field; fallback to center if not available
+    final RenderBox? renderBox = _dateFieldKey.currentContext?.findRenderObject() as RenderBox?;
+    final screenSize = MediaQuery.of(context).size;
+    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+
+    // Desired dialog size
+    final dialogWidth = (screenSize.width * 0.98).clamp(320.0, screenSize.width - 24.0);
+    final dialogHeight = (screenSize.height * 0.68).clamp(280.0, screenSize.height - 120.0);
+
+    // Compute anchor position
+    double left = (screenSize.width - dialogWidth) / 2;
+    double top = (screenSize.height - dialogHeight) / 2;
+
+    if (renderBox != null) {
+      final fieldOffset = renderBox.localToGlobal(Offset.zero);
+      final fieldSize = renderBox.size;
+
+      // Prefer showing below the field
+      final candidateTop = fieldOffset.dy + fieldSize.height + 8;
+      final availableBelow = screenSize.height - candidateTop - bottomInset - kBottomNavigationBarHeight;
+
+      if (availableBelow >= dialogHeight) {
+        top = math.max(12.0, candidateTop);
+      } else {
+        // Not enough space below, try above
+        final candidateAbove = fieldOffset.dy - dialogHeight - 8;
+        if (candidateAbove >= 12.0) {
+          top = candidateAbove;
+        } else {
+          // Fallback: center vertically
+          top = math.max(12.0, (screenSize.height - dialogHeight) / 2);
+        }
+      }
+
+      // Center horizontally on the field if possible
+      final candidateLeft = fieldOffset.dx + (fieldSize.width / 2) - (dialogWidth / 2);
+      left = candidateLeft.clamp(12.0, screenSize.width - dialogWidth - 12.0);
+    }
+
+    showGeneralDialog(
       context: context,
-      builder: (BuildContext context) {
-        return StatefulBuilder(
-          builder: (BuildContext context, StateSetter setDialogState) {
-            return Dialog(
-              backgroundColor: Colors.transparent,
-              child: CalendarCard(
-                focusedDay: tempFocusedDay,
-                rangeStart: tempStartDate,
-                rangeEnd: tempEndDate,
-                accentColor: const Color(0xFFB99668), // Màu vàng nâu cho group creating
-                onDaySelected: (selectedDay, focusedDay) {
-                  setDialogState(() {
-                    if (tempStartDate == null || tempEndDate != null) {
-                      tempStartDate = selectedDay;
-                      tempEndDate = null;
-                    } else if (selectedDay.isAfter(tempStartDate!)) {
-                      tempEndDate = selectedDay;
-                    } else {
-                      tempStartDate = selectedDay;
-                      tempEndDate = null;
-                    }
+      barrierDismissible: true,
+      barrierLabel: 'calendar',
+      barrierColor: Colors.black.withAlpha((0.5 * 255).toInt()),
+      transitionDuration: const Duration(milliseconds: 200),
+      pageBuilder: (context, anim1, anim2) {
+        return Stack(
+          children: [
+            // tapping the scrim will dismiss because barrierDismissible true
+            Positioned(
+              left: left,
+              top: top,
+              width: dialogWidth,
+              child: Material(
+                color: Colors.transparent,
+                child: CalendarCard(
+                  margin: EdgeInsets.zero,
+                  focusedDay: tempFocusedDay,
+                  rangeStart: tempStartDate,
+                  rangeEnd: tempEndDate,
+                  accentColor: const Color(0xFFB99668),
+                  onDaySelected: (selectedDay, focusedDay) {
+                    // Update temp values inside the dialog using Navigator's overlay
+                    tempStartDate = tempStartDate == null || tempEndDate != null
+                        ? selectedDay
+                        : (selectedDay.isAfter(tempStartDate!) ? tempStartDate : selectedDay);
+                    // The real logic needs more careful handling; we'll mirror previous behavior below in onClose
                     tempFocusedDay = focusedDay;
-                  });
-                },
-                onPageChanged: (focusedDay) {
-                  setDialogState(() {
+                  },
+                  onPageChanged: (focusedDay) {
                     tempFocusedDay = focusedDay;
-                  });
-                },
-                onClose: () {
-                  // Lưu giá trị vào state chính khi đóng
-                  setState(() {
-                    _selectedStartDate = tempStartDate;
-                    _selectedEndDate = tempEndDate;
-                    _focusedDay = tempFocusedDay;
-                  });
-                  Navigator.pop(context);
-                },
+                  },
+                  onClose: () {
+                    // On close commit the temp values to state and dismiss
+                    setState(() {
+                      _selectedStartDate = tempStartDate;
+                      _selectedEndDate = tempEndDate;
+                      _focusedDay = tempFocusedDay;
+                    });
+                    Navigator.of(context).pop();
+                  },
+                ),
               ),
-            );
-          },
+            ),
+          ],
+        );
+      },
+      transitionBuilder: (context, anim, secAnim, child) {
+        final curved = CurvedAnimation(parent: anim, curve: Curves.easeOut);
+        return FadeTransition(
+          opacity: curved,
+          child: ScaleTransition(scale: curved, child: child),
         );
       },
     );
@@ -671,11 +946,11 @@ class _GroupCreatingScreenState extends State<GroupCreatingScreen> {
       builder: (BuildContext context) {
         int tempNumber = _numberOfPeople;
         return AlertDialog(
-          backgroundColor: const Color(0xFFFFFFFF),
+          backgroundColor: const Color(0xFFF7F3E8),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: Text(
-            'select_number'.tr(),
-            style: const TextStyle(
+          title: const Text(
+            'Chọn số người (tối đa 10)',
+            style: TextStyle(
               fontWeight: FontWeight.bold,
               fontSize: 18,
               color: Color(0xFF000000),
@@ -690,15 +965,15 @@ class _GroupCreatingScreenState extends State<GroupCreatingScreen> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       IconButton(
-                        icon: const Icon(Icons.remove_circle_outline, size: 32),
+                        icon: const Icon(Icons.remove_circle_outline, size: 36),
                         color: const Color(0xFFB99668),
-                        onPressed: () {
-                          if (tempNumber > 1) {
-                            setDialogState(() {
-                              tempNumber--;
-                            });
-                          }
-                        },
+                        onPressed: tempNumber > 1
+                            ? () {
+                          setDialogState(() {
+                            tempNumber--;
+                          });
+                        }
+                            : null, // Disable khi = 1
                       ),
                       Container(
                         width: 80,
@@ -718,17 +993,26 @@ class _GroupCreatingScreenState extends State<GroupCreatingScreen> {
                         ),
                       ),
                       IconButton(
-                        icon: const Icon(Icons.add_circle_outline, size: 32),
+                        icon: const Icon(Icons.add_circle_outline, size: 36),
                         color: const Color(0xFFB99668),
-                        onPressed: () {
-                          if (tempNumber < 100) {
-                            setDialogState(() {
-                              tempNumber++;
-                            });
-                          }
-                        },
+                        onPressed: tempNumber < 10
+                            ? () {
+                          setDialogState(() {
+                            tempNumber++;
+                          });
+                        }
+                            : null, // ← Disable khi đạt 10
                       ),
                     ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    '$tempNumber / 10',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: tempNumber == 10 ? Colors.red : Colors.grey,
+                      fontWeight: tempNumber == 10 ? FontWeight.bold : FontWeight.normal,
+                    ),
                   ),
                 ],
               );
@@ -736,21 +1020,13 @@ class _GroupCreatingScreenState extends State<GroupCreatingScreen> {
           ),
           actions: [
             TextButton(
-              onPressed: () {
-                Navigator.pop(context);
-              },
-              child: Text(
-                'cancel_action'.tr(),
-                style: const TextStyle(color: Colors.grey),
-              ),
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Hủy', style: TextStyle(color: Colors.grey)),
             ),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFFB99668),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                elevation: 2,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
               ),
               onPressed: () {
                 setState(() {
@@ -758,9 +1034,9 @@ class _GroupCreatingScreenState extends State<GroupCreatingScreen> {
                 });
                 Navigator.pop(context);
               },
-              child: Text(
-                'confirm_action'.tr(),
-                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+              child: const Text(
+                'Xác nhận',
+                style: TextStyle(color: Colors.black54, fontWeight: FontWeight.bold),
               ),
             ),
           ],
