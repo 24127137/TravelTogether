@@ -92,6 +92,17 @@ class _MainAppScreenState extends State<MainAppScreen> {
     });
   }
 
+  void _backToDestinationDetail() {
+    setState(() {
+      _showExplore = false;
+      _showDetail = true;
+      _showBeforeGroup = false;
+      _showGroupCreating = false;
+      _showSettings = false;
+      _selectedIndex = -1;
+    });
+  }
+
   void _openBeforeGroup() {
     setState(() {
       _showDetail = false;
@@ -334,7 +345,7 @@ class _MainAppScreenState extends State<MainAppScreen> {
       );
     } else if (_showBeforeGroup) {
       mainContent = BeforeGroup(
-        onBack: _closeAllScreens,
+        onBack: _openDestinationExplore,
         onCreateGroup: _openGroupCreating,
         onJoinGroup: _openJoinGroup,
       );
@@ -349,7 +360,7 @@ class _MainAppScreenState extends State<MainAppScreen> {
         cityId: _selectedDestination!.cityId,
         currentIndex: _selectedIndex,
         onTabChange: _onItemTapped,
-        onBack: _closeAllScreens,
+        onBack: _backToDestinationDetail, // Sửa: quay về Detail thay vì Home
         onBeforeGroup: _openBeforeGroup,
         onSearchPlace: _openDestinationSearchScreen,
       );
@@ -383,7 +394,9 @@ class _MainAppScreenState extends State<MainAppScreen> {
         }
       },
       child: Scaffold(
-        extendBody: true, // Cho phép body kéo dài xuống dưới bottom bar
+        // Don't resize when keyboard opens so bottom nav stays fixed; keyboard overlays content
+        resizeToAvoidBottomInset: false,
+        extendBody: true,
         body: Stack(
           children: [
             mainContent,

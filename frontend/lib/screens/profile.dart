@@ -7,6 +7,7 @@ import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../config/api_config.dart';
 import '../services/auth_service.dart';
+import 'package:easy_localization/easy_localization.dart';
 
 class ProfilePage extends StatefulWidget {
   final VoidCallback? onBack;
@@ -28,6 +29,37 @@ class _ProfilePageState extends State<ProfilePage> {
   String email = "";
   String description = "";
   List<String> interests = [];
+
+  // Mapping to translate stored interest values to translation keys
+  final Map<String, String> _interestKeyByValueProfile = {
+    'Văn hóa': 'interest_culture',
+    'Ẩm thực': 'interest_food',
+    'Nhiếp ảnh': 'interest_photography',
+    'Leo núi': 'interest_trekking',
+    'Tắm biển': 'interest_beach',
+    'Mua sắm': 'interest_shopping',
+    'Tham quan': 'interest_sightseeing',
+    'Nghỉ dưỡng': 'interest_resort',
+    'Lễ hội': 'interest_festival',
+    'Cafe': 'interest_cafe',
+    'Homestay': 'interest_homestay',
+    'Ngắm cảnh': 'interest_viewing',
+    'Cắm trại': 'interest_camping',
+    'Du thuyền': 'interest_cruise',
+    'Động vật': 'interest_animals',
+    'Mạo hiểm': 'interest_adventure',
+    'Phượt': 'interest_backpacking',
+    'Đặc sản': 'interest_specialty',
+    'Vlog': 'interest_vlog',
+    'Chèo sup': 'interest_rowing',
+    'Khác': 'interest_other',
+  };
+
+  String _translateInterestProfile(String stored) {
+    final key = _interestKeyByValueProfile[stored];
+    if (key != null) return key.tr();
+    return stored;
+  }
 
   final Color bgColor = const Color.fromARGB(255, 178, 138, 100);
   final Color boxColor = const Color.fromARGB(150, 250, 247, 239);
@@ -64,9 +96,24 @@ class _ProfilePageState extends State<ProfilePage> {
               children: [
                 Column(
                   children: [
+                    // Travel Together title
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8, bottom: 8),
+                      child: Center(
+                        child: Text(
+                          'travel_together'.tr(),
+                          style: const TextStyle(
+                            fontSize: 24,
+                            fontFamily: 'Bangers',
+                            color: Colors.black,
+                            decoration: TextDecoration.none,
+                          ),
+                        ),
+                      ),
+                    ),
                     Padding(
                       padding:
-                      const EdgeInsets.symmetric(horizontal: 30, vertical: 30),
+                      const EdgeInsets.symmetric(horizontal: 30, vertical: 10),
                       child: Container(
                         width: double.infinity,
                         height: 150,
@@ -205,22 +252,22 @@ class _ProfilePageState extends State<ProfilePage> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               const SizedBox(height: 50),
-                              buildDisplayBox("Họ và tên", fullName),
+                              buildDisplayBox("full_name".tr(), fullName),
                               Row(
                                 children: [
                                   Expanded(
                                       child:
-                                      buildDisplayBox("Ngày sinh", birthDate)),
+                                      buildDisplayBox("birth_date".tr(), birthDate)),
                                   const SizedBox(width: 48),
                                   Expanded(
-                                      child: buildDisplayBox("Giới tính", gender)),
+                                      child: buildDisplayBox("gender".tr(), gender)),
                                 ],
                               ),
-                              buildDisplayBox("Email", email),
+                              buildDisplayBox("email".tr(), email),
 
                               const SizedBox(height: 10),
                               Text(
-                                "Sở thích du lịch",
+                                "travel_interests".tr(),
                                 style: TextStyle(
                                   fontFamily: 'WorkSans',
                                   fontWeight: FontWeight.w500,
@@ -259,7 +306,7 @@ class _ProfilePageState extends State<ProfilePage> {
                               ),
 
                               const SizedBox(height: 15),
-                              buildDisplayBox("Mô tả bản thân", description,
+                              buildDisplayBox("self_description".tr(), description,
                                   maxLines: 3),
                               const SizedBox(height: 30),
                             ],
@@ -271,7 +318,7 @@ class _ProfilePageState extends State<ProfilePage> {
                 ),
 
                 Positioned(
-                  top: 150,
+                  top: 182,
                   left: 0,
                   right: 0,
                   child: Center(
@@ -354,7 +401,7 @@ class _ProfilePageState extends State<ProfilePage> {
           ),
           const SizedBox(width: 6),
           Text(
-            text,
+            _translateInterestProfile(text),
             style: TextStyle(
               fontFamily: 'WorkSans',
               fontSize: 13,
@@ -409,11 +456,11 @@ class _ProfilePageState extends State<ProfilePage> {
 
           final serverGender = data['gender'];
           if (serverGender == "male") {
-            gender = "Nam";
+            gender = "male".tr();
           } else if (serverGender == "female") {
-            gender = "Nữ";
+            gender = "female".tr();
           } else {
-            gender = "Khác";
+            gender = "other".tr();
           }
 
           final serverBirth = data['birth_date'] ?? data['birthday'];

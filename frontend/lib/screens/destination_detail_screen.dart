@@ -18,10 +18,17 @@ class DestinationDetailScreen extends StatelessWidget {
     final size = MediaQuery.of(context).size;
     final double imageHeight = size.height * 0.55;
 
-    return Scaffold(
-      extendBodyBehindAppBar: true,
-      backgroundColor: const Color(0xFF7B4A22),
-      body: SafeArea(
+    return PopScope(
+      canPop: onBack == null,
+      onPopInvokedWithResult: (didPop, result) {
+        if (!didPop && onBack != null) {
+          onBack!();
+        }
+      },
+      child: Scaffold(
+        extendBodyBehindAppBar: true,
+        backgroundColor: const Color(0xFF7B4A22),
+        body: SafeArea(
         child: SizedBox.expand(
           child: Stack(
             children: [
@@ -165,6 +172,7 @@ class DestinationDetailScreen extends StatelessWidget {
             ],
           ),
         ),
+      ),
       ),
     );
   }

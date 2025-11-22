@@ -91,81 +91,90 @@ class _TravelPlanContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final size = MediaQuery.of(context).size;
-    final horizontalPadding = 16.0;
-    final frameHeight = size.height * 0.75;
-    const spacing = 12.0;
+      return Scaffold(
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          // Responsive scaling dựa trên chiều cao màn hình
+          final screenHeight = constraints.maxHeight;
+          final scaleFactor = (screenHeight / 800).clamp(0.7, 1.0);
 
-    return Scaffold(
-      body: SafeArea(
-        child: Stack(
-          children: [
-            // Background
-            Positioned.fill(
-              child: Image.asset(
-                'assets/images/travel_plan.png',
-                fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) =>
-                    Container(color: const Color(0xFF12202F)),
-              ),
-            ),
+          final horizontalPadding = 16.0 * scaleFactor;
+          final topOffset = MediaQuery.of(context).padding.top + 32.0 * scaleFactor;
+          final bottomOffset = 80.0 * scaleFactor;
+          final spacing = 12.0 * scaleFactor;
+          final backButtonSize = 44.0 * scaleFactor;
+          final iconSize = 24.0 * scaleFactor;
 
-            // Content frame
-            Align(
-              alignment: Alignment.center,
-              child: Padding(
-                padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
-                child: Container(
-                  width: double.infinity,
-                  height: frameHeight,
-                  margin: const EdgeInsets.only(bottom: 80),
-                  decoration: BoxDecoration(
-                    color: Colors.black.withValues(alpha: 0.40),
-                    border: Border.all(color: Colors.black, width: 2),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(spacing),
-                    child: _buildContent(),
-                  ),
-                ),
-              ),
-            ),
+        return SafeArea(
+         child: Stack(
+           children: [
+             // Background
+             Positioned.fill(
+               child: Image.asset(
+                 'assets/images/travel_plan.png',
+                 fit: BoxFit.cover,
+                 errorBuilder: (_, __, ___) =>
+                     Container(color: const Color(0xFF12202F)),
+               ),
+             ),
 
-            // Back button
-            Positioned(
-              top: 16,
-              left: 16,
-              child: GestureDetector(
-                onTap: () {
-                  if (onBack != null) {
-                    onBack!();
-                  } else {
-                    Navigator.of(context).pop();
-                  }
-                },
-                child: Container(
-                  width: 44,
-                  height: 44,
-                  decoration: const BoxDecoration(
-                    color: Colors.white,
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.arrow_back,
-                    color: Colors.black,
-                    size: 24,
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
+             // Content frame
+             Positioned(
+               top: topOffset, // dynamic top offset using SafeArea
+               left: horizontalPadding,
+               right: horizontalPadding,
+               bottom: bottomOffset,
+               child: Container(
+                 width: double.infinity,
+                 // height intentionally omitted so it stretches between top & bottom
+                 decoration: BoxDecoration(
+                   color: Colors.black.withValues(alpha: 0.40),
+                   border: Border.all(color: Colors.black, width: 2),
+                   borderRadius: BorderRadius.circular(20),
+                 ),
+                 child: Padding(
+                   padding: EdgeInsets.all(spacing),
+                  child: _buildContent(scaleFactor, spacing),
+                 ),
+               ),
+             ),
+
+             // Back button
+             Positioned(
+              top: 16 * scaleFactor,
+              left: 16 * scaleFactor,
+               child: GestureDetector(
+                 onTap: () {
+                   if (onBack != null) {
+                     onBack!();
+                   } else {
+                     Navigator.of(context).pop();
+                   }
+                 },
+                 child: Container(
+                  width: backButtonSize,
+                  height: backButtonSize,
+                   decoration: const BoxDecoration(
+                     color: Colors.white,
+                     shape: BoxShape.circle,
+                   ),
+                   child: Icon(
+                     Icons.arrow_back,
+                     color: Colors.black,
+                    size: iconSize,
+                   ),
+                 ),
+               ),
+             ),
+           ],
+         ),
+        );
+        },
       ),
-    );
-  }
+     );
+   }
 
-  Widget _buildContent() {
+  Widget _buildContent(double scaleFactor, double spacing) {
     if (isLoading) {
       return const Center(
         child: CircularProgressIndicator(
@@ -179,55 +188,55 @@ class _TravelPlanContent extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(
-              Icons.error_outline,
-              color: Colors.white,
-              size: 64,
-            ),
-            const SizedBox(height: 16),
-            Text(
-              error!,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 16,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: onRefresh,
-              child: const Text('Thử lại'),
-            ),
-          ],
-        ),
-      );
+            Icon(
+               Icons.error_outline,
+               color: Colors.white,
+              size: 64 * scaleFactor,
+             ),
+            SizedBox(height: 16 * scaleFactor),
+             Text(
+               error!,
+              style: TextStyle(
+                 color: Colors.white,
+                fontSize: 16 * scaleFactor,
+               ),
+               textAlign: TextAlign.center,
+             ),
+            SizedBox(height: 16 * scaleFactor),
+             ElevatedButton(
+               onPressed: onRefresh,
+               child: Text('Thử lại', style: TextStyle(fontSize: 14 * scaleFactor)),
+             ),
+           ],
+         ),
+       );
     }
 
     if (places.isEmpty) {
-      return const Center(
+      return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(
               Icons.explore_off,
               color: Colors.white,
-              size: 64,
+              size: 64 * scaleFactor,
             ),
-            SizedBox(height: 16),
+            SizedBox(height: 16 * scaleFactor),
             Text(
               'Chưa có kế hoạch du lịch nào',
               style: TextStyle(
                 color: Colors.white,
-                fontSize: 18,
+                fontSize: 18 * scaleFactor,
                 fontWeight: FontWeight.w600,
               ),
             ),
-            SizedBox(height: 8),
+            SizedBox(height: 8 * scaleFactor),
             Text(
               'Hãy tạo hoặc tham gia một nhóm để bắt đầu',
               style: TextStyle(
                 color: Colors.white70,
-                fontSize: 14,
+                fontSize: 14 * scaleFactor,
               ),
               textAlign: TextAlign.center,
             ),
@@ -237,76 +246,78 @@ class _TravelPlanContent extends StatelessWidget {
     }
 
     return RefreshIndicator(
-      onRefresh: () async {
-        if (onRefresh != null) onRefresh!();
-      },
-      child: GridView.builder(
-        physics: const AlwaysScrollableScrollPhysics(),
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 2,
-          crossAxisSpacing: 12,
-          mainAxisSpacing: 12,
-          childAspectRatio: 0.72,
-        ),
-        itemCount: places.length,
-        itemBuilder: (context, index) {
-          final place = places[index];
-          return _PlaceCard(place: place);
-        },
-      ),
-    );
-  }
-}
+       onRefresh: () async {
+         if (onRefresh != null) onRefresh!();
+       },
+       child: GridView.builder(
+         physics: const AlwaysScrollableScrollPhysics(),
+        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+           crossAxisCount: 2,
+          crossAxisSpacing: spacing,
+          mainAxisSpacing: spacing,
+           childAspectRatio: 0.72,
+         ),
+         itemCount: places.length,
+         itemBuilder: (context, index) {
+           final place = places[index];
+          return _PlaceCard(place: place, scaleFactor: scaleFactor);
+         },
+       ),
+     );
+   }
+ }
 
-class _PlaceCard extends StatelessWidget {
-  final Map<String, String> place;
+ class _PlaceCard extends StatelessWidget {
+   final Map<String, String> place;
+  final double scaleFactor;
 
-  const _PlaceCard({required this.place});
+  const _PlaceCard({required this.place, this.scaleFactor = 1.0});
 
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        AspectRatio(
-          aspectRatio: 1,
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(12),
-            child: Image.network(
-              place['image']!,
-              fit: BoxFit.cover,
-              width: double.infinity,
-              loadingBuilder: (context, child, loadingProgress) {
-                if (loadingProgress == null) return child;
-                return Container(
-                  color: Colors.grey[300],
-                  child: const Center(
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  ),
-                );
-              },
-              errorBuilder: (_, __, ___) => Container(
-                color: Colors.grey,
-                child: const Icon(
-                  Icons.broken_image,
-                  color: Colors.white,
-                ),
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(height: 6),
-        Text(
-          place['name']!,
-          textAlign: TextAlign.center,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 14,
-            fontWeight: FontWeight.w700,
-          ),
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
-        ),
-      ],
-    );
-  }
-}
+   @override
+   Widget build(BuildContext context) {
+     return Column(
+       children: [
+         AspectRatio(
+           aspectRatio: 1,
+           child: ClipRRect(
+             borderRadius: BorderRadius.circular(12),
+             child: Image.network(
+               place['image']!,
+               fit: BoxFit.cover,
+               width: double.infinity,
+               loadingBuilder: (context, child, loadingProgress) {
+                 if (loadingProgress == null) return child;
+                 return Container(
+                   color: Colors.grey[300],
+                   child: const Center(
+                     child: CircularProgressIndicator(strokeWidth: 2),
+                   ),
+                 );
+               },
+               errorBuilder: (_, __, ___) => Container(
+                 color: Colors.grey,
+                child: Icon(
+                   Icons.broken_image,
+                   color: Colors.white,
+                   size: 40 * scaleFactor,
+                 ),
+               ),
+             ),
+           ),
+         ),
+        SizedBox(height: 6 * scaleFactor),
+         Text(
+           place['name']!,
+           textAlign: TextAlign.center,
+           style: TextStyle(
+             color: Colors.white,
+            fontSize: 14 * scaleFactor,
+             fontWeight: FontWeight.w700,
+           ),
+           maxLines: 2,
+           overflow: TextOverflow.ellipsis,
+         ),
+       ],
+     );
+   }
+ }

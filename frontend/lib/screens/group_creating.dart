@@ -134,8 +134,8 @@ class _GroupCreatingScreenState extends State<GroupCreatingScreen>
       builder: (context) => AlertDialog(
         backgroundColor: const Color(0xFFF7F3E8),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text(
-          'Đặt tên nhóm',
+        title: Text(
+          'set_group_name'.tr(),
           style: TextStyle(
             fontWeight: FontWeight.bold,
             fontSize: 18,
@@ -146,7 +146,7 @@ class _GroupCreatingScreenState extends State<GroupCreatingScreen>
           controller: controller,
           autofocus: true,
           decoration: InputDecoration(
-            hintText: 'Nhập tên nhóm',
+            hintText: 'enter_group_name'.tr(),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: const BorderSide(color: Color(0xFFDCC9A7), width: 2),
@@ -160,7 +160,7 @@ class _GroupCreatingScreenState extends State<GroupCreatingScreen>
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Hủy', style: TextStyle(color: Colors.grey)),
+            child: Text('cancel'.tr(), style: TextStyle(color: Colors.grey)),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
@@ -169,12 +169,12 @@ class _GroupCreatingScreenState extends State<GroupCreatingScreen>
             ),
             onPressed: () {
               setState(() {
-                _groupName = controller.text.isEmpty ? 'Mộng mơ' : controller.text;
+                _groupName = controller.text.isEmpty ? 'default_group_name'.tr() : controller.text;
               });
               Navigator.pop(context);
             },
-            child: const Text(
-              'Xác nhận',
+            child: Text(
+              'confirm_action'.tr(),
               style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
             ),
           ),
@@ -283,7 +283,7 @@ class _GroupCreatingScreenState extends State<GroupCreatingScreen>
                         child: FittedBox(
                           fit: BoxFit.scaleDown,
                           child: Text(
-                            'TẠO NHÓM',
+                            'create_group_title'.tr(),
                             style: const TextStyle(
                               fontSize: 64,
                               fontWeight: FontWeight.w900,
@@ -409,7 +409,7 @@ class _GroupCreatingScreenState extends State<GroupCreatingScreen>
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  '$_numberOfPeople người',
+                  '$_numberOfPeople ${'people_count'.tr()}',
                   style: const TextStyle(
                     fontSize: 15,
                     color: Color(0xFF000000),
@@ -501,7 +501,7 @@ class _GroupCreatingScreenState extends State<GroupCreatingScreen>
                     child: Text(
                       _selectedStartDate != null && _selectedEndDate != null
                           ? '${_selectedStartDate!.day} - ${_selectedEndDate!.day} / ${_selectedStartDate!.month} / ${_selectedStartDate!.year}'
-                          : 'Chọn ngày',
+                          : 'choose_date'.tr(),
                       style: const TextStyle(
                         fontSize: 12,
                         color: Color(0xFF000000),
@@ -531,8 +531,8 @@ class _GroupCreatingScreenState extends State<GroupCreatingScreen>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Sở thích',
+          Text(
+            'interests'.tr(),
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.bold,
@@ -578,8 +578,8 @@ class _GroupCreatingScreenState extends State<GroupCreatingScreen>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Lộ trình',
+          Text(
+            'itinerary'.tr(),
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.bold,
@@ -674,8 +674,8 @@ class _GroupCreatingScreenState extends State<GroupCreatingScreen>
                     duration: const Duration(milliseconds: 200),
                     child: Transform.translate(
                       offset: Offset(_dragOffset * 0.5, 0),
-                      child: const Text(
-                        'Trượt để tạo',
+                      child: Text(
+                        'slide_to_create'.tr(),
                         style: TextStyle(
                           fontSize: 28,
                           fontWeight: FontWeight.bold,
@@ -690,8 +690,8 @@ class _GroupCreatingScreenState extends State<GroupCreatingScreen>
                     duration: const Duration(milliseconds: 200),
                     child: Transform.translate(
                       offset: Offset(-_maxDragOffset * (1 - _slideController.value) * 0.5, 0),
-                      child: const Text(
-                        'Tiến hành',
+                      child: Text(
+                        'proceed'.tr(),
                         style: TextStyle(
                           fontSize: 28,
                           fontWeight: FontWeight.bold,
@@ -754,8 +754,8 @@ class _GroupCreatingScreenState extends State<GroupCreatingScreen>
         child: Stack(
           alignment: Alignment.center,
           children: [
-            const Text(
-              'Tiến hành',
+            Text(
+              'proceed'.tr(),
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
@@ -807,8 +807,8 @@ class _GroupCreatingScreenState extends State<GroupCreatingScreen>
         child: Stack(
           alignment: Alignment.center,
           children: [
-            const Text(
-              'Thành công!',
+            Text(
+              'success_created'.tr(),
               style: TextStyle(
                 fontSize: 28,
                 fontWeight: FontWeight.bold,
@@ -948,8 +948,8 @@ class _GroupCreatingScreenState extends State<GroupCreatingScreen>
         return AlertDialog(
           backgroundColor: const Color(0xFFF7F3E8),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: const Text(
-            'Chọn số người (tối đa 10)',
+          title: Text(
+            'select_people_count'.tr(),
             style: TextStyle(
               fontWeight: FontWeight.bold,
               fontSize: 18,
@@ -1021,7 +1021,7 @@ class _GroupCreatingScreenState extends State<GroupCreatingScreen>
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('Hủy', style: TextStyle(color: Colors.grey)),
+              child: Text('cancel'.tr(), style: TextStyle(color: Colors.grey)),
             ),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
@@ -1034,8 +1034,8 @@ class _GroupCreatingScreenState extends State<GroupCreatingScreen>
                 });
                 Navigator.pop(context);
               },
-              child: const Text(
-                'Xác nhận',
+              child: Text(
+                'confirm_action'.tr(),
                 style: TextStyle(color: Colors.black54, fontWeight: FontWeight.bold),
               ),
             ),

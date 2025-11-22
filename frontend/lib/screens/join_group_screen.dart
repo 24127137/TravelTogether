@@ -5,6 +5,7 @@ import 'package:my_travel_app/screens/notification_screen.dart';
 import '../widgets/custom_bottom_nav_bar.dart';
 import 'dart:ui';
 import 'package:confetti/confetti.dart';
+import 'package:easy_localization/easy_localization.dart';
 
 
 void main() {
@@ -280,7 +281,7 @@ class _JoinGroupScreenState extends State<JoinGroupScreen> {
               ),
               const SizedBox(height: 8),
               Text(
-                'Độ tương thích: ${group.compatibility}%',
+                '${'compatibility'.tr()}: ${group.compatibility}%',
                 style: TextStyle(
                   color: Colors.white.withValues(alpha: 0.8),
                   fontSize: 14,
@@ -289,7 +290,7 @@ class _JoinGroupScreenState extends State<JoinGroupScreen> {
                 ),
               ),
               Text(
-                'Số lượng: ${group.members}/${group.maxMembers}',
+                '${'quantity'.tr()}: ${group.members}/${group.maxMembers}',
                 style: TextStyle(
                   color: Colors.white.withValues(alpha: 0.8),
                   fontSize: 14,
@@ -446,7 +447,7 @@ class _GroupDetailsSheetState extends State<GroupDetailsSheet>
                     ),
                     const SizedBox(height: 16),
                     _buildSection(
-                      'Sở thích',
+                      'interests'.tr(),
                       Wrap(
                         spacing: 8,
                         runSpacing: 8,
@@ -458,7 +459,7 @@ class _GroupDetailsSheetState extends State<GroupDetailsSheet>
                     ),
                     const SizedBox(height: 20),
                     _buildSection(
-                      'Lộ trình',
+                      'itinerary'.tr(),
                       Column(
                         children: widget.group.destinations
                             .map((dest) => _buildDestinationItem(dest))
@@ -625,13 +626,13 @@ class _GroupDetailsSheetState extends State<GroupDetailsSheet>
   Widget _buildButtonContent() {
     switch (_buttonState) {
       case ButtonState.idle:
-        return const Row(
+        return Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(Icons.send_rounded, color: Colors.white, size: 20),
             SizedBox(width: 8),
             Text(
-              'Gửi yêu cầu',
+              'send_request'.tr(),
               style: TextStyle(
                 color: Colors.white,
                 fontSize: 16,
@@ -670,13 +671,13 @@ class _GroupDetailsSheetState extends State<GroupDetailsSheet>
         );
 
       case ButtonState.success:
-        return const Row(
+        return Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(Icons.check_circle, color: Colors.white, size: 24),
             SizedBox(width: 8),
             Text(
-              'Thành công!',
+              'success'.tr(),
               style: TextStyle(
                 color: Colors.white,
                 fontSize: 16,
