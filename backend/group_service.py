@@ -390,10 +390,19 @@ async def group_suggest_service_v2(session: Session, current_user: Any) -> List[
 async def get_public_group_plan(session: Session, group_id: int) -> GroupPlanOutput:
     group = session.get(TravelGroup, group_id)
     if not group: raise HTTPException(status_code=404, detail="Nhóm không tồn tại")
-    return GroupPlanOutput(
-        group_id=group.id, group_name=group.name, preferred_city=group.preferred_city,
-        travel_dates=group.travel_dates, itinerary=group.itinerary
-    )
+    
+    # Fix lỗi data cũ: Nếu itinerary bị lỗi format, trả về rỗng
+    try:
+        return GroupPlanOutput.model_validate(group)
+    except Exception:
+        # Fallback an toàn
+        return GroupPlanOutput(
+            group_id=group.id,
+            group_name=group.name,
+            preferred_city=group.preferred_city,
+            travel_dates=group.travel_dates,
+            itinerary={} # Trả về rỗng nếu lỗi
+        )
 
 async def get_my_group_detail_service(session: Session, auth_uuid: str) -> GroupDetailPublic:
     profile = session.exec(select(Profiles).where(Profiles.auth_user_id == auth_uuid)).first()
@@ -415,6 +424,23 @@ async def get_pending_requests_service(session: Session, current_user: Any) -> L
     return group.pending_requests or []
 
 async def get_group_plan_service(session: Session, auth_uuid: str) -> GroupPlanOutput:
+    """
+    Lấy kế hoạch nhóm (Đã thêm Try-Except để fix lỗi 500 do data cũ)
+    """
     sender_id, group_id, group_db_object = await get_user_group_info(session, auth_uuid)
-    plan_output = GroupPlanOutput.model_validate(group_db_object)
-    return plan_output
+    
+    try:
+        # Cố gắng validate dữ liệu theo khuôn mới
+        plan_output = GroupPlanOutput.model_validate(group_db_object)
+        return plan_output
+    except Exception as e:
+        print(f"LỖI DATA CŨ (Get Plan): {e}")
+        # Nếu data cũ trong DB không khớp (ví dụ itinerary là List thay vì Dict)
+        # Trả về một object "sạch" để không bị sập server
+        return GroupPlanOutput(
+            group_id=group_db_object.id,
+            group_name=group_db_object.name,
+            preferred_city=group_db_object.preferred_city,
+            travel_dates=group_db_object.travel_dates,
+            itinerary={} # Reset itinerary về rỗng để hiển thị được
+        )

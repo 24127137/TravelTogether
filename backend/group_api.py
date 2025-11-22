@@ -51,8 +51,8 @@ async def suggest_groups(
     return await group_service.group_suggest_service_v2(session, user)
 
 # 4. DUYỆT MEMBER
-@router.patch("/manage")
-async def manage_request(
+@router.patch("/manage + kich member")
+async def manage_request_and_kick_member(
     data: ActionRequestInput, 
     session: Session = Depends(get_session),
     user = Depends(get_current_user)
