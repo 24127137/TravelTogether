@@ -60,106 +60,119 @@ class DestinationExploreScreen extends StatelessWidget {
           ),
         ],
       ),
-      body: LayoutBuilder(
-        builder: (context, constraints) {
-          // Responsive scaling dựa trên chiều cao màn hình
-          final screenHeight = constraints.maxHeight;
-
-          // Scale factor: baseline 800px = 1.0
-          final scaleFactor = (screenHeight / 800).clamp(0.7, 1.0);
-
-          // Tất cả sizes scale theo tỷ lệ
-          final topPadding = 100.0 * scaleFactor;
-          final searchBarHeight = 74.0 * scaleFactor;
-          final searchBarFontSize = 16.0 * scaleFactor;
-          final titleFontSize = 16.0 * scaleFactor;
-          final cardHeight = 380.0 * scaleFactor;
-          final cardWidth = 282.01 * scaleFactor;
-          final spacing1 = 12.0 * scaleFactor;
-          final spacing2 = 16.0 * scaleFactor;
-          final spacing3 = 25.0 * scaleFactor;
-
-          // Tính toán bottom padding an toàn để không bị che
-          final bottomPadding = MediaQuery.of(context).padding.bottom +
-                                 kBottomNavigationBarHeight +
-                                 (20.0 * scaleFactor);
-
-          return Container(
+      body: Stack(
+        fit: StackFit.expand,
+        children: [
+          // Background image kéo dài toàn bộ màn hình
+          Container(
             decoration: const BoxDecoration(
               image: DecorationImage(
                 image: AssetImage('assets/images/landmarks.png'),
                 fit: BoxFit.cover,
               ),
             ),
-            child: SingleChildScrollView(
-              padding: EdgeInsets.fromLTRB(16, 16, 16, bottomPadding),
-              child: Column(
-                children: [
-                  SizedBox(height: topPadding),
-                  GestureDetector(
-                    onTap: _triggerSearchCallback,
-                    child: Container(
-                      width: double.infinity,
-                      height: searchBarHeight,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFEDE2CC),
-                        border: Border.all(color: const Color(0xFFB64B12), width: 2),
-                        borderRadius: BorderRadius.circular(21),
-                      ),
-                      alignment: Alignment.centerLeft,
-                      padding: EdgeInsets.symmetric(horizontal: 24 * scaleFactor),
-                      child: Text(
-                        'search_place'.tr(),
-                        style: TextStyle(
-                          color: const Color(0xFF3E3322),
-                          fontSize: searchBarFontSize,
-                          fontFamily: 'Roboto',
-                          fontWeight: FontWeight.w500,
+          ),
+          // Nội dung cuộn
+          LayoutBuilder(
+            builder: (context, constraints) {
+              // Responsive scaling dựa trên chiều cao màn hình
+              final screenHeight = constraints.maxHeight;
+
+              // Scale factor: baseline 800px = 1.0
+              final scaleFactor = (screenHeight / 800).clamp(0.7, 1.0);
+
+              // Tất cả sizes scale theo tỷ lệ
+              final topPadding = 100.0 * scaleFactor;
+              final searchBarHeight = 74.0 * scaleFactor;
+              final searchBarFontSize = 16.0 * scaleFactor;
+              final titleFontSize = 16.0 * scaleFactor;
+              final cardHeight = 380.0 * scaleFactor;
+              final cardWidth = 282.01 * scaleFactor;
+              final spacing1 = 12.0 * scaleFactor;
+              final spacing2 = 16.0 * scaleFactor;
+              final spacing3 = 25.0 * scaleFactor;
+
+              // Tính toán bottom padding để tránh EnterButton cố định
+              final bottomPadding = MediaQuery.of(context).padding.bottom +
+                                     kBottomNavigationBarHeight +
+                                     90.0; // Thêm khoảng trống cho EnterButton
+
+              return SingleChildScrollView(
+                padding: EdgeInsets.fromLTRB(16, 16, 16, bottomPadding),
+                child: Column(
+                  children: [
+                    SizedBox(height: topPadding),
+                    GestureDetector(
+                      onTap: _triggerSearchCallback,
+                      child: Container(
+                        width: double.infinity,
+                        height: searchBarHeight,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFEDE2CC),
+                          border: Border.all(color: const Color(0xFFB64B12), width: 2),
+                          borderRadius: BorderRadius.circular(21),
+                        ),
+                        alignment: Alignment.centerLeft,
+                        padding: EdgeInsets.symmetric(horizontal: 24 * scaleFactor),
+                        child: Text(
+                          'search_place'.tr(),
+                          style: TextStyle(
+                            color: const Color(0xFF3E3322),
+                            fontSize: searchBarFontSize,
+                            fontFamily: 'Roboto',
+                            fontWeight: FontWeight.w500,
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                  SizedBox(height: spacing1),
-                  Text(
-                    'featured_places'.tr(),
-                    style: TextStyle(
-                      color: const Color(0xFFB99668),
-                      fontSize: titleFontSize,
-                      fontFamily: 'Poppins',
-                      fontWeight: FontWeight.w600,
+                    SizedBox(height: spacing1),
+                    Text(
+                      'featured_places'.tr(),
+                      style: TextStyle(
+                        color: const Color(0xFFB99668),
+                        fontSize: titleFontSize,
+                        fontFamily: 'Poppins',
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
-                  ),
-                  SizedBox(height: spacing2),
-                  SizedBox(
-                    height: cardHeight,
-                    child: ListView.separated(
-                      scrollDirection: Axis.horizontal,
-                      itemCount: cityItems.length,
-                      separatorBuilder: (_, __) => SizedBox(width: 30 * scaleFactor),
-                      itemBuilder: (context, index) {
-                        final item = cityItems[index];
-                        return _buildPlaceCard(
-                          item.imageUrl,
-                          item.name,
-                          '', // Không dùng namePart2
-                          item.getSubtitle(context.locale.languageCode), // Dịch subtitle
-                          cardWidth,
-                          scaleFactor,
-                        );
-                      },
+                    SizedBox(height: spacing2),
+                    SizedBox(
+                      height: cardHeight,
+                      child: ListView.separated(
+                        scrollDirection: Axis.horizontal,
+                        itemCount: cityItems.length,
+                        separatorBuilder: (_, __) => SizedBox(width: 30 * scaleFactor),
+                        itemBuilder: (context, index) {
+                          final item = cityItems[index];
+                          return _buildPlaceCard(
+                            item.imageUrl,
+                            item.name,
+                            '', // Không dùng namePart2
+                            item.getSubtitle(context.locale.languageCode), // Dịch subtitle
+                            cardWidth,
+                            scaleFactor,
+                          );
+                        },
+                      ),
                     ),
-                  ),
-                  SizedBox(height: spacing3),
-                  Center(
-                    child: EnterButton(
-                      onConfirm: onBeforeGroup ?? () {},
-                    ),
-                  ),
-                ],
+                    SizedBox(height: spacing3),
+                  ],
+                ),
+              );
+            },
+          ),
+          // EnterButton cố định ở vị trí giống destination_detail_screen
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: kBottomNavigationBarHeight + 35,
+            child: Center(
+              child: EnterButton(
+                onConfirm: onBeforeGroup ?? () {},
               ),
             ),
-          );
-        },
+          ),
+        ],
       ),
     );
   }
