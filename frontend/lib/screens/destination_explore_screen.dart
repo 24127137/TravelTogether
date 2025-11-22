@@ -26,10 +26,18 @@ class DestinationExploreScreen extends StatelessWidget {
     // Lọc các địa điểm theo cityId
     final cityItems = mockExploreItems.where((item) => item.cityId == cityId).toList();
 
-    return Scaffold(
-      extendBodyBehindAppBar: true,
-      extendBody: true,
-      appBar: AppBar(
+    return PopScope(
+      canPop: onBack == null, // Cho phép pop nếu không có callback
+      onPopInvokedWithResult: (didPop, result) {
+        // Khi người dùng vuốt để quay lại, gọi callback onBack giống như nút back
+        if (!didPop && onBack != null) {
+          onBack!();
+        }
+      },
+      child: Scaffold(
+        extendBodyBehindAppBar: true,
+        extendBody: true,
+        appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: Container(
@@ -41,11 +49,9 @@ class DestinationExploreScreen extends StatelessWidget {
           child: IconButton(
             icon: const Icon(Icons.arrow_back, color: Colors.black),
             onPressed: () {
-              if (Navigator.canPop(context)) {
-                Navigator.pop(context);
-              } else {
-                print('Không thể pop, stack rỗng');
-                if (onBack != null) onBack!();
+              // Quay về destination detail screen
+              if (onBack != null) {
+                onBack!();
               }
             },
           ),
@@ -173,6 +179,7 @@ class DestinationExploreScreen extends StatelessWidget {
             ),
           ),
         ],
+      ),
       ),
     );
   }

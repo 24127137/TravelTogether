@@ -55,9 +55,20 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
     }
 
     // TODO: Gửi đánh giá lên server
+
+    // Choose a localized display name for the member; translate "Cả nhóm" to "Whole group" in English
+    final memberDisplay = (selectedMember == 'Cả nhóm')
+        ? (context.locale.languageCode == 'en' ? 'Whole group' : 'Cả nhóm')
+        : selectedMember!;
+
+    // Localized success message
+    final successMessage = (context.locale.languageCode == 'en')
+        ? 'Feedback submitted for $memberDisplay'
+        : 'Đã gửi đánh giá cho $memberDisplay';
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('Đã gửi đánh giá cho'.tr() + ' $selectedMember'),
+        content: Text(successMessage),
         backgroundColor: Colors.green,
       ),
     );
@@ -432,4 +443,3 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
     );
   }
 }
-

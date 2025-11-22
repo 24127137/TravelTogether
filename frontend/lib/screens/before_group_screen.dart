@@ -1,7 +1,7 @@
 /// File: before_group_screen.dart
 //File này là screen tên là Group or Solo trong figma
 import 'package:flutter/material.dart';
-import 'join_group_screen.dart';
+import 'package:easy_localization/easy_localization.dart';
 
 // Chuyển thành StatefulWidget để quản lý trạng thái của icon trái tim
 class BeforeGroup extends StatefulWidget {
@@ -29,7 +29,7 @@ class _BeforeGroupState extends State<BeforeGroup> {
   // Dùng 'async' để có thể đợi (await) trước khi chuyển trang
   void _handleCardTap(String cardType) async {
     setState(() {
-      if (cardType == 'Tạo nhóm') {
+      if (cardType == 'create_group_button'.tr()) {
         _isTaoNhomFav = true;
       } else {
         _isGiaNhapFav = true;
@@ -37,7 +37,7 @@ class _BeforeGroupState extends State<BeforeGroup> {
     });
     await Future.delayed(const Duration(milliseconds: 300));
 
-    if (cardType == 'Tạo nhóm') {
+    if (cardType == 'create_group_button'.tr()) {
       // Gọi callback để mở GroupCreatingScreen
       if (widget.onCreateGroup != null) {
         widget.onCreateGroup!('Đà Lạt'); // Có thể truyền tên địa điểm thực tế
@@ -53,11 +53,18 @@ class _BeforeGroupState extends State<BeforeGroup> {
   @override
   Widget build(BuildContext context) {
     // Sử dụng Scaffold làm cấu trúc trang cơ bản
-    return Scaffold(
-      // Cho phép body hiển thị đằng sau BottomNavBar (nếu cần) nhưng không vẽ sau AppBar của hệ thống
-      extendBody: true,
-      // Không dùng Column cố định, dùng Stack để xếp lớp
-      body: Stack(
+    return PopScope(
+      canPop: widget.onBack == null,
+      onPopInvokedWithResult: (didPop, result) {
+        if (!didPop && widget.onBack != null) {
+          widget.onBack!();
+        }
+      },
+      child: Scaffold(
+        // Cho phép body hiển thị đằng sau BottomNavBar (nếu cần) nhưng không vẽ sau AppBar của hệ thống
+        extendBody: true,
+        // Không dùng Column cố định, dùng Stack để xếp lớp
+        body: Stack(
         fit: StackFit.expand, // Đảm bảo Stack lấp đầy màn hình
         children: [
           // Lớp 1: Ảnh nền
@@ -82,11 +89,11 @@ class _BeforeGroupState extends State<BeforeGroup> {
                   Padding(
                     padding: const EdgeInsets.only(right: 80.0),
                     child: _buildGroupCard(
-                      title: 'Tạo nhóm',
+                      title: 'create_group_button'.tr(),
                       imagePath: 'assets/images/create.jpg',
                       titleColor: const Color(0xFF723B12),
                       isFavorite: _isTaoNhomFav,
-                      onTap: () => _handleCardTap('Tạo nhóm'),
+                      onTap: () => _handleCardTap('create_group_button'.tr()),
                     ),
                   ),
 
@@ -97,11 +104,11 @@ class _BeforeGroupState extends State<BeforeGroup> {
                   Padding(
                     padding: const EdgeInsets.only(left: 80.0),
                     child: _buildGroupCard(
-                      title: 'Gia nhập',
+                      title: 'join_button'.tr(),
                       imagePath: 'assets/images/join.jpg',
                       titleColor: const Color(0xFF8A724C),
                       isFavorite: _isGiaNhapFav,
-                      onTap: () => _handleCardTap('Gia nhập'),
+                      onTap: () => _handleCardTap('join_button'.tr()),
                     ),
                   ),
                 ],
@@ -113,13 +120,15 @@ class _BeforeGroupState extends State<BeforeGroup> {
           _buildHeader(),
         ],
       ),
+      ),
     );
   }
 
   /// Widget xây dựng Header (giữ nguyên code Positioned của bạn)
   Widget _buildHeader() {
+    // Move header slightly down so top elements are not flush with screen edge
     return Positioned(
-      top: 0,
+      top: 8,
       left: 0,
       right: 0,
       child: Container(
@@ -133,6 +142,32 @@ class _BeforeGroupState extends State<BeforeGroup> {
                 width: MediaQuery.of(context).size.width, // Full width
                 height: 70,
                 color: const Color(0xFFF0E7D8),
+              ),
+            ),
+            // Back icon only (no circular background). Keep tap area accessible.
+            Positioned(
+              left: 12,
+              top: 22, // nudge the icon down a bit
+              child: GestureDetector(
+                behavior: HitTestBehavior.translucent,
+                onTap: () {
+                  if (widget.onBack != null) {
+                    widget.onBack!();
+                  } else {
+                    Navigator.of(context).maybePop();
+                  }
+                },
+                child: const SizedBox(
+                  width: 44,
+                  height: 44,
+                  child: Center(
+                    child: Icon(
+                      Icons.arrow_back_ios_new,
+                      color: Color(0xFF1B1E28),
+                      size: 20,
+                    ),
+                  ),
+                ),
               ),
             ),
             Positioned(

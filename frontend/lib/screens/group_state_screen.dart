@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:easy_localization/easy_localization.dart';
 
 class GroupStateScreen extends StatefulWidget {
   final VoidCallback? onBack;
@@ -43,9 +44,34 @@ class _GroupStateScreenState extends State<GroupStateScreen> {
     ),
   ];
 
+  // Filtered list used for display (updated by search)
+  List<GroupApplication> _filteredApplications = [];
+
+  @override
+  void initState() {
+    super.initState();
+    // initialize filtered list from applications
+    _filteredApplications = List.from(applications);
+  }
+
   void _deleteApplication(String id) {
     setState(() {
       applications.removeWhere((app) => app.id == id);
+      // also update filtered list
+      _filteredApplications.removeWhere((app) => app.id == id);
+    });
+  }
+
+  void _onSearchChanged(String query) {
+    final q = query.trim().toLowerCase();
+    setState(() {
+      if (q.isEmpty) {
+        _filteredApplications = List.from(applications);
+      } else {
+        _filteredApplications = applications
+            .where((app) => app.groupName.toLowerCase().contains(q))
+            .toList();
+      }
     });
   }
 
@@ -98,7 +124,7 @@ class _GroupStateScreenState extends State<GroupStateScreen> {
               Padding(
                 padding: EdgeInsets.only(top: 10),
                 child: Text(
-                  'DANH SÁCH',
+                  'group_list'.tr(),
                   style: TextStyle(
                     fontSize: 60,
                     fontFamily: 'Alumni Sans',
@@ -111,7 +137,7 @@ class _GroupStateScreenState extends State<GroupStateScreen> {
               Padding(
                 padding: EdgeInsets.only(top: 0),
                 child: Text(
-                  'Nhóm chờ',
+                  'pending_groups'.tr(),
                   style: TextStyle(
                     fontSize: 32,
                     fontFamily: 'Alegreya',
@@ -138,8 +164,9 @@ class _GroupStateScreenState extends State<GroupStateScreen> {
                       Expanded(
                         child: TextField(
                           controller: _searchController,
-                          decoration: const InputDecoration(
-                            hintText: 'Tìm kiếm nhóm...',
+                          onChanged: _onSearchChanged,
+                          decoration: InputDecoration(
+                            hintText: 'search_group'.tr(),
                             border: InputBorder.none,
                             hintStyle: TextStyle(color: Color(0xFF8A724C)),
                           ),
@@ -161,27 +188,27 @@ class _GroupStateScreenState extends State<GroupStateScreen> {
                       color: Colors.white.withOpacity(0.8),
                       borderRadius: BorderRadius.circular(20),
                     ),
-                    child: applications.isEmpty
+                    child: _filteredApplications.isEmpty
                         ? Center(
-                      child: Text(
-                        'Chưa có yêu cầu nào',
-                        style: TextStyle(
-                          fontSize: 16,
-                          color: Colors.grey[600],
-                        ),
-                      ),
-                    )
+                            child: Text(
+                              'no_requests'.tr(),
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: Colors.grey[600],
+                              ),
+                            ),
+                          )
                         : ListView.separated(
-                      padding: const EdgeInsets.all(16),
-                      itemCount: applications.length,
-                      separatorBuilder: (context, index) => const SizedBox(height: 12),
-                      itemBuilder: (context, index) {
-                        return ApplicationCard(
-                          application: applications[index],
-                          onDelete: () => _deleteApplication(applications[index].id),
-                        );
-                      },
-                    ),
+                            padding: const EdgeInsets.all(16),
+                            itemCount: _filteredApplications.length,
+                            separatorBuilder: (context, index) => const SizedBox(height: 12),
+                            itemBuilder: (context, index) {
+                              return ApplicationCard(
+                                application: _filteredApplications[index],
+                                onDelete: () => _deleteApplication(_filteredApplications[index].id),
+                              );
+                            },
+                          ),
                   ),
                 ),
               ),
@@ -191,7 +218,6 @@ class _GroupStateScreenState extends State<GroupStateScreen> {
       ),
     );
   }
-
 
 
 
@@ -222,16 +248,16 @@ class ApplicationCard extends StatelessWidget {
           context: context,
           builder: (BuildContext context) {
             return AlertDialog(
-              title: const Text('Xác nhận'),
-              content: const Text('Bạn có chắc muốn xóa đơn này?'),
+              title: Text('confirm_delete'.tr()),
+              content: Text('delete_request_message'.tr()),
               actions: [
                 TextButton(
                   onPressed: () => Navigator.of(context).pop(false),
-                  child: const Text('Hủy'),
+                  child: Text('cancel'.tr()),
                 ),
                 TextButton(
                   onPressed: () => Navigator.of(context).pop(true),
-                  child: const Text('Xóa'),
+                  child: Text('delete'.tr()),
                 ),
               ],
             );
@@ -306,17 +332,17 @@ class ApplicationCard extends StatelessWidget {
     switch (status) {
       case ApplicationStatus.accepted:
         bgColor = const Color(0xFF00674F);
-        text = 'Chấp nhận';
+        text = 'status_accepted'.tr();
         icon = Icons.check;
         break;
       case ApplicationStatus.rejected:
         bgColor = const Color(0xFFB64B12);
-        text = 'Từ chối';
+        text = 'status_rejected'.tr();
         icon = Icons.close;
         break;
       case ApplicationStatus.pending:
         bgColor = const Color(0xFFCD7F32);
-        text = 'Đang chờ';
+        text = 'status_pending'.tr();
         icon = Icons.access_time;
         break;
     }

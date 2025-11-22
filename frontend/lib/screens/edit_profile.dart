@@ -6,6 +6,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'package:easy_localization/easy_localization.dart';
 import 'welcome.dart';
 import '../config/api_config.dart';
 import '../services/auth_service.dart';
@@ -73,6 +74,37 @@ class _EditProfilePageState extends State<EditProfilePage> {
     {'title': 'Khác', 'image': ''},
   ];
 
+  // Mapping from stored interest string (value) to translation key
+  final Map<String, String> _interestKeyByValue = {
+    'Văn hóa': 'interest_culture',
+    'Ẩm thực': 'interest_food',
+    'Nhiếp ảnh': 'interest_photography',
+    'Leo núi': 'interest_trekking',
+    'Tắm biển': 'interest_beach',
+    'Mua sắm': 'interest_shopping',
+    'Tham quan': 'interest_sightseeing',
+    'Nghỉ dưỡng': 'interest_resort',
+    'Lễ hội': 'interest_festival',
+    'Cafe': 'interest_cafe',
+    'Homestay': 'interest_homestay',
+    'Ngắm cảnh': 'interest_viewing',
+    'Cắm trại': 'interest_camping',
+    'Du thuyền': 'interest_cruise',
+    'Động vật': 'interest_animals',
+    'Mạo hiểm': 'interest_adventure',
+    'Phượt': 'interest_backpacking',
+    'Đặc sản': 'interest_specialty',
+    'Vlog': 'interest_vlog',
+    'Chèo sup': 'interest_rowing',
+    'Khác': 'interest_other',
+  };
+
+  String _translateInterest(String stored) {
+    final key = _interestKeyByValue[stored];
+    if (key != null) return key.tr();
+    return stored;
+  }
+
   @override
   void initState() {
     super.initState();
@@ -115,9 +147,9 @@ class _EditProfilePageState extends State<EditProfilePage> {
   String _normalizeGender(String g) {
     if (g.isEmpty) return '';
     final low = g.toLowerCase();
-    if (low == 'male' || low == 'nam') return 'Nam';
-    if (low == 'female' || low == 'nữ' || low == 'nu') return 'Nữ';
-    return 'Khác';
+    if (low == 'male' || low == 'nam') return 'male'.tr();
+    if (low == 'female' || low == 'nữ' || low == 'nu') return 'female'.tr();
+    return 'other'.tr();
   }
 
   @override
@@ -208,8 +240,8 @@ class _EditProfilePageState extends State<EditProfilePage> {
                 (route) => false,
           );
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại'),
+            SnackBar(
+              content: Text('session_expired'.tr()),
             ),
           );
           return;
@@ -223,8 +255,8 @@ class _EditProfilePageState extends State<EditProfilePage> {
                 (route) => false,
           );
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại'),
+            SnackBar(
+              content: Text('session_expired'.tr()),
             ),
           );
           return;
@@ -243,14 +275,18 @@ class _EditProfilePageState extends State<EditProfilePage> {
         if (avatarUrl == null) {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Không thể upload ảnh đại diện')),
+              SnackBar(content: Text('upload_avatar_failed'.tr())),
             );
           }
           return;
         }
       }
 
-      final genderMap = {'Nam': 'male', 'Nữ': 'female', 'Khác': 'other'};
+      final genderMap = {
+        'male'.tr(): 'male',
+        'female'.tr(): 'female',
+        'other'.tr(): 'other'
+      };
       final mappedGender = genderMap[_gender] ?? 'other';
 
       String? birthDateFormatted;
@@ -284,7 +320,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
       if (response.statusCode == 200 || response.statusCode == 201) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Cập nhật thành công!')),
+            SnackBar(content: Text('update_success'.tr())),
           );
           Navigator.pop(context, true);
         }
@@ -292,7 +328,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
         debugPrint('Update profile failed: ${response.statusCode} ${response.body}');
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Cập nhật thất bại: ${response.statusCode}')),
+            SnackBar(content: Text('${'update_failed'.tr()}: ${response.statusCode}')),
           );
         }
       }
@@ -300,7 +336,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
       debugPrint('Error calling update profile: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Không thể kết nối đến server')),
+          SnackBar(content: Text('cannot_connect_server'.tr())),
         );
       }
     }
@@ -355,8 +391,8 @@ class _EditProfilePageState extends State<EditProfilePage> {
     final result = await showDialog<String>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text(
-          'Chọn giới tính',
+        title: Text(
+          'select_gender'.tr(),
           style: TextStyle(
             fontFamily: 'WorkSans',
             fontWeight: FontWeight.w700,
@@ -365,9 +401,9 @@ class _EditProfilePageState extends State<EditProfilePage> {
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            _buildGenderOption('Nam'),
-            _buildGenderOption('Nữ'),
-            _buildGenderOption('Khác'),
+            _buildGenderOption('male'.tr()),
+            _buildGenderOption('female'.tr()),
+            _buildGenderOption('other'.tr()),
           ],
         ),
       ),
@@ -439,8 +475,23 @@ class _EditProfilePageState extends State<EditProfilePage> {
               children: [
                 Column(
                   children: [
+                    // Travel Together title (translated)
                     Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 30),
+                      padding: const EdgeInsets.only(top: 8, bottom: 8),
+                      child: Center(
+                        child: Text(
+                          'travel_together'.tr(),
+                          style: const TextStyle(
+                            fontSize: 24,
+                            fontFamily: 'Bangers',
+                            color: Colors.black,
+                            decoration: TextDecoration.none,
+                          ),
+                        ),
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 10),
                       child: Container(
                         width: double.infinity,
                         height: 150,
@@ -524,29 +575,29 @@ class _EditProfilePageState extends State<EditProfilePage> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               const SizedBox(height: 50),
-                              buildTextField("Họ và tên", _nameController),
+                              buildTextField("full_name".tr(), _nameController),
                               Row(
                                 children: [
                                   Expanded(
                                     child: buildClickableField(
-                                      "Ngày sinh",
+                                      "birth_date".tr(),
                                       _birthDate != null
                                           ? "${_birthDate!.day.toString().padLeft(2, '0')}/${_birthDate!.month.toString().padLeft(2, '0')}/${_birthDate!.year}"
-                                          : "Chọn ngày sinh",
+                                          : "choose_date".tr(),
                                       _pickDate,
                                     ),
                                   ),
                                   const SizedBox(width: 48),
                                   Expanded(
-                                    child: buildClickableField("Giới tính", _gender.isNotEmpty ? _gender : "Chọn giới tính", _pickGender),
+                                    child: buildClickableField("gender".tr(), _gender.isNotEmpty ? _gender : "select_gender".tr(), _pickGender),
                                   ),
                                 ],
                               ),
-                              buildTextField("Email", _emailController),
+                              buildTextField("email".tr(), _emailController),
                               const SizedBox(height: 10),
                               buildInterestsField(),
                               const SizedBox(height: 15),
-                              buildTextField("Mô tả bản thân", _descriptionController, maxLines: 3),
+                              buildTextField("self_description".tr(), _descriptionController, maxLines: 3),
                               const SizedBox(height: 30),
                             ],
                           ),
@@ -697,7 +748,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            "Sở thích du lịch",
+            "travel_interests".tr(),
             style: TextStyle(
               fontFamily: 'WorkSans',
               fontWeight: FontWeight.w500,
@@ -732,7 +783,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
                     Padding(
                       padding: const EdgeInsets.symmetric(vertical: 8.0),
                       child: Text(
-                        'Chưa có sở thích. Nhấn để chọn.',
+                        'no_interests_selected'.tr(),
                         style: TextStyle(color: labelColor),
                       ),
                     ),
@@ -769,7 +820,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
           ),
           const SizedBox(width: 6),
           Text(
-            text,
+            _translateInterest(text),
             style: const TextStyle(
               fontFamily: 'WorkSans',
               fontSize: 13,
@@ -817,6 +868,37 @@ class _InterestsDialog extends StatefulWidget {
 class _InterestsDialogState extends State<_InterestsDialog> {
   late List<String> _tempSelected;
 
+  // Local mapping for dialog to translate stored interest values to keys
+  final Map<String, String> _interestKeyByValueLocal = {
+    'Văn hóa': 'interest_culture',
+    'Ẩm thực': 'interest_food',
+    'Nhiếp ảnh': 'interest_photography',
+    'Leo núi': 'interest_trekking',
+    'Tắm biển': 'interest_beach',
+    'Mua sắm': 'interest_shopping',
+    'Tham quan': 'interest_sightseeing',
+    'Nghỉ dưỡng': 'interest_resort',
+    'Lễ hội': 'interest_festival',
+    'Cafe': 'interest_cafe',
+    'Homestay': 'interest_homestay',
+    'Ngắm cảnh': 'interest_viewing',
+    'Cắm trại': 'interest_camping',
+    'Du thuyền': 'interest_cruise',
+    'Động vật': 'interest_animals',
+    'Mạo hiểm': 'interest_adventure',
+    'Phượt': 'interest_backpacking',
+    'Đặc sản': 'interest_specialty',
+    'Vlog': 'interest_vlog',
+    'Chèo sup': 'interest_rowing',
+    'Khác': 'interest_other',
+  };
+
+  String _translateInterestLocal(String stored) {
+    final key = _interestKeyByValueLocal[stored];
+    if (key != null) return key.tr();
+    return stored;
+  }
+
   @override
   void initState() {
     super.initState();
@@ -833,9 +915,9 @@ class _InterestsDialogState extends State<_InterestsDialog> {
         height: MediaQuery.of(context).size.height * 0.7,
         child: Column(
           children: [
-            const Text(
-              'Chọn ít nhất 3 sở thích du lịch của bạn',
-              style: TextStyle(
+            Text(
+              'select_interests_title'.tr(),
+              style: const TextStyle(
                 fontSize: 24,
                 fontFamily: 'WorkSans',
                 fontWeight: FontWeight.w700,
@@ -895,7 +977,7 @@ class _InterestsDialogState extends State<_InterestsDialog> {
                                         color: Colors.black.withOpacity(0.6),
                                         alignment: Alignment.center,
                                         child: Text(
-                                          interest['title']!,
+                                          _translateInterestLocal(interest['title']!),
                                           textAlign: TextAlign.center,
                                           style: const TextStyle(
                                             color: Colors.black,
@@ -911,7 +993,7 @@ class _InterestsDialogState extends State<_InterestsDialog> {
                                     color: Colors.black.withOpacity(0.6),
                                     alignment: Alignment.center,
                                     child: Text(
-                                      interest['title']!,
+                                      _translateInterestLocal(interest['title']!),
                                       textAlign: TextAlign.center,
                                       style: const TextStyle(
                                         color: Colors.white,
@@ -946,7 +1028,7 @@ class _InterestsDialogState extends State<_InterestsDialog> {
                         Padding(
                           padding: const EdgeInsets.only(top: 4),
                           child: Text(
-                            interest['title']!,
+                            _translateInterestLocal(interest['title']!),
                             textAlign: TextAlign.center,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
@@ -976,9 +1058,9 @@ class _InterestsDialogState extends State<_InterestsDialog> {
                     borderRadius: BorderRadius.circular(25),
                   ),
                 ),
-                child: const Text(
-                  'Xác nhận',
-                  style: TextStyle(
+                child: Text(
+                  'confirm_action'.tr(),
+                  style: const TextStyle(
                     fontSize: 18,
                     fontFamily: 'WorkSans',
                     fontWeight: FontWeight.w600,
