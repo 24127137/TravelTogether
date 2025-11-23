@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:confetti/confetti.dart';
-import 'package:easy_localization/easy_localization.dart';
 
 
 // Password changing screen used from Settings
@@ -71,7 +70,6 @@ class _PasswordChangingScreenState extends State<PasswordChangingScreen> with Si
 
     // Colors consistent with app theme used elsewhere
     const colorBrown = Color(0xFFA15C20);
-    const colorAction = Color(0xFFB64B12);
 
     return Scaffold(
       backgroundColor: const Color(0xFFB64B12),

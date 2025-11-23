@@ -7,7 +7,7 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'screens/onboarding.dart';
 import 'screens/main_app_screen.dart';
 import 'services/auth_service.dart';
-import 'screens/group_matcing_announcement_screen.dart';
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await EasyLocalization.ensureInitialized();
