@@ -277,5 +277,9 @@
   "interest_specialty": "Đặc sản",
   "interest_vlog": "Vlog",
   "interest_rowing": "Chèo sup",
-  "interest_other": "Khác"
+  "interest_other": "Khác",
+  "security": "Bảo mật",
+  "pin_code": "Mã PIN",
+  "password": "Mật khẩu",
+  "emergency_pin": "Mã PIN khẩn cấp"
 }

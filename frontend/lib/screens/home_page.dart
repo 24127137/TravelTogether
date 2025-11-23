@@ -3,11 +3,9 @@
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
 import '../data/mock_destinations.dart';
 import '../models/destination.dart';
-import 'package:table_calendar/table_calendar.dart';
 import '../widgets/destination_search_modal.dart';
 import '../widgets/calendar_card.dart';
 import 'group_matcing_announcement_screen.dart';
@@ -227,6 +225,9 @@ class _CustomAppBar extends StatelessWidget {
             Navigator.of(context).push(MaterialPageRoute(
               builder: (_) => GroupMatchingAnnouncementScreen(
                 groupName: '1 tháng 2 lần',
+                onBack: () {
+                  Navigator.of(context).pop();
+                },
               ),
             ));
           },

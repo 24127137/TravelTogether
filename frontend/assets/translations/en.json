@@ -277,5 +277,9 @@
   "interest_specialty": "Local Specialties",
   "interest_vlog": "Vlog",
   "interest_rowing": "Rowing / SUP",
-  "interest_other": "Other"
+  "interest_other": "Other",
+  "security": "Security",
+  "pin_code": "PIN Code",
+  "password": "Password",
+  "emergency_pin": "Emergency PIN"
 }
