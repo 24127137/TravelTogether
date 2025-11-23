@@ -6,6 +6,7 @@ import 'package:easy_localization/easy_localization.dart';
 import 'information_screen.dart';
 import 'reputation_screen.dart';
 import 'feedback_screen.dart';
+import 'password_changing.dart';
 
 class SettingsScreen extends StatefulWidget {
   final VoidCallback onBack;
@@ -45,7 +46,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             final avatarRadius = 35.0 * scaleFactor;
             final userNameSize = 20.0 * scaleFactor;
             final userEmailSize = 14.0 * scaleFactor;
-            final verticalSpacing = 40.0 * scaleFactor;
+            final verticalSpacing = 20.0 * scaleFactor;
             final tileHeight = 80.0 * scaleFactor;
             final buttonHeight = 55.0 * scaleFactor;
             final headerPadding = 20.0 * scaleFactor;
@@ -251,6 +252,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         paddingV: tilePaddingV,
                       ),
                       SizedBox(height: verticalSpacing),
+                      // About tile
                       _buildSettingTile(
                         icon: Icons.info_outline,
                         title: 'about'.tr(),
@@ -282,6 +284,27 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         scaleFactor: scaleFactor,
                         paddingH: tilePaddingH,
                       ),
+
+                      SizedBox(height: verticalSpacing),
+
+                      // Change password tile
+                      _buildSettingTile(
+                        icon: Icons.lock_outline,
+                        title: 'change_password'.tr(),
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (_) => PasswordChangingScreen()),
+                          );
+                        },
+                        onLeftTap: null,
+                        onRightTap: null,
+                        hideArrows: true,
+                        height: tileHeight,
+                        scaleFactor: scaleFactor,
+                        paddingH: tilePaddingH,
+                      ),
+
                       const Spacer(),
                       // Nút đăng xuất
                       Padding(

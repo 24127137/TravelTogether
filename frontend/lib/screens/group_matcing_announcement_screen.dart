@@ -1,230 +1,193 @@
+// dart
 import 'package:flutter/material.dart';
+import 'package:confetti/confetti.dart';
+import 'home_page.dart';
 
-class GroupMatchingAnnouncementScreen extends StatelessWidget {
+class GroupMatchingAnnouncementScreen extends StatefulWidget {
   final String groupName;
-  final String groupImageUrl;
-  final String billboardBackgroundUrl;
-  final VoidCallback? onMessageTap;
-  final VoidCallback? onClose;
+  final String? groupId;
+  final VoidCallback? onBack;
 
   const GroupMatchingAnnouncementScreen({
-    super.key,
+    Key? key,
     required this.groupName,
-    required this.groupImageUrl,
-    this.billboardBackgroundUrl = "https://placehold.co/440x956",
-    this.onMessageTap,
-    this.onClose,
-  });
+    this.groupId,
+    this.onBack,
+  }) : super(key: key);
+
+  @override
+  State<GroupMatchingAnnouncementScreen> createState() => _GroupMatchingAnnouncementScreenState();
+}
+
+class _GroupMatchingAnnouncementScreenState extends State<GroupMatchingAnnouncementScreen> {
+  late final ConfettiController _confettiController;
+
+  @override
+  void initState() {
+    super.initState();
+    _confettiController = ConfettiController(duration: const Duration(seconds: 2));
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _confettiController.play();
+    });
+  }
+
+  @override
+  void dispose() {
+    _confettiController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Container(
-        width: double.infinity,
-        height: double.infinity,
-        decoration: BoxDecoration(
-          image: DecorationImage(
-            image: NetworkImage(billboardBackgroundUrl),
-            fit: BoxFit.cover,
-          ),
-        ),
+    return SingleChildScrollView(
+      child: Container(
+        width: 440,
+        height: 956,
+        clipBehavior: Clip.antiAlias,
+        decoration: const BoxDecoration(color: Color(0xFF653516)),
         child: Stack(
           children: [
-            // Close button
-            Positioned(
-              left: 26,
-              top: 50,
-              child: GestureDetector(
-                onTap: onClose ?? () => Navigator.of(context).pop(),
-                child: Container(
-                  width: 44,
-                  height: 44,
-                  decoration: const ShapeDecoration(
-                    color: Color(0xFFF6F6F8),
-                    shape: CircleBorder(),
-                  ),
-                  child: const Icon(
-                    Icons.close,
-                    color: Color(0xFF1B1E28),
-                    size: 24,
-                  ),
-                ),
-              ),
-            ),
-
-            // Billboard screen with "Vào nhóm thôi" text
-            Positioned(
-              left: 50,
-              top: 120,
-              child: Container(
-                width: 340,
-                height: 200,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFE5CDB1),
-                  borderRadius: BorderRadius.circular(12),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.3),
-                      blurRadius: 8,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: Stack(
-                  children: [
-                    // Group image as background
-                    Positioned.fill(
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(12),
-                        child: Image.network(
-                          groupImageUrl,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) {
-                            return Container(
-                              color: const Color(0xFFE5CDB1),
-                              child: const Icon(
-                                Icons.group,
-                                size: 60,
-                                color: Color(0xFFCD7F32),
-                              ),
-                            );
-                          },
-                        ),
-                      ),
-                    ),
-                    // Overlay with text
-                    Positioned.fill(
-                      child: Container(
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(12),
-                          gradient: LinearGradient(
-                            begin: Alignment.topCenter,
-                            end: Alignment.bottomCenter,
-                            colors: [
-                              Colors.black.withOpacity(0.3),
-                              Colors.transparent,
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                    // "Vào nhóm thôi" text
-                    const Positioned(
-                      left: 20,
-                      top: 20,
-                      child: Text(
-                        'Vào nhóm thôi!',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 32,
-                          fontFamily: 'DM Serif Display',
-                          fontWeight: FontWeight.w600,
-                          shadows: [
-                            Shadow(
-                              color: Colors.black54,
-                              blurRadius: 4,
-                              offset: Offset(2, 2),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
+            // Confetti positioned at top center, explosive style
+            Positioned.fill(
+              child: Align(
+                alignment: Alignment.topCenter,
+                child: ConfettiWidget(
+                  confettiController: _confettiController,
+                  blastDirectionality: BlastDirectionality.explosive,
+                  emissionFrequency: 0.05,
+                  numberOfParticles: 30,
+                  gravity: 0.25,
+                  shouldLoop: false,
+                  colors: const [
+                    Color(0xFFDCC9A7),
+                    Color(0xFF663517),
+                    Color(0xFFB64B12),
+                    Color(0xFFEDE2CC),
                   ],
                 ),
               ),
             ),
 
-            // Ground billboard with group invitation message
             Positioned(
-              left: 30,
-              bottom: 150,
-              child: Container(
-                width: 380,
-                height: 300,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFE5CDB1),
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.4),
-                      blurRadius: 12,
-                      offset: const Offset(0, 6),
-                    ),
-                  ],
+              top: 22,
+              left: 12,
+              child: CircleAvatar(
+                backgroundColor: Colors.white,
+                child: IconButton(
+                  icon: const Icon(Icons.arrow_back, color: Colors.black),
+                  onPressed: widget.onBack ??
+                          () {
+                        Navigator.of(context).pushAndRemoveUntil(
+                          MaterialPageRoute(builder: (_) => HomePage()),
+                              (route) => false,
+                        );
+                      },
                 ),
-                child: Padding(
-                  padding: const EdgeInsets.all(24.0),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
+              ),
+            ),
+
+            Positioned(
+              left: 0,
+              top: 80,
+              child: SizedBox(
+                width: 440,
+                child: Text(
+                  'VÀO THÔI!',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 95,
+                    fontFamily: 'Alumni Sans',
+                    fontWeight: FontWeight.w700,
+                    height: 0.96,
+                    letterSpacing: -6.80,
+                  ),
+                ),
+              ),
+            ),
+            Positioned(
+              left: -100,
+              right: -60,
+              bottom: 95,
+              child: Container(
+                width: 419,
+                height: 840,
+                decoration: BoxDecoration(
+                  image: DecorationImage(
+                    image: AssetImage("assets/images/overlay.png"),
+                    fit: BoxFit.cover,
+                  ),
+                ),
+              ),
+            ),
+            Positioned(
+              left: 22,
+              top: 190,
+              child: SizedBox(
+                width: 194,
+                height: 214,
+                child: Text.rich(
+                  TextSpan(
                     children: [
-                      // Group name and invitation text
-                      Text.rich(
-                        TextSpan(
-                          children: [
-                            TextSpan(
-                              text: groupName,
-                              style: const TextStyle(
-                                color: Color(0xFFCD7F32),
-                                fontSize: 28,
-                                fontFamily: 'Afacad',
-                                fontWeight: FontWeight.w600,
-                                height: 1.2,
-                              ),
-                            ),
-                            const TextSpan(
-                              text: ' đã mời bạn vào nhóm',
-                              style: TextStyle(
-                                color: Color(0xFF2C2C2C),
-                                fontSize: 28,
-                                fontFamily: 'Afacad',
-                                fontWeight: FontWeight.w400,
-                                height: 1.2,
-                              ),
-                            ),
-                          ],
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-
-                      const SizedBox(height: 32),
-
-                      // Message button
-                      GestureDetector(
-                        onTap: onMessageTap,
-                        child: Container(
-                          width: 80,
-                          height: 80,
-                          decoration: ShapeDecoration(
-                            color: const Color(0xFFDCC9A7),
-                            shape: const CircleBorder(),
-                            shadows: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.2),
-                                blurRadius: 8,
-                                offset: const Offset(0, 4),
-                              ),
-                            ],
-                          ),
-                          child: const Icon(
-                            Icons.message_rounded,
-                            color: Color(0xFFCD7F32),
-                            size: 36,
-                          ),
-                        ),
-                      ),
-
-                      const SizedBox(height: 12),
-
-                      const Text(
-                        'Nhấn để chat với nhóm',
+                      TextSpan(
+                        text: '1 tháng 2 lần',
                         style: TextStyle(
-                          color: Color(0xFF666666),
-                          fontSize: 14,
+                          color: const Color(0xFFDCC9A7),
+                          fontSize: 40,
+                          fontStyle: FontStyle.italic,
+                          fontFamily: 'Alumni Sans',
+                          fontWeight: FontWeight.w700,
+                          overflow: TextOverflow.visible,
+                          height: 0.96,
+                          letterSpacing: -1.60,
+                        ),
+                      ),
+                      TextSpan(
+                        text: ' ',
+                        style: TextStyle(
+                          color: Colors.black,
+                          fontSize: 40,
                           fontFamily: 'Afacad',
                           fontWeight: FontWeight.w400,
+                          height: 0.96,
+                          letterSpacing: -1.60,
+                        ),
+                      ),
+                      TextSpan(
+                        text: 'đã mời bạn vào nhóm.',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 40,
+                          fontFamily: 'Afacad',
+                          fontWeight: FontWeight.w400,
+                          height: 0.96,
+                          letterSpacing: -1.60,
                         ),
                       ),
                     ],
+                  ),
+                ),
+              ),
+            ),
+            Positioned(
+              left: 60,
+              top: 380,
+              child: Container(
+                width: 82,
+                height: 82,
+                decoration: ShapeDecoration(
+                  color: const Color(0xFFDCC9A7),
+                  shape: OvalBorder(
+                    side: BorderSide(
+                      width: 1,
+                      color: Color(0xFFC56734),
+                    ),
+                  ),
+                ),
+                child: const Center(
+                  child: Icon(
+                    Icons.chat_bubble,
+                    color: Color(0xFF663517),
+                    size: 40,
                   ),
                 ),
               ),
@@ -234,25 +197,39 @@ class GroupMatchingAnnouncementScreen extends StatelessWidget {
       ),
     );
   }
-}
 
-// Usage example
-class GroupAnnouncementWrapper extends StatelessWidget {
-  const GroupAnnouncementWrapper({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return GroupMatchingAnnouncementScreen(
-      groupName: "1 tháng 2 lần",
-      groupImageUrl: "https://placehold.co/400x300",
-      billboardBackgroundUrl: "https://placehold.co/440x956",
-      onMessageTap: () {
-        // Navigate to group chat
-        print("Navigate to group chat");
-      },
-      onClose: () {
-        Navigator.of(context).pop();
-      },
+  Widget _buildChatButton(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () => _navigateToGroupChat(context),
+        borderRadius: BorderRadius.circular(28),
+        child: Container(
+          width: 56,
+          height: 56,
+          decoration: BoxDecoration(
+            color: const Color(0xFFDCC9A7),
+            shape: BoxShape.circle,
+            border: Border.all(
+              color: const Color(0xFFC56734),
+              width: 2,
+            ),
+          ),
+          child: const Icon(
+            Icons.chat_bubble,
+            color: Color(0xFF663517),
+            size: 32,
+          ),
+        ),
+      ),
     );
+  }
+
+  void _navigateToGroupChat(BuildContext context) {
+    if (widget.groupId == null) {
+      debugPrint('Group ID is null, cannot navigate to chat');
+      return;
+    }
+    debugPrint('Navigating to chat for group: ${widget.groupId}');
   }
 }

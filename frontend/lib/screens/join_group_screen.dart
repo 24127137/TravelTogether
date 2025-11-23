@@ -1,9 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:my_travel_app/screens/home_page.dart';
-import 'package:my_travel_app/screens/messages_screen.dart';
-import 'package:my_travel_app/screens/notification_screen.dart';
-import '../widgets/custom_bottom_nav_bar.dart';
-import 'dart:ui';
 import 'package:confetti/confetti.dart';
 import 'package:easy_localization/easy_localization.dart';
 
@@ -261,7 +256,7 @@ class _JoinGroupScreenState extends State<JoinGroupScreen> {
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [Colors.transparent, Colors.black.withValues(alpha: 0.8)],
+            colors: [Colors.transparent, Colors.black.withOpacity(0.8)],
           ),
         ),
         child: Padding(
@@ -283,7 +278,7 @@ class _JoinGroupScreenState extends State<JoinGroupScreen> {
               Text(
                 '${'compatibility'.tr()}: ${group.compatibility}%',
                 style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.8),
+                  color: Colors.white.withOpacity(0.8),
                   fontSize: 14,
                   fontFamily: 'Inter',
                   fontWeight: FontWeight.w400,
@@ -292,7 +287,7 @@ class _JoinGroupScreenState extends State<JoinGroupScreen> {
               Text(
                 '${'quantity'.tr()}: ${group.members}/${group.maxMembers}',
                 style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.8),
+                  color: Colors.white.withOpacity(0.8),
                   fontSize: 14,
                   fontFamily: 'Inter',
                   fontWeight: FontWeight.w400,
@@ -414,7 +409,7 @@ class _GroupDetailsSheetState extends State<GroupDetailsSheet>
       builder: (context, scrollController) {
         return Container(
           decoration: BoxDecoration(
-            color: const Color(0xFFD8713B).withOpacity(0.86),
+            color: const Color.fromRGBO(216, 113, 59, 0.86),
             borderRadius: const BorderRadius.vertical(top: Radius.circular(25)),
           ),
           child: Stack(
