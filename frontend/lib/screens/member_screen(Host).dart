@@ -153,10 +153,10 @@ class _MemberScreenHostState extends State<MemberScreenHost> {
               child: Text(
                 widget.groupName,
                 style: const TextStyle(
-                  color: Colors.black,
-                  fontSize: 28,
-                  fontFamily: 'Lora',
-                  fontWeight: FontWeight.w400,
+                  color: Colors.white,
+                  fontSize: 30,
+                  fontFamily: 'Alumni Sans',
+                  fontWeight: FontWeight.w600,
                   letterSpacing: -1.0,
                 ),
               ),
@@ -205,9 +205,9 @@ class _MemberScreenHostState extends State<MemberScreenHost> {
         child: Text(
           '$currentMemberCount / ${widget.maxMembers}',
           style: const TextStyle(
-            color: Colors.black,
-            fontSize: 14,
-            fontFamily: 'Lora',
+            color: Colors.white,
+            fontSize: 20,
+            fontFamily: 'Alegreya',
             fontWeight: FontWeight.w400,
           ),
         ),
