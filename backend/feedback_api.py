@@ -4,7 +4,7 @@ from sqlmodel import Session
 from database import get_session
 from auth_guard import get_current_user
 import feedback_service
-from feedback_models import CreateFeedbackInput, UpdateFeedbackInput, FeedbackPublic
+from feedback_models import CreateFeedbackInput, UpdateFeedbackInput, FeedbackPublic, BatchCreateFeedbackInput, UserGroupFeedbackSummary, FeedbackDetail
 
 router = APIRouter(prefix="/feedbacks", tags=["Feedbacks"])
 
@@ -27,20 +27,39 @@ async def create_feedback(
         print(f"LỖI /feedbacks/create: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+@router.post("/batch-create", response_model=List[FeedbackPublic])
+async def batch_create_feedback(
+    data: BatchCreateFeedbackInput,
+    session: Session = Depends(get_session),
+    user = Depends(get_current_user)
+):
+    """
+    Tạo multiple feedbacks (cho multiple recipients sau group disband).
+    """
+    try:
+        sender_uuid = str(user.id)
+        objs = await feedback_service.batch_create_feedback_service(session, sender_uuid, data)
+        return objs
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"LỖI /feedbacks/batch-create: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 @router.get("/", response_model=Any)  # trả về dict meta + data
 async def list_feedbacks(
-    page: int = Query(1, ge=1),
-    limit: int = Query(20, ge=1, le=200),
     rev_id: Optional[int] = Query(None),
     send_id: Optional[int] = Query(None),
     q: Optional[str] = Query(None),
+    sort_by: Optional[str] = Query(None, description="Sắp xếp theo 'created_at' (mới nhất) hoặc 'rating' (sao)"),
+    order: Optional[str] = Query("desc", description="Thứ tự: 'asc' (tăng dần) hoặc 'desc' (giảm dần)"),
     session: Session = Depends(get_session),
     user = Depends(get_current_user)
 ):
     try:
-        res = await feedback_service.list_feedbacks_service(session, page=page, limit=limit, rev_id=rev_id, send_id=send_id, q=q)
-        # Nếu muốn ẩn send_id khi anonymous True, client nên làm; hoặc server có thể transform ở đây.
-        # Mình trả nguyên dữ liệu, client sẽ hiển thị "Anonymous" nếu anonymous True.
+        res = await feedback_service.list_feedbacks_service(
+            session, rev_id=rev_id, send_id=send_id, q=q, sort_by=sort_by, order=order
+        )
         return res
     except HTTPException:
         raise
@@ -94,4 +113,41 @@ async def delete_feedback(
         raise
     except Exception as e:
         print(f"LỖI DELETE /feedbacks/{fid}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/user-groups", response_model=List[UserGroupFeedbackSummary])
+async def get_user_disbanded_groups(
+    session: Session = Depends(get_session),
+    user = Depends(get_current_user)
+):
+    """
+    Lấy list groups đã disbanded của user (joined/owned), với average rating.
+    """
+    try:
+        sender_uuid = str(user.id)
+        res = await feedback_service.get_user_disbanded_groups_service(session, sender_uuid)
+        return res
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"LỖI /feedbacks/user-groups: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/group/{group_id}", response_model=List[FeedbackDetail])
+async def get_group_feedbacks(
+    group_id: int,
+    session: Session = Depends(get_session),
+    user = Depends(get_current_user)
+):
+    """
+    Lấy feedbacks cho group cụ thể (rev_id = user.id), xử lý anonymous.
+    """
+    try:
+        rev_uuid = str(user.id)
+        res = await feedback_service.get_group_feedbacks_service(session, group_id, rev_uuid)
+        return res
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"LỖI /feedbacks/group/{group_id}: {e}")
         raise HTTPException(status_code=500, detail=str(e))
