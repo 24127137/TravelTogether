@@ -42,7 +42,7 @@ async def create_profile_service(session: Session, profile_data: ProfileCreate) 
             "email": profile_data.email,
             "password": profile_data.password,
         })
-        
+
         if not auth_response.user or not auth_response.user.id:
             raise Exception("Không thể tạo user Auth. Dữ liệu trả về không hợp lệ.")
             
@@ -51,8 +51,8 @@ async def create_profile_service(session: Session, profile_data: ProfileCreate) 
         
     except Exception as e:
         print(f"LỖI khi tạo Auth user: {e}")
-        raise e 
-    
+        raise e
+
     # 2. TẠO PROFILE TRÊN DATABASE
     try:
         db_profile = Profiles(

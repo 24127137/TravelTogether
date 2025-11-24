@@ -9,6 +9,8 @@ import 'feedback_screen.dart';
 import 'password_changing.dart';
 import 'security.dart';
 import 'emergency_pin.dart';
+import '../services/auth_service.dart';
+import 'onboarding.dart';
 
 class SettingsScreen extends StatefulWidget {
   final VoidCallback onBack;
@@ -305,8 +307,79 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       width: double.infinity,
                       height: buttonHeight,
                       child: ElevatedButton(
-                        onPressed: () {
-                          // Xử lý đăng xuất
+                        onPressed: () async {
+                          // Hiển thị dialog xác nhận đăng xuất
+                          final shouldLogout = await showDialog<bool>(
+                            context: context,
+                            builder: (BuildContext context) {
+                              return AlertDialog(
+                                backgroundColor: const Color(0xFFEDE2CC),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                title: Text(
+                                  'logout_confirm_title'.tr(),
+                                  style: const TextStyle(
+                                    color: Color(0xFFA15C20),
+                                    fontFamily: 'Poppins',
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                content: Text(
+                                  'logout_confirm_message'.tr(),
+                                  style: const TextStyle(
+                                    color: Color(0xFF1B1E28),
+                                    fontFamily: 'Poppins',
+                                  ),
+                                ),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () => Navigator.of(context).pop(false),
+                                    child: Text(
+                                      'cancel'.tr(),
+                                      style: const TextStyle(
+                                        color: Color(0xFF666666),
+                                        fontFamily: 'Poppins',
+                                      ),
+                                    ),
+                                  ),
+                                  ElevatedButton(
+                                    onPressed: () => Navigator.of(context).pop(true),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: const Color(0xFFB64B12),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(10),
+                                      ),
+                                    ),
+                                    child: Text(
+                                      'logout'.tr(),
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontFamily: 'Poppins',
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              );
+                            },
+                          );
+
+                          // Nếu người dùng xác nhận đăng xuất
+                          if (shouldLogout == true && mounted) {
+                            // Xóa token và dữ liệu xác thực
+                            await AuthService.clearTokens();
+
+                            // Chuyển về màn hình Onboarding và xóa toàn bộ stack
+                            if (mounted) {
+                              Navigator.of(context).pushAndRemoveUntil(
+                                MaterialPageRoute(
+                                  builder: (context) => const OnboardingScreen(),
+                                ),
+                                (route) => false, // Xóa toàn bộ route stack
+                              );
+                            }
+                          }
                         },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFFB64B12),

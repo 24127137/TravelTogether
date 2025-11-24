@@ -281,5 +281,7 @@
   "security": "Security",
   "pin_code": "PIN Code",
   "password": "Password",
-  "emergency_pin": "Emergency PIN"
+  "emergency_pin": "Emergency PIN",
+  "logout_confirm_title": "Confirm Logout",
+  "logout_confirm_message": "Are you sure you want to logout from your account?"
 }
