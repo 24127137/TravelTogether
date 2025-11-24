@@ -26,7 +26,7 @@ class WelcomeScreen extends StatelessWidget {
         children: [
           Positioned.fill(
             child: Image.asset(
-              'assets/images/saigon.jpg',
+              'assets/images/login.png',
               fit: BoxFit.cover,
             ),
           ),
@@ -43,14 +43,14 @@ class WelcomeScreen extends StatelessWidget {
               padding: const EdgeInsets.only(bottom: 60),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
-                children: [
-                  Image.asset(
-                    'assets/images/logo.jpg',
-                    fit: BoxFit.cover,
-                    width: 125,
-                    height: 125,
-                  ),
-                  const SizedBox(height: 36),
+                 children: [
+                //   Image.asset(
+                //     'assets/images/logo.jpg',
+                //     fit: BoxFit.cover,
+                //     width: 125,
+                //     height: 125,
+                //   ),
+                //   const SizedBox(height: 36),
 
                   SizedBox(
                     width: 320,
@@ -58,18 +58,22 @@ class WelcomeScreen extends StatelessWidget {
                     child: ElevatedButton(
                       onPressed: () => _fadeTo(context, const SignUpScreen()),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF8A724C),
+                        backgroundColor: Colors.transparent,
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(30),
+                          borderRadius: BorderRadius.circular(7.83),
+                          side: const BorderSide(
+                            color: const Color(0xFF8A724C),
+                            width: 1,
+                          ),
                         ),
                       ),
                       child: const Text(
                         'Đăng ký',
                         style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 24,
-                            fontFamily: 'WorkSans',
+                            color: const Color(0xFFDCC9A7),
+                            fontSize: 16,
+                            fontFamily: 'Alegreya',
                             fontWeight: FontWeight.w600
                         ),
                       ),
@@ -86,15 +90,15 @@ class WelcomeScreen extends StatelessWidget {
                         backgroundColor: const Color(0xFF8A724C),
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(30),
+                          borderRadius: BorderRadius.circular(7.83),
                         ),
                       ),
                       child: const Text(
                         'Đăng nhập',
                         style: TextStyle(
-                            fontSize: 24,
-                            color: Colors.white,
-                            fontFamily: 'WorkSans',
+                            fontSize: 16,
+                            color: const Color(0xFFF7F3E8),
+                            fontFamily: 'Alegreya',
                             fontWeight: FontWeight.w600
                         ),
                       ),

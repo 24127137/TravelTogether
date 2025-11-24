@@ -106,17 +106,18 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      resizeToAvoidBottomInset: false,
       body: Stack(
         fit: StackFit.expand,
         children: [
           Image.asset(
-            'assets/images/saigon.jpg',
+            'assets/images/login.png',
             fit: BoxFit.cover,
           ),
           Container(color: Colors.black.withValues(alpha: 0.3)),
 
           SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 100),
+            padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 200),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
