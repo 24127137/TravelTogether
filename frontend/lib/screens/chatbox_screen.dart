@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:easy_localization/easy_localization.dart';
-import '../data/mock_messages.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'dart:async';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../config/api_config.dart';
 import '../models/message.dart';
 import 'member_screen(Host).dart';
 
@@ -17,13 +21,16 @@ class _ChatboxScreenState extends State<ChatboxScreen> {
   final TextEditingController _controller = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   final FocusNode _focusNode = FocusNode();
-  late List<Message> _messages;
+  List<Message> _messages = [];
+  bool _isLoading = true;
+  String? _accessToken;
+  String? _currentUserId; // Thêm biến để lưu user_id hiện tại
+  Timer? _refreshTimer;
 
   @override
   void initState() {
     super.initState();
-    // copy mock messages so we don't modify the original list
-    _messages = List<Message>.from(mockMessages);
+    _loadAccessToken();
     _focusNode.addListener(() {
       if (_focusNode.hasFocus) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -37,40 +44,166 @@ class _ChatboxScreenState extends State<ChatboxScreen> {
         });
       }
     });
+
+    // Auto refresh every 3 seconds
+    _refreshTimer = Timer.periodic(const Duration(seconds: 3), (timer) {
+      _loadChatHistory(silent: true);
+    });
   }
 
-  void _sendMessage() {
-    final text = _controller.text.trim();
-    if (text.isEmpty) return;
+  Future<void> _loadAccessToken() async {
+    final prefs = await SharedPreferences.getInstance();
+    _accessToken = prefs.getString('access_token');
+    _currentUserId = prefs.getString('user_id'); // Lấy user_id
 
-    final now = DateFormat('HH:mm').format(DateTime.now());
-    final m = Message(
-      sender: 'You',
-      message: text,
-      time: now,
-      isOnline: true,
-      isUser: true,
-    );
+    // DEBUG: Kiểm tra SharedPreferences
+    print('🔍 ===== SHARED PREFERENCES DEBUG =====');
+    print('🔍 All keys: ${prefs.getKeys()}');
+    print('🔍 Access Token exists: ${_accessToken != null}');
+    print('🔍 User ID: $_currentUserId');
+    print('🔍 ====================================');
 
-    setState(() {
-      _messages.add(m);
-      _controller.clear();
-    });
+    if (_accessToken != null) {
+      await _loadChatHistory();
+    } else {
+      setState(() {
+        _isLoading = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('chat_error_no_token'.tr())),
+      );
+    }
+  }
 
-    // scroll to bottom (list is not reversed here)
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (_scrollController.hasClients) {
-        _scrollController.animateTo(
-          _scrollController.position.maxScrollExtent,
-          duration: const Duration(milliseconds: 250),
-          curve: Curves.easeOut,
+  Future<void> _loadChatHistory({bool silent = false}) async {
+    if (_accessToken == null) return;
+
+    if (!silent) {
+      setState(() {
+        _isLoading = true;
+      });
+    }
+
+    try {
+      final url = ApiConfig.getUri(ApiConfig.chatHistory);
+      final response = await http.get(
+        url,
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer $_accessToken",
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final List<dynamic> data = jsonDecode(utf8.decode(response.bodyBytes));
+
+        setState(() {
+          _messages = data.map((msg) {
+            // Parse UTC time và chuyển sang local time
+            final createdAtUtc = DateTime.parse(msg['created_at']);
+            final createdAtLocal = createdAtUtc.toLocal(); // Chuyển sang giờ địa phương
+            final timeStr = DateFormat('HH:mm').format(createdAtLocal);
+            final senderId = msg['sender_id'] ?? '';
+
+            // DEBUG: In ra để kiểm tra CHI TIẾT
+            print('\n🔍 ===== MESSAGE DEBUG =====');
+            print('🔍 Current User ID: "$_currentUserId"');
+            print('🔍   - Type: ${_currentUserId.runtimeType}');
+            print('🔍   - Length: ${_currentUserId?.length ?? 0}');
+            print('🔍 Sender ID: "$senderId"');
+            print('🔍   - Type: ${senderId.runtimeType}');
+            print('🔍   - Length: ${senderId.length}');
+            print('🔍 Are they equal? ${senderId == _currentUserId}');
+            print('🔍 Message content: "${msg['content']}"');
+
+            // So sánh sender_id với current user_id để phân biệt tin nhắn
+            final isUser = (_currentUserId != null && senderId == _currentUserId);
+
+            print('🔍 Result isUser: $isUser');
+            print('🔍 Will display on: ${isUser ? "RIGHT (bên phải)" : "LEFT (bên trái)"}');
+            print('🔍 =========================\n');
+
+            return Message(
+              sender: senderId,
+              message: msg['content'] ?? '',
+              time: timeStr,
+              isOnline: true,
+              isUser: isUser, // Gán đúng giá trị isUser
+            );
+          }).toList();
+          _isLoading = false;
+        });
+
+        // Scroll to bottom after loading
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (_scrollController.hasClients) {
+            _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
+          }
+        });
+      } else {
+        if (!silent) {
+          throw Exception('Failed to load chat history: ${response.statusCode}');
+        }
+      }
+    } catch (e) {
+      if (!silent) {
+        setState(() {
+          _isLoading = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('${'chat_error_load'.tr()}: $e')),
         );
       }
-    });
+    }
+  }
+
+  Future<void> _sendMessage() async {
+    final text = _controller.text.trim();
+    if (text.isEmpty || _accessToken == null) return;
+
+    final url = ApiConfig.getUri(ApiConfig.chatSend);
+
+    try {
+      final response = await http.post(
+        url,
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer $_accessToken",
+        },
+        body: jsonEncode({
+          "content": text,
+          "message_type": "text",
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        _controller.clear();
+        // Reload chat history to get the new message
+        await _loadChatHistory(silent: true);
+
+        // Scroll to bottom
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (_scrollController.hasClients) {
+            _scrollController.animateTo(
+              _scrollController.position.maxScrollExtent,
+              duration: const Duration(milliseconds: 250),
+              curve: Curves.easeOut,
+            );
+          }
+        });
+      } else {
+        throw Exception('Failed to send message: ${response.statusCode}');
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('${'chat_error_send'.tr()}: $e')),
+      );
+    }
   }
 
   @override
   void dispose() {
+    _refreshTimer?.cancel();
     _controller.dispose();
     _scrollController.dispose();
     _focusNode.removeListener(() {});
@@ -92,9 +225,9 @@ class _ChatboxScreenState extends State<ChatboxScreen> {
         title: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text(
-              '1 tháng 2 lần',
-              style: TextStyle(
+            Text(
+              'chat_title'.tr(),
+              style: const TextStyle(
                 color: Colors.white,
                 fontSize: 16,
                 fontWeight: FontWeight.w500,
@@ -118,23 +251,6 @@ class _ChatboxScreenState extends State<ChatboxScreen> {
         centerTitle: true,
         toolbarHeight: 100,
         actions: [
-          // IconButton(
-          //   icon: const Icon(Icons.people_outline, color: Colors.white, size: 28),
-          //   onPressed: () {
-          //     Navigator.push(
-          //       context,
-          //       MaterialPageRoute(
-          //         builder: (context) => MemberScreenHost(
-          //           groupName: "1 tháng 2 lần", // hoặc lấy từ data thực
-          //           currentMembers: 7,
-          //           maxMembers: 10,
-          //           members: [], // truyền data thực
-          //           pendingRequests: [], // truyền data thực
-          //         ),
-          //       ),
-          //     );
-          //   },
-          // ),
           IconButton(
             icon: const Icon(Icons.people_outline, color: Colors.white, size: 28),
             onPressed: () {
@@ -211,7 +327,13 @@ class _ChatboxScreenState extends State<ChatboxScreen> {
         ],
       ),
       backgroundColor: const Color(0xFFEBE3D7),
-      body: LayoutBuilder(
+      body: _isLoading
+        ? const Center(
+            child: CircularProgressIndicator(
+              color: Color(0xFF8A724C),
+            ),
+          )
+        : LayoutBuilder(
         builder: (context, constraints) {
           final bottomInset = MediaQuery.of(context).viewInsets.bottom;
           const double inputBarHeight = 56.0; // estimated total height for input area

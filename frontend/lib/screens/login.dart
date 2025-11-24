@@ -62,6 +62,7 @@ class _LoginScreenState extends State<LoginScreen> {
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('access_token', accessToken);
         await prefs.setString('refresh_token', refreshToken);
+        await prefs.setString('user_id', user['id']); // Lưu user_id để phân biệt tin nhắn
 
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text("Đăng nhập thành công! Xin chào ${user['email']}")),

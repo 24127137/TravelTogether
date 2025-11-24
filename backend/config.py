@@ -10,7 +10,7 @@ class Settings(BaseSettings):
     DATABASE_URL: str = "postgresql://postgres:ntcuong2413@db.meuqntvawakdzntewscp.supabase.co:5432/postgres"
     
     # === 2. DÁN API KEY CỦA GEMINI (cho AI) ===
-    GEMINI_API_KEY: str = "AIzaSyCxRKOBWI5rw2OcPA9EO1TzearcKiyzU10"
+    GEMINI_API_KEY: str = "AIzaSyCPDVqulTTHfJc1CtdUC3--LXK82r-FwWc"
     
     # === 3. DÁN SUPABASE URL (MỚI - CẦN CHO AUTH) ===
     SUPABASE_URL: str = "https://meuqntvawakdzntewscp.supabase.co"
