@@ -58,3 +58,4 @@ class UserGroupFeedbackSummary(BaseModel):
 
 class FeedbackDetail(FeedbackPublic):
     sender_name: Optional[str]  # Chỉ hiển thị nếu không anonymous
+    rev_name: Optional[str]  # Tên người nhận
