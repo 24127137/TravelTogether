@@ -312,10 +312,11 @@ class _SignUpScreenState extends State<SignUpScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      resizeToAvoidBottomInset: false,
       body: Stack(
         fit: StackFit.expand,
         children: [
-          Image.asset('assets/images/saigon.jpg', fit: BoxFit.cover),
+          Image.asset('assets/images/login.png', fit: BoxFit.cover),
           Container(color: Colors.black.withValues(alpha: 0.3)),
 
           SafeArea(
@@ -343,13 +344,24 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   ),
 
                   Expanded(
-                    child: AnimatedSwitcher(
-                      duration: const Duration(milliseconds: 150),
-                      transitionBuilder: (child, animation) =>
-                          FadeTransition(opacity: animation, child: child),
-                      child: _buildStepContent(_step),
+                    child: Padding(
+                      padding: const EdgeInsets.only(top: 50),
+                      child: AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 150),
+                        child: _buildStepContent(_step),
+                      ),
                     ),
                   ),
+
+
+                  // Expanded(
+                  //   child: AnimatedSwitcher(
+                  //     duration: const Duration(milliseconds: 150),
+                  //     transitionBuilder: (child, animation) =>
+                  //         FadeTransition(opacity: animation, child: child),
+                  //     child: _buildStepContent(_step),
+                  //   ),
+                  // ),
                 ],
               ),
             ),
