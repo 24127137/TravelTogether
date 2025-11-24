@@ -278,6 +278,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
           final prefs = await SharedPreferences.getInstance();
           await prefs.setString('access_token', accessToken);
           await prefs.setString('refresh_token', refreshToken);
+          await prefs.setString('user_id', user['id']); // Lưu user_id để phân biệt tin nhắn
 
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text("Đăng ký và đăng nhập thành công! Xin chào ${user['email']}")),
@@ -297,14 +298,42 @@ class _SignUpScreenState extends State<SignUpScreen> {
           _fadeToLogin(context);
         }
       } else {
+        // Parse error response
+        String errorMessage = "Lỗi đăng ký";
+        try {
+          final errorData = jsonDecode(response.body);
+          errorMessage = errorData['detail'] ?? response.body;
+        } catch (e) {
+          errorMessage = response.body;
+        }
+
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Lỗi đăng ký: ${response.body}")),
+          SnackBar(
+            content: Text(errorMessage),
+            duration: const Duration(seconds: 5),
+          ),
         );
       }
     } catch (e) {
       Navigator.pop(context);
+      String errorMessage = "Lỗi kết nối server";
+
+      // Extract meaningful error message
+      String errorStr = e.toString();
+      if (errorStr.contains("Connection refused")) {
+        errorMessage = "Không thể kết nối đến server. Vui lòng kiểm tra:\n"
+                      "1. Backend đã chạy chưa?\n"
+                      "2. IP server trong cài đặt có đúng không?\n"
+                      "3. Thiết bị và server cùng mạng WiFi?";
+      } else if (errorStr.contains("SocketException")) {
+        errorMessage = "Lỗi mạng: Không thể kết nối đến server";
+      }
+
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Lỗi kết nối server: $e")),
+        SnackBar(
+          content: Text(errorMessage),
+          duration: const Duration(seconds: 5),
+        ),
       );
     }
   }
