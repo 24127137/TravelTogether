@@ -3,23 +3,17 @@ import os
 
 class Settings(BaseSettings):
     """
-    Quản lý tất cả các biến môi trường và "bí mật" (secrets)
+    Quản lý biến môi trường.
+    Tự động đọc từ file .env (khi chạy local) hoặc Environment Variables (khi chạy trên Render).
     """
+    # Khai báo tên biến (KHÔNG điền giá trị mặc định để bảo mật)
+    DATABASE_URL: str
+    GEMINI_API_KEY: str
+    SUPABASE_URL: str
+    SUPABASE_KEY: str
     
-    # === 1. DÁN CHUỖI KẾT NỐI DATABASE (cho SQLModel) ===
-    DATABASE_URL: str = "postgresql://postgres:ntcuong2413@db.meuqntvawakdzntewscp.supabase.co:5432/postgres"
-    
-    # === 2. DÁN API KEY CỦA GEMINI (cho AI) ===
-    GEMINI_API_KEY: str = "AIzaSyCxRKOBWI5rw2OcPA9EO1TzearcKiyzU10"
-    
-    # === 3. DÁN SUPABASE URL (MỚI - CẦN CHO AUTH) ===
-    SUPABASE_URL: str = "https://meuqntvawakdzntewscp.supabase.co"
-    
-    # === 4. DÁN SUPABASE KEY (MỚI - CẦN CHO AUTH) ===
-    SUPABASE_KEY: str = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1ldXFudHZhd2FrZHpudGV3c2NwIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2MTYzNTE5MSwiZXhwIjoyMDc3MjExMTkxfQ.C0brrSJsZZayMEJLDt4nGgnB0lvkOqLZ2hCOFbXTrec"
-    
-    
+    # Cấu hình để tự động tìm và đọc file .env
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
-# Tạo một instance duy nhất của Settings
+# Khởi tạo settings
 settings = Settings()
