@@ -1,9 +1,9 @@
-from pydantic import BaseModel, Field, EmailStr, field_validator
+from pydantic import BaseModel, Field, EmailStr, field_validator, ValidationInfo
 from typing import List, Optional, Any, Dict
 from datetime import datetime
 
 # ====================================================================
-# Models cho TÍNH NĂNG NHÓM
+# Models cho TÍNH NĂNG NHÓM (Group) - GĐ Final
 # ====================================================================
 
 class CreateGroupInput(BaseModel):
@@ -18,7 +18,7 @@ class CancelRequestInput(BaseModel):
 
 class ActionRequestInput(BaseModel):
     profile_uuid: str 
-    action: str 
+    action: str  # "accept", "reject", "kick"
 
     @field_validator('action', mode='before')
     @classmethod
@@ -37,20 +37,25 @@ class PendingRequestPublic(BaseModel):
     class Config:
         from_attributes = True
 
+# === CẬP NHẬT QUAN TRỌNG: ITINERARY ĐƠN GIẢN (Dict[str, str]) ===
 class GroupPlanOutput(BaseModel):
     group_id: int
     group_name: str
     preferred_city: str
     travel_dates: Optional[Any] = None
-    # === ITINERARY ĐƠN GIẢN ===
     itinerary: Optional[Dict[str, str]] = None 
     class Config:
         from_attributes = True
 
+# === CẬP NHẬT: SUGGESTION TỐI GIẢN (CHO AI) ===
 class SuggestionOutput(BaseModel):
     group_id: int
     name: str
-    score: float
+    score: float 
+
+# ====================================================================
+# MODELS HIỂN THỊ THÀNH VIÊN
+# ====================================================================
 
 class GroupMemberPublic(BaseModel):
     profile_uuid: str
