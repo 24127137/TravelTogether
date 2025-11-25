@@ -5,24 +5,13 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="fc62ebc6-5fea-4dae-abc1-b5859c194cd0" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/AI_CHATBOT_GUIDE.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/CHAT_FIX_SUMMARY.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/CHAT_REALTIME_GUIDE.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/DEBUG_CHAT_GUIDE.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/RUN_APP_GUIDE.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/frontend/lib/models/ai_message.dart" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/frontend/lib/screens/ai_chatbot_screen.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/libraries/Dart_Packages.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/libraries/Dart_Packages.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/backend/.env" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/backend/.env.example" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/backend/API_KEY_SECURITY_FIX.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/backend/config.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/config.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/assets/images/chatbot_icon.png" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/assets/images/chatbot_icon.png" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/assets/translations/en.json" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/assets/translations/en.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/assets/translations/vi.json" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/assets/translations/vi.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/lib/config/api_config.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/lib/config/api_config.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/lib/screens/chatbox_screen.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/lib/screens/chatbox_screen.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/lib/screens/login.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/lib/screens/login.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/lib/screens/messages_screen.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/lib/screens/messages_screen.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/lib/screens/signup.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/lib/screens/signup.dart" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
