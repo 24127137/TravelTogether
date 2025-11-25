@@ -4,7 +4,6 @@ from db_tables import TravelGroup, Profiles
 from group_models import (
     CreateGroupInput, GroupPlanOutput,
     GroupDetailPublic, GroupMemberPublic, SuggestionOutput,
-    GroupExitInput
 )
 from typing import Any, List, Dict, Optional, Tuple 
 from datetime import datetime, date 

@@ -3,7 +3,7 @@ from typing import List, Optional, Any, Dict
 from datetime import datetime
 
 # ====================================================================
-# Models cho TÍNH NĂNG NHÓM (Group) - GĐ Final
+# Models cho TÍNH NĂNG NHÓM
 # ====================================================================
 
 class CreateGroupInput(BaseModel):
@@ -18,7 +18,7 @@ class CancelRequestInput(BaseModel):
 
 class ActionRequestInput(BaseModel):
     profile_uuid: str 
-    action: str  # "accept", "reject", "kick"
+    action: str 
 
     @field_validator('action', mode='before')
     @classmethod
@@ -37,7 +37,8 @@ class PendingRequestPublic(BaseModel):
     class Config:
         from_attributes = True
 
-# === CẬP NHẬT QUAN TRỌNG: ITINERARY ĐƠN GIẢN (Dict[str, str]) ===
+# (Đã XÓA GroupExitInput hoàn toàn)
+
 class GroupPlanOutput(BaseModel):
     group_id: int
     group_name: str
@@ -47,15 +48,10 @@ class GroupPlanOutput(BaseModel):
     class Config:
         from_attributes = True
 
-# === CẬP NHẬT: SUGGESTION TỐI GIẢN (CHO AI) ===
 class SuggestionOutput(BaseModel):
     group_id: int
     name: str
-    score: float 
-
-# ====================================================================
-# MODELS HIỂN THỊ THÀNH VIÊN
-# ====================================================================
+    score: float          
 
 class GroupMemberPublic(BaseModel):
     profile_uuid: str
