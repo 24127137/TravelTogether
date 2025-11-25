@@ -9,7 +9,7 @@ class ApiConfig {
   static const String supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1ldXFudHZhd2FrZHpudGV3c2NwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE2MzUxOTEsImV4cCI6MjA3NzIxMTE5MX0.w0wtRkKTelo9iHQfLtJ61H5xLCUu2VVMKr8BV4Ljcgw';
 
   // Auth endpoints
-  static const String signIn = '$baseUrl/auth/signin/';
+  static const String signIn = '$baseUrl/auth/signin';
   static const String createProfile = '$baseUrl/auth/signup';
   static const String refreshToken = '$baseUrl/auth/refresh';
 
