@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:intl/intl.dart';
 import '../config/api_config.dart';
+import '../services/notification_service.dart'; // === THÊM MỚI: Import notification service ===
 import 'chatbox_screen.dart'; // === THÊM MỚI: Import chatbox screen ===
 
 //File này là screen tên là <Notification> trong figma
@@ -60,6 +61,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
           String? lastMessageContent;
           String? lastMessageTime;
           String? groupName;
+          String? groupId; // === THÊM MỚI: Lưu groupId để navigate ===
 
           for (var msg in messages.reversed) {
             final senderId = msg['sender_id']?.toString() ?? '';
@@ -99,6 +101,14 @@ class _NotificationScreenState extends State<NotificationScreen> {
             if (groupResponse.statusCode == 200) {
               final groupData = jsonDecode(utf8.decode(groupResponse.bodyBytes));
               groupName = groupData['name'] ?? 'Nhóm chat';
+              groupId = groupData['id']?.toString(); // === THÊM MỚI: Lưu groupId ===
+
+              // === THÊM MỚI: Cache group name cho background service ===
+              final prefs = await SharedPreferences.getInstance();
+              await prefs.setString('cached_group_name', groupName ?? 'Nhóm chat');
+              if (groupId != null) {
+                await prefs.setString('cached_group_id', groupId); // === THÊM MỚI: Cache groupId ===
+              }
             }
           } catch (e) {
             print('Error loading group name: $e');
@@ -117,6 +127,19 @@ class _NotificationScreenState extends State<NotificationScreen> {
               time: lastMessageTime,
               unreadCount: unreadCount,
             ));
+
+            // === THÊM MỚI: Gửi system notification ===
+            try {
+              await NotificationService().showMessageNotification(
+                groupName: groupName ?? 'Nhóm chat',
+                message: lastMessageContent ?? '',
+                unreadCount: unreadCount,
+                groupId: groupId, // === THÊM MỚI: Truyền groupId để navigate chính xác ===
+              );
+              debugPrint('📬 System notification sent: $unreadCount unread messages');
+            } catch (e) {
+              debugPrint('❌ Error sending system notification: $e');
+            }
           }
         }
       } catch (e) {

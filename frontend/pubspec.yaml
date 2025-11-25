@@ -47,11 +47,23 @@ dependencies:
   hive_flutter: ^1.1.0
   sign_in_with_apple: ^6.1.2
   confetti: ^0.7.0
+  flutter_local_notifications: ^19.5.0
+  timezone: ^0.10.1
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^5.0.0
+  rename: ^3.1.0
+  flutter_launcher_icons: ^0.14.4
+
+# === THÊM MỚI: Cấu hình app icon ===
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/images/logo.png"
+  adaptive_icon_background: "#FFFFFF"
+  adaptive_icon_foreground: "assets/images/logo.png"
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -74,7 +86,7 @@ flutter:
     - assets/images/onboarding/2.png
     - assets/images/onboarding/3.png
     - assets/images/saigon.jpg
-    - assets/images/logo.jpg
+    - assets/images/logo.png
     - assets/images/profile_page_background.png
     - assets/images/interests/culture.jpg
     - assets/images/interests/food.jpg
