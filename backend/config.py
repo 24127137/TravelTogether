@@ -3,24 +3,17 @@ import os
 
 class Settings(BaseSettings):
     """
-    Quản lý tất cả các biến môi trường và "bí mật" (secrets)
-    ĐỌC TỪ FILE .env - KHÔNG BAO GIỜ HARDCODE TRỰC TIẾP!
+    Quản lý biến môi trường.
+    Tự động đọc từ file .env (khi chạy local) hoặc Environment Variables (khi chạy trên Render).
     """
-    
-    # === 1. CHUỖI KẾT NỐI DATABASE (cho SQLModel) ===
+    # Khai báo tên biến (KHÔNG điền giá trị mặc định để bảo mật)
     DATABASE_URL: str
-
-    # === 2. API KEY CỦA GEMINI (cho AI) ===
     GEMINI_API_KEY: str
-
-    # === 3. SUPABASE URL (CHO AUTH) ===
     SUPABASE_URL: str
-
-    # === 4. SUPABASE KEY (CHO AUTH) ===
     SUPABASE_KEY: str
-
     
+    # Cấu hình để tự động tìm và đọc file .env
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
-# Tạo một instance duy nhất của Settings
+# Khởi tạo settings
 settings = Settings()

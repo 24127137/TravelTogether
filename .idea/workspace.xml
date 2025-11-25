@@ -5,8 +5,38 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="fc62ebc6-5fea-4dae-abc1-b5859c194cd0" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/AVATAR_FIX_COMPLETE.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/CHAT_FEATURES_GUIDE.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/CHAT_FEATURES_UPDATE.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/DEBUG_AVATAR.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/DEBUG_AVATAR_DETAIL.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/TESTING_CHECKLIST.md" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/IMAGE_CHAT_FEATURE.md" beforeDir="false" afterPath="$PROJECT_DIR$/IMAGE_CHAT_FEATURE.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/IMAGE_CHAT_SUMMARY.md" beforeDir="false" afterPath="$PROJECT_DIR$/IMAGE_CHAT_SUMMARY.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/SUPABASE_STORAGE_SETUP.md" beforeDir="false" afterPath="$PROJECT_DIR$/SUPABASE_STORAGE_SETUP.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/backend/README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/ai_service.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/ai_service.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/auth_api.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/auth_api.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/auth_models.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/auth_models.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/auth_service.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/auth_service.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/chat_ai_api.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/chat_ai_api.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/chat_api.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/chat_api.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/chat_models.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/chat_models.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/config.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/config.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/db_tables.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/db_tables.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/group_api.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/group_api.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/group_models.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/group_models.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/group_service.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/group_service.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/main.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/supabase_storage_setup.sql" beforeDir="false" afterPath="$PROJECT_DIR$/backend/supabase_storage_setup.sql" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/user_models.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/user_models.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/user_service.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/user_service.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/android/app/src/main/AndroidManifest.xml" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/android/app/src/main/AndroidManifest.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/ios/Runner/Info.plist" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/ios/Runner/Info.plist" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/lib/models/message.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/lib/models/message.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/lib/screens/chatbox_screen.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/lib/screens/chatbox_screen.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/lib/screens/messages_screen.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/lib/screens/messages_screen.dart" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
