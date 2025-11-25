@@ -4,7 +4,9 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'dart:async';
+import 'dart:io';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:image_picker/image_picker.dart';
 import '../config/api_config.dart';
 import '../models/message.dart';
 import 'member_screen(Host).dart';
@@ -21,11 +23,15 @@ class _ChatboxScreenState extends State<ChatboxScreen> {
   final TextEditingController _controller = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   final FocusNode _focusNode = FocusNode();
+  final ImagePicker _imagePicker = ImagePicker(); // === THÊM MỚI: ImagePicker ===
   List<Message> _messages = [];
   bool _isLoading = true;
+  bool _isUploading = false; // === THÊM MỚI: Trạng thái upload ===
   String? _accessToken;
-  String? _currentUserId; // Thêm biến để lưu user_id hiện tại
+  String? _currentUserId; // UUID của user hiện tại (lấy từ SharedPreferences khi login)
   Timer? _refreshTimer;
+  Map<String, String?> _userAvatars = {}; // === THÊM MỚI: Cache avatar của users ===
+  String? _myAvatarUrl; // === THÊM MỚI: Avatar của mình ===
 
   @override
   void initState() {
@@ -54,16 +60,17 @@ class _ChatboxScreenState extends State<ChatboxScreen> {
   Future<void> _loadAccessToken() async {
     final prefs = await SharedPreferences.getInstance();
     _accessToken = prefs.getString('access_token');
-    _currentUserId = prefs.getString('user_id'); // Lấy user_id
+    _currentUserId = prefs.getString('user_id'); // Lấy user_id (UUID) đã lưu khi login
 
     // DEBUG: Kiểm tra SharedPreferences
     print('🔍 ===== SHARED PREFERENCES DEBUG =====');
     print('🔍 All keys: ${prefs.getKeys()}');
     print('🔍 Access Token exists: ${_accessToken != null}');
-    print('🔍 User ID: $_currentUserId');
+    print('🔍 Current User ID: "$_currentUserId"');
     print('🔍 ====================================');
 
     if (_accessToken != null) {
+      await _loadMyProfile(); // Load avatar của mình
       await _loadChatHistory();
     } else {
       setState(() {
@@ -72,6 +79,60 @@ class _ChatboxScreenState extends State<ChatboxScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('chat_error_no_token'.tr())),
       );
+    }
+  }
+
+  // === Helper kiểm tra senderId có phải là user hiện tại hay không ===
+  bool _isSenderMe(String? senderId) {
+    if (senderId == null || _currentUserId == null) return false;
+    // So sánh với currentUserId (đã lưu từ login)
+    return senderId.toString().trim() == _currentUserId!.toString().trim();
+  }
+
+  // === THÊM MỚI: Load profile của mình để lấy avatar ===
+  Future<void> _loadMyProfile() async {
+    if (_accessToken == null) return;
+
+    try {
+      final url = ApiConfig.getUri(ApiConfig.userProfile);
+      final response = await http.get(
+        url,
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer $_accessToken",
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(utf8.decode(response.bodyBytes));
+        setState(() {
+          _myAvatarUrl = data['avatar_url'] as String?;
+        });
+        print('✅ My avatar loaded: $_myAvatarUrl');
+      }
+    } catch (e) {
+      print('❌ Error loading my profile: $e');
+    }
+  }
+
+  // === THÊM MỚI: Load avatar của user khác ===
+  Future<String?> _fetchUserAvatar(String userId) async {
+    if (_accessToken == null) return null;
+
+    // Check cache trước
+    if (_userAvatars.containsKey(userId)) {
+      return _userAvatars[userId];
+    }
+
+    try {
+      // TODO: Cần API để lấy profile của user khác theo ID
+      // Tạm thời cache null, sẽ dùng default avatar
+      _userAvatars[userId] = null;
+      return null;
+    } catch (e) {
+      print('❌ Error fetching user avatar: $e');
+      _userAvatars[userId] = null;
+      return null;
     }
   }
 
@@ -97,6 +158,20 @@ class _ChatboxScreenState extends State<ChatboxScreen> {
       if (response.statusCode == 200) {
         final List<dynamic> data = jsonDecode(utf8.decode(response.bodyBytes));
 
+        // === THÊM MỚI: Collect unique sender IDs để fetch avatars ===
+        final Set<String> senderIds = {};
+        for (var msg in data) {
+          final senderId = msg['sender_id']?.toString();
+          if (senderId != null && senderId.isNotEmpty && senderId != _currentUserId) {
+            senderIds.add(senderId);
+          }
+        }
+
+        // === THÊM MỚI: Fetch avatars for all senders (parallel) ===
+        await Future.wait(
+          senderIds.map((id) => _fetchUserAvatar(id))
+        );
+
         setState(() {
           _messages = data.map((msg) {
             // Parse UTC time và chuyển sang local time
@@ -108,20 +183,19 @@ class _ChatboxScreenState extends State<ChatboxScreen> {
             // DEBUG: In ra để kiểm tra CHI TIẾT
             print('\n🔍 ===== MESSAGE DEBUG =====');
             print('🔍 Current User ID: "$_currentUserId"');
-            print('🔍   - Type: ${_currentUserId.runtimeType}');
-            print('🔍   - Length: ${_currentUserId?.length ?? 0}');
             print('🔍 Sender ID: "$senderId"');
-            print('🔍   - Type: ${senderId.runtimeType}');
-            print('🔍   - Length: ${senderId.length}');
-            print('🔍 Are they equal? ${senderId == _currentUserId}');
+            print('🔍 isSenderMe? ${_isSenderMe(senderId)}');
             print('🔍 Message content: "${msg['content']}"');
 
             // So sánh sender_id với current user_id để phân biệt tin nhắn
-            final isUser = (_currentUserId != null && senderId == _currentUserId);
+            final isUser = _isSenderMe(senderId);
 
             print('🔍 Result isUser: $isUser');
             print('🔍 Will display on: ${isUser ? "RIGHT (bên phải)" : "LEFT (bên trái)"}');
             print('🔍 =========================\n');
+
+            // === THÊM MỚI: Lấy avatar của sender từ cache ===
+            final senderAvatarUrl = isUser ? null : _userAvatars[senderId];
 
             return Message(
               sender: senderId,
@@ -129,6 +203,9 @@ class _ChatboxScreenState extends State<ChatboxScreen> {
               time: timeStr,
               isOnline: true,
               isUser: isUser, // Gán đúng giá trị isUser
+              imageUrl: msg['image_url'], // === THÊM MỚI ===
+              messageType: msg['message_type'] ?? 'text', // === THÊM MỚI ===
+              senderAvatarUrl: senderAvatarUrl, // === THÊM MỚI ===
             );
           }).toList();
           _isLoading = false;
@@ -198,6 +275,160 @@ class _ChatboxScreenState extends State<ChatboxScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('${'chat_error_send'.tr()}: $e')),
       );
+    }
+  }
+
+  // === THÊM MỚI: Hiển thị bottom sheet để chọn nguồn ảnh ===
+  Future<void> _showImageSourceSelection() async {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (BuildContext context) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ListTile(
+                  leading: const Icon(Icons.camera_alt, color: Color(0xFFB99668)),
+                  title: const Text('Chụp ảnh'),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _pickAndSendImage(source: ImageSource.camera);
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(Icons.photo_library, color: Color(0xFFB99668)),
+                  title: const Text('Chọn từ thư viện'),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _pickAndSendImage(source: ImageSource.gallery);
+                  },
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  // === THÊM MỚI (GĐ 13): Upload ảnh lên Supabase Storage ===
+  Future<String?> _uploadImageToSupabase(File imageFile) async {
+    try {
+      final fileBytes = await imageFile.readAsBytes();
+      const supabaseUrl = ApiConfig.supabaseUrl;
+      final fileName = '${DateTime.now().millisecondsSinceEpoch}_${imageFile.path.split('/').last}';
+
+      final uploadUrl = Uri.parse('$supabaseUrl/storage/v1/object/chat_images/$fileName');
+
+      print('📤 Uploading image to: $uploadUrl');
+
+      final response = await http.post(
+        uploadUrl,
+        headers: {
+          'Authorization': 'Bearer $_accessToken',
+          'Content-Type': 'image/jpeg',
+          'apikey': ApiConfig.supabaseAnonKey,
+        },
+        body: fileBytes,
+      );
+
+      print('📤 Upload status: ${response.statusCode}');
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final publicUrl = '$supabaseUrl/storage/v1/object/public/chat_images/$fileName';
+        print('✅ Image uploaded: $publicUrl');
+        return publicUrl;
+      } else {
+        print('❌ Upload failed: ${response.statusCode} ${response.body}');
+        return null;
+      }
+    } catch (e) {
+      print('❌ Upload error: $e');
+      return null;
+    }
+  }
+
+  // === THÊM MỚI (GĐ 13): Chọn và gửi ảnh ===
+  Future<void> _pickAndSendImage({ImageSource source = ImageSource.gallery}) async {
+    if (_accessToken == null) return;
+
+    try {
+      // Chọn ảnh từ gallery hoặc camera
+      final XFile? pickedFile = await _imagePicker.pickImage(
+        source: source,
+        maxWidth: 1920,
+        maxHeight: 1920,
+        imageQuality: 85,
+      );
+
+      if (pickedFile == null) return; // User cancelled
+
+      setState(() {
+        _isUploading = true;
+      });
+
+      // Upload ảnh lên Supabase
+      final imageFile = File(pickedFile.path);
+      final imageUrl = await _uploadImageToSupabase(imageFile);
+
+      if (imageUrl == null) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Upload ảnh thất bại')),
+          );
+        }
+        return;
+      }
+
+      // Gửi tin nhắn ảnh
+      final url = ApiConfig.getUri(ApiConfig.chatSend);
+      final response = await http.post(
+        url,
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer $_accessToken",
+        },
+        body: jsonEncode({
+          "message_type": "image",
+          "image_url": imageUrl,
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        // Reload chat history
+        await _loadChatHistory(silent: true);
+
+        // Scroll to bottom
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (_scrollController.hasClients) {
+            _scrollController.animateTo(
+              _scrollController.position.maxScrollExtent,
+              duration: const Duration(milliseconds: 250),
+              curve: Curves.easeOut,
+            );
+          }
+        });
+      } else {
+        throw Exception('Failed to send image: ${response.statusCode}');
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Lỗi gửi ảnh: $e')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isUploading = false;
+        });
+      }
     }
   }
 
@@ -382,7 +613,11 @@ class _ChatboxScreenState extends State<ChatboxScreen> {
                                 itemCount: _messages.length,
                                 itemBuilder: (context, index) {
                                   final m = _messages[index];
-                                  return _MessageBubble(message: m);
+                                  return _MessageBubble(
+                                    message: m,
+                                    senderAvatarUrl: m.senderAvatarUrl,
+                                    currentUserId: _currentUserId, // pass current user id so widget can decide
+                                  );
                                 },
                               ),
                             ),
@@ -406,6 +641,25 @@ class _ChatboxScreenState extends State<ChatboxScreen> {
                     color: Colors.white,
                     child: Row(
                       children: [
+                        // === THÊM MỚI: Nút chọn ảnh - hiện bottom sheet để chọn camera/gallery ===
+                        Material(
+                          color: const Color(0xFFB99668),
+                          shape: const CircleBorder(),
+                          child: IconButton(
+                            icon: _isUploading
+                              ? const SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                    color: Colors.white,
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                              : const Icon(Icons.add_photo_alternate, color: Colors.white),
+                            onPressed: _isUploading ? null : _showImageSourceSelection,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
                         Expanded(
                           child: Container(
                             padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
@@ -450,13 +704,29 @@ class _ChatboxScreenState extends State<ChatboxScreen> {
 
 class _MessageBubble extends StatelessWidget {
   final Message message;
-  const _MessageBubble({Key? key, required this.message}) : super(key: key);
+  final String? senderAvatarUrl; // === THÊM MỚI: Avatar của người gửi ===
+  final String? currentUserId; // === THÊM MỚI: current user id để so sánh chính xác ===
+
+  const _MessageBubble({
+    Key? key,
+    required this.message,
+    this.senderAvatarUrl,
+    this.currentUserId,
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    final bool isUser = message.isUser;
+    // Prefer authoritative check using currentUserId if available, otherwise fall back to message.isUser
+    final bool isUser = (currentUserId != null && currentUserId!.isNotEmpty)
+        ? (message.sender.toString().trim().toLowerCase() == currentUserId!.toString().trim().toLowerCase())
+        : message.isUser;
     final bubbleColor = isUser ? const Color(0xFF8A724C) : const Color(0xFFB99668);
     final textColor = isUser ? Colors.white : Colors.white;
+
+    // === DEBUG: Kiểm tra avatar hiển thị ===
+    final showAvatar = !isUser; // avatar if message not from current user
+    print('🖼️ MessageBubble - isUser: $isUser, sender: ${message.sender}, avatarUrl: $senderAvatarUrl, currentUserId: $currentUserId');
+    print('🖼️ Should show avatar: $showAvatar');
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6.0),
@@ -464,11 +734,21 @@ class _MessageBubble extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.end,
         mainAxisAlignment: isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
         children: [
-          if (!isUser) ...[
+          // === SỬA MỚI: Chỉ hiện avatar cho người khác (không phải mình) ===
+          if (showAvatar) ...[
             Padding(
               padding: const EdgeInsets.only(right: 8.0),
-              child: Image.asset('assets/images/chatbot_icon.png', width: 40, height: 40),
-            )
+              child: CircleAvatar(
+                radius: 20,
+                backgroundColor: const Color(0xFFD9CBB3),
+                backgroundImage: senderAvatarUrl != null && senderAvatarUrl!.isNotEmpty
+                    ? NetworkImage(senderAvatarUrl!)
+                    : null,
+                child: senderAvatarUrl == null || senderAvatarUrl!.isEmpty
+                    ? const Icon(Icons.person, size: 24, color: Colors.white)
+                    : null,
+              ),
+            ),
           ],
           Flexible(
             child: Container(
@@ -487,10 +767,48 @@ class _MessageBubble extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  Text(
-                    message.message,
-                    style: TextStyle(color: textColor, fontSize: 16),
-                  ),
+                  // === THÊM MỚI: Hiển thị ảnh nếu là tin nhắn ảnh ===
+                  if (message.messageType == 'image' && message.imageUrl != null) ...[
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: Image.network(
+                        message.imageUrl!,
+                        fit: BoxFit.cover,
+                        width: MediaQuery.of(context).size.width * 0.6,
+                        loadingBuilder: (context, child, loadingProgress) {
+                          if (loadingProgress == null) return child;
+                          return Container(
+                            width: MediaQuery.of(context).size.width * 0.6,
+                            height: 200,
+                            color: Colors.grey[300],
+                            child: Center(
+                              child: CircularProgressIndicator(
+                                value: loadingProgress.expectedTotalBytes != null
+                                    ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
+                                    : null,
+                                color: bubbleColor,
+                              ),
+                            ),
+                          );
+                        },
+                        errorBuilder: (context, error, stackTrace) {
+                          return Container(
+                            width: MediaQuery.of(context).size.width * 0.6,
+                            height: 200,
+                            color: Colors.grey[300],
+                            child: const Icon(Icons.broken_image, size: 50, color: Colors.grey),
+                          );
+                        },
+                      ),
+                    ),
+                    if (message.message.isNotEmpty) const SizedBox(height: 8),
+                  ],
+                  // Hiển thị text (nếu có)
+                  if (message.message.isNotEmpty)
+                    Text(
+                      message.message,
+                      style: TextStyle(color: textColor, fontSize: 16),
+                    ),
                   const SizedBox(height: 6),
                   Row(
                     mainAxisSize: MainAxisSize.min,
@@ -504,12 +822,7 @@ class _MessageBubble extends StatelessWidget {
               ),
             ),
           ),
-          if (isUser) ...[
-            Padding(
-              padding: const EdgeInsets.only(left: 8.0),
-              child: Image.asset('assets/images/avatar.jpg', width: 40, height: 40),
-            )
-          ]
+          // === SỬA MỚI: Không hiển thị avatar cho tin nhắn của mình ===
         ],
       ),
     );

@@ -138,10 +138,3 @@ async def send_ai_message(payload: SendRequest):
 
     return SendResponse(response=ai_response_text)
 
-# -----------------------
-# Local run helper
-# -----------------------
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run("backend.gemini_chat_api:app", host="0.0.0.0", port=8000, reload=True)
-    

@@ -83,6 +83,9 @@ class _MessagesScreenState extends State<MessagesScreen> {
     // 2. Load Group Chat conversation (nếu có)
     if (_accessToken != null) {
       try {
+        final prefs = await SharedPreferences.getInstance();
+        final currentUserId = prefs.getString('user_id');
+
         final url = ApiConfig.getUri(ApiConfig.chatHistory);
         final response = await http.get(
           url,
@@ -99,11 +102,33 @@ class _MessagesScreenState extends State<MessagesScreen> {
             final lastMsg = messages.last;
             final createdAtUtc = DateTime.parse(lastMsg['created_at']);
             final createdAtLocal = createdAtUtc.toLocal();
-            final timeStr = DateFormat('HH:mm').format(createdAtLocal);
+
+            // === THÊM MỚI: Format time - nếu hôm nay hiện giờ, nếu không hiện ngày ===
+            final now = DateTime.now();
+            final isToday = createdAtLocal.year == now.year &&
+                           createdAtLocal.month == now.month &&
+                           createdAtLocal.day == now.day;
+
+            final timeStr = isToday
+                ? DateFormat('HH:mm').format(createdAtLocal)
+                : DateFormat('d \'thg\' M').format(createdAtLocal);
+
+            // === THÊM MỚI: Format message preview ===
+            final messageType = lastMsg['message_type'] ?? 'text';
+            final senderId = lastMsg['sender_id']?.toString() ?? '';
+            final isMyMessage = (currentUserId != null && senderId == currentUserId);
+
+            String messagePreview;
+            if (messageType == 'image') {
+              messagePreview = isMyMessage ? 'Bạn đã gửi một ảnh' : 'Đã gửi một ảnh';
+            } else {
+              final content = lastMsg['content'] ?? '';
+              messagePreview = isMyMessage ? 'Bạn: $content' : content;
+            }
 
             conversations.add(ConversationItem(
               sender: 'chat_title'.tr(), // "Nhóm chat"
-              message: lastMsg['content'] ?? '',
+              message: messagePreview,
               time: timeStr,
               isOnline: true,
               isAiChat: false,

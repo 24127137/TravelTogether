@@ -45,5 +45,10 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<!-- === THÊM MỚI (GĐ 13): Permissions cho image_picker === -->
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Cần truy cập thư viện ảnh để gửi ảnh trong chat</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Cần truy cập camera để chụp và gửi ảnh trong chat</string>
 </dict>
 </plist>

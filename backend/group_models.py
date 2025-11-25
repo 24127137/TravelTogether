@@ -1,10 +1,9 @@
-from pydantic import BaseModel, Field, EmailStr, validator
-# === SỬA ĐỔI (GĐ 15.2): Thêm Any, Dict ===
+from pydantic import BaseModel, Field, EmailStr, field_validator, ValidationInfo
 from typing import List, Optional, Any, Dict
 from datetime import datetime
 
 # ====================================================================
-# Models cho TÍNH NĂNG NHÓM (Group) (GĐ 15.2)
+# Models cho TÍNH NĂNG NHÓM
 # ====================================================================
 
 class CreateGroupInput(BaseModel):
@@ -14,9 +13,21 @@ class CreateGroupInput(BaseModel):
 class RequestJoinInput(BaseModel):
     group_id: int
 
+class CancelRequestInput(BaseModel):
+    group_id: int
+
 class ActionRequestInput(BaseModel):
     profile_uuid: str 
-    action: str  # "accept", "reject", "kick"
+    action: str 
+
+    @field_validator('action', mode='before')
+    @classmethod
+    def normalize_action(cls, v: str):
+        if not v: raise ValueError("Hành động không được để trống")
+        v_clean = v.strip().lower()
+        if v_clean not in ('accept', 'reject', 'kick'):
+            raise ValueError("Hành động chỉ có thể là 'accept', 'reject' hoặc 'kick'")
+        return v_clean
 
 class PendingRequestPublic(BaseModel):
     profile_uuid: str
@@ -26,32 +37,33 @@ class PendingRequestPublic(BaseModel):
     class Config:
         from_attributes = True
 
-class GroupExitInput(BaseModel):
-    action: str 
-    new_host_uuid: Optional[str] = None 
-    @validator('action')
-    def validate_action(cls, v):
-        if v not in ('dissolve', 'transfer'):
-            raise ValueError("Hành động chỉ có thể là 'dissolve' hoặc 'transfer'")
-        return v
-    @validator('new_host_uuid')
-    def validate_new_host_uuid(cls, v, values):
-        if 'action' in values and values['action'] == 'transfer' and not v:
-            raise ValueError("new_host_uuid là bắt buộc khi 'action' là 'transfer'")
-        return v
+# (Đã XÓA GroupExitInput hoàn toàn)
 
-# === SỬA ĐỔI (GĐ 15.2): Model "Kế hoạch" (Thêm City) ===
-class GroupPlanOutput(BaseModel): # Đổi tên
-    """
-    Output: Trả về Kế hoạch (Plan) của nhóm
-    (Đã thêm City GĐ 15.2)
-    """
-    # === THÊM LẠI THEO YÊU CẦU ===
+class GroupPlanOutput(BaseModel):
+    group_id: int
+    group_name: str
     preferred_city: str
-    # ==========================
     travel_dates: Optional[Any] = None
-    itinerary: Optional[Dict[str, Any]] = None # Lịch trình
-
+    itinerary: Optional[Dict[str, str]] = None 
     class Config:
-        from_attributes = True # Tự động đọc từ SQLModel
-# ===============================================
+        from_attributes = True
+
+class SuggestionOutput(BaseModel):
+    group_id: int
+    name: str
+    score: float          
+
+class GroupMemberPublic(BaseModel):
+    profile_uuid: str
+    role: str             
+    fullname: str         
+    email: str            
+    avatar_url: Optional[str] = None 
+
+class GroupDetailPublic(BaseModel):
+    id: int
+    name: str
+    status: str
+    member_count: int
+    max_members: int
+    members: List[GroupMemberPublic]
