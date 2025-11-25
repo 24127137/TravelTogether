@@ -12,6 +12,7 @@ class Message {
   final String? imageUrl;
   final String messageType; // 'text' hoặc 'image'
   final String? senderAvatarUrl; // === THÊM MỚI: Avatar của người gửi ===
+  final bool isSeen; // === THÊM MỚI: Trạng thái đã seen hay chưa ===
 
   const Message({
     required this.sender,
@@ -22,6 +23,7 @@ class Message {
     this.imageUrl,
     this.messageType = 'text',
     this.senderAvatarUrl, // === THÊM MỚI ===
+    this.isSeen = true, // === THÊM MỚI: Mặc định là đã seen ===
   });
 
   /// Create a Message from a dynamic map (e.g., Firestore document) safely.

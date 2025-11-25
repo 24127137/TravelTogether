@@ -34,6 +34,8 @@ class _ChatboxScreenState extends State<ChatboxScreen> {
   WebSocketChannel? _channel; // === THÊM MỚI: WebSocket channel ===
   Map<String, String?> _userAvatars = {}; // === THÊM MỚI: Cache avatar của users ===
   String? _myAvatarUrl; // === THÊM MỚI: Avatar của mình ===
+  Map<String, Map<String, dynamic>> _groupMembers = {}; // === THÊM MỚI: Lưu thông tin members từ group ===
+  bool _isAutoScrolling = false; // === THÊM MỚI: Cờ để tránh mark seen khi auto scroll ===
 
   @override
   void initState() {
@@ -52,6 +54,26 @@ class _ChatboxScreenState extends State<ChatboxScreen> {
         });
       }
     });
+
+    // === THÊM MỚI: Lắng nghe scroll để mark messages as seen ===
+    _scrollController.addListener(() {
+      // If we are auto-scrolling (programmatic), don't trigger seen logic
+      if (_isAutoScrolling) return;
+      if (_scrollController.hasClients) {
+        final currentPosition = _scrollController.position.pixels;
+        final maxScroll = _scrollController.position.maxScrollExtent;
+        final distanceFromBottom = maxScroll - currentPosition;
+
+        // Debug log
+        print('📜 Scroll - distance from bottom: ${distanceFromBottom.toStringAsFixed(1)}px');
+
+        // Nếu scroll gần đến cuối (trong vòng 50px), mark tất cả là seen
+        if (distanceFromBottom < 50) {
+          print('📜 User scrolled near bottom, marking messages as seen...');
+          _markAllAsSeen();
+        }
+      }
+    });
   }
 
   Future<void> _loadAccessToken() async {
@@ -68,6 +90,7 @@ class _ChatboxScreenState extends State<ChatboxScreen> {
 
     if (_accessToken != null) {
       await _loadMyProfile(); // Load avatar của mình
+      await _loadGroupMembers(); // === THÊM MỚI: Load members từ group ===
       await _loadChatHistory();
       _connectWebSocket(); // === THÊM MỚI: Kết nối WebSocket sau khi load history ===
     } else {
@@ -113,6 +136,82 @@ class _ChatboxScreenState extends State<ChatboxScreen> {
     }
   }
 
+  // === THÊM MỚI: Load thông tin members từ group để lấy avatar ===
+  Future<void> _loadGroupMembers() async {
+    if (_accessToken == null) return;
+
+    try {
+      final url = ApiConfig.getUri(ApiConfig.myGroup);
+      final response = await http.get(
+        url,
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer $_accessToken",
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(utf8.decode(response.bodyBytes));
+        final List<dynamic> members = data['members'] ?? [];
+
+        // Cache avatar theo profile_uuid
+        for (var member in members) {
+          final profileUuid = member['profile_uuid'] as String?;
+          final avatarUrl = member['avatar_url'] as String?;
+          if (profileUuid != null) {
+            _groupMembers[profileUuid] = member;
+            _userAvatars[profileUuid] = avatarUrl;
+          }
+        }
+
+        print('✅ Group members loaded: ${_groupMembers.length} members');
+        print('✅ User avatars: $_userAvatars');
+      }
+    } catch (e) {
+      print('❌ Error loading group members: $e');
+    }
+  }
+
+  // === THÊM MỚI: Mark tất cả tin nhắn là đã seen ===
+  void _markAllAsSeen() {
+    if (_messages.isEmpty) return;
+
+    // Tìm tin nhắn cuối cùng chưa seen
+    bool hasUnseen = false;
+    int unseenCount = 0;
+    for (int i = _messages.length - 1; i >= 0; i--) {
+      if (!_messages[i].isSeen && !_messages[i].isUser) {
+        hasUnseen = true;
+        unseenCount++;
+      }
+    }
+
+    print('👁️ _markAllAsSeen called - hasUnseen: $hasUnseen, unseenCount: $unseenCount');
+
+    if (!hasUnseen) return;
+
+    // Mark tất cả tin nhắn là seen
+    setState(() {
+      _messages = _messages.map((msg) {
+        if (!msg.isUser && !msg.isSeen) {
+          print('✅ Marking message as SEEN: "${msg.message}"');
+          return Message(
+            sender: msg.sender,
+            message: msg.message,
+            time: msg.time,
+            isOnline: msg.isOnline,
+            isUser: msg.isUser,
+            imageUrl: msg.imageUrl,
+            messageType: msg.messageType,
+            senderAvatarUrl: msg.senderAvatarUrl,
+            isSeen: true, // Mark as seen
+          );
+        }
+        return msg;
+      }).toList();
+    });
+  }
+
   // === THÊM MỚI: Load avatar của user khác ===
   Future<String?> _fetchUserAvatar(String userId) async {
     if (_accessToken == null) return null;
@@ -122,16 +221,16 @@ class _ChatboxScreenState extends State<ChatboxScreen> {
       return _userAvatars[userId];
     }
 
-    try {
-      // TODO: Cần API để lấy profile của user khác theo ID
-      // Tạm thời cache null, sẽ dùng default avatar
-      _userAvatars[userId] = null;
-      return null;
-    } catch (e) {
-      print('❌ Error fetching user avatar: $e');
-      _userAvatars[userId] = null;
-      return null;
+    // Nếu không có trong cache, kiểm tra trong group members
+    if (_groupMembers.containsKey(userId)) {
+      final avatarUrl = _groupMembers[userId]!['avatar_url'] as String?;
+      _userAvatars[userId] = avatarUrl;
+      return avatarUrl;
     }
+
+    // Không tìm thấy, trả về null (dùng default avatar)
+    _userAvatars[userId] = null;
+    return null;
   }
 
   Future<void> _loadChatHistory({bool silent = false}) async {
@@ -204,10 +303,21 @@ class _ChatboxScreenState extends State<ChatboxScreen> {
               imageUrl: msg['image_url'], // === THÊM MỚI ===
               messageType: msg['message_type'] ?? 'text', // === THÊM MỚI ===
               senderAvatarUrl: senderAvatarUrl, // === THÊM MỚI ===
+              isSeen: isUser, // === THÊM MỚI: Tin nhắn của mình luôn seen, tin nhắn người khác chưa seen ===
             );
           }).toList();
           _isLoading = false;
         });
+
+        // === THÊM MỚI: Lưu ID của tin nhắn cuối cùng để mark as seen ===
+        if (data.isNotEmpty) {
+          final lastMessageId = data.last['id']?.toString();
+          if (lastMessageId != null) {
+            final prefs = await SharedPreferences.getInstance();
+            await prefs.setString('last_seen_message_id', lastMessageId);
+            print('💾 Saved last_seen_message_id: $lastMessageId');
+          }
+        }
 
         // Scroll to bottom after loading
         WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -274,7 +384,7 @@ class _ChatboxScreenState extends State<ChatboxScreen> {
   }
 
   // === THÊM MỚI: Xử lý tin nhắn nhận từ WebSocket ===
-  void _handleWebSocketMessage(dynamic message) {
+  Future<void> _handleWebSocketMessage(dynamic message) async {
     try {
       final data = jsonDecode(message);
 
@@ -309,21 +419,53 @@ class _ChatboxScreenState extends State<ChatboxScreen> {
         imageUrl: data['image_url'],
         messageType: data['message_type'] ?? 'text',
         senderAvatarUrl: senderAvatarUrl,
+        isSeen: isUser, // === THÊM MỚI: Tin nhắn của mình luôn seen, tin nhắn người khác chưa seen ===
       );
+
+      // === DEBUG: Kiểm tra trạng thái isSeen ===
+      print('📬 NEW MESSAGE - isUser: $isUser, isSeen: ${newMessage.isSeen}, content: "${newMessage.message}"');
 
       // Thêm vào danh sách và update UI
       setState(() {
         _messages.add(newMessage);
       });
 
-      // Scroll to bottom
-      WidgetsBinding.instance.addPostFrameCallback((_) {
+      // === THÊM MỚI: Lưu ID tin nhắn cuối cùng nếu đang ở cuối chat ===
+      final messageId = data['id']?.toString();
+      if (messageId != null && _scrollController.hasClients) {
+        final currentPosition = _scrollController.position.pixels;
+        final maxScroll = _scrollController.position.maxScrollExtent;
+
+        // Nếu đang ở gần cuối (user đang xem), save last seen message ID
+        if (maxScroll - currentPosition < 200) {
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString('last_seen_message_id', messageId);
+          print('💾 Saved last_seen_message_id from WebSocket: $messageId');
+        }
+      }
+
+      // === SỬA: Chỉ scroll to bottom, KHÔNG tự động mark seen ===
+      // User sẽ phải scroll xuống để mark seen
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
         if (_scrollController.hasClients) {
-          _scrollController.animateTo(
-            _scrollController.position.maxScrollExtent,
-            duration: const Duration(milliseconds: 250),
-            curve: Curves.easeOut,
-          );
+          // Không scroll nếu user đang ở phía trên (đang xem tin cũ)
+          final currentPosition = _scrollController.position.pixels;
+          final maxScroll = _scrollController.position.maxScrollExtent;
+
+          // Chỉ auto-scroll nếu đang ở gần cuối (trong vòng 200px)
+          if (maxScroll - currentPosition < 200) {
+            try {
+              _isAutoScrolling = true;
+              await _scrollController.animateTo(
+                _scrollController.position.maxScrollExtent,
+                duration: const Duration(milliseconds: 250),
+                curve: Curves.easeOut,
+              );
+            } finally {
+              // đảm bảo cờ được reset dù animate thành công hay bị lỗi
+              _isAutoScrolling = false;
+            }
+          }
         }
       });
     } catch (e) {
@@ -774,10 +916,11 @@ class _MessageBubble extends StatelessWidget {
     final bubbleColor = isUser ? const Color(0xFF8A724C) : const Color(0xFFB99668);
     final textColor = isUser ? Colors.white : Colors.white;
 
-    // === DEBUG: Kiểm tra avatar hiển thị ===
+    // === DEBUG: Kiểm tra avatar và isSeen hiển thị ===
     final showAvatar = !isUser; // avatar if message not from current user
-    print('🖼️ MessageBubble - isUser: $isUser, sender: ${message.sender}, avatarUrl: $senderAvatarUrl, currentUserId: $currentUserId');
-    print('🖼️ Should show avatar: $showAvatar');
+    print('🖼️ MessageBubble - isUser: $isUser, isSeen: ${message.isSeen}, sender: ${message.sender}, content: "${message.message}"');
+    print('🖼️ Should show BOLD: ${!isUser && !message.isSeen}');
+    print('🖼️ Should show avatar: $showAvatar, avatarUrl: $senderAvatarUrl');
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6.0),
@@ -858,7 +1001,13 @@ class _MessageBubble extends StatelessWidget {
                   if (message.message.isNotEmpty)
                     Text(
                       message.message,
-                      style: TextStyle(color: textColor, fontSize: 16),
+                      style: TextStyle(
+                        color: textColor,
+                        fontSize: 16,
+                        fontWeight: !isUser && !message.isSeen
+                          ? FontWeight.bold  // === THÊM MỚI: In đậm nếu chưa seen ===
+                          : FontWeight.normal,
+                      ),
                     ),
                   const SizedBox(height: 6),
                   Row(
