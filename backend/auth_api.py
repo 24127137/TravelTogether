@@ -52,7 +52,7 @@ async def create_profile_endpoint(
 # ====================================================================
 # API (GĐ 4.7): /auth/signin
 # ====================================================================
-@router.post("/signin/", response_model=SignInResponse)
+@router.post("/signin", response_model=SignInResponse)
 async def sign_in_endpoint(
     signin_data: SignInInput,
 ):
