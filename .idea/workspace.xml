@@ -5,12 +5,14 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="fc62ebc6-5fea-4dae-abc1-b5859c194cd0" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/libraries/Dart_Packages.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/libraries/Dart_Packages.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/NOTIFICATION_FEATURE_GUIDE.md" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/frontend/lib/config/api_config.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/lib/config/api_config.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/lib/models/message.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/lib/models/message.dart" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/frontend/lib/screens/chatbox_screen.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/lib/screens/chatbox_screen.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/pubspec.lock" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/pubspec.lock" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/pubspec.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/pubspec.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/lib/screens/messages_screen.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/lib/screens/messages_screen.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/lib/screens/notification_screen.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/lib/screens/notification_screen.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/lib/screens/settings_screen.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/lib/screens/settings_screen.dart" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
