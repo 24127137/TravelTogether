@@ -7,6 +7,8 @@ import 'dart:async';
 import 'dart:io';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:web_socket_channel/web_socket_channel.dart';
+import 'package:web_socket_channel/status.dart' as status;
 import '../config/api_config.dart';
 import '../models/message.dart';
 import 'member_screen(Host).dart';
@@ -29,7 +31,7 @@ class _ChatboxScreenState extends State<ChatboxScreen> {
   bool _isUploading = false; // === THÊM MỚI: Trạng thái upload ===
   String? _accessToken;
   String? _currentUserId; // UUID của user hiện tại (lấy từ SharedPreferences khi login)
-  Timer? _refreshTimer;
+  WebSocketChannel? _channel; // === THÊM MỚI: WebSocket channel ===
   Map<String, String?> _userAvatars = {}; // === THÊM MỚI: Cache avatar của users ===
   String? _myAvatarUrl; // === THÊM MỚI: Avatar của mình ===
 
@@ -50,11 +52,6 @@ class _ChatboxScreenState extends State<ChatboxScreen> {
         });
       }
     });
-
-    // Auto refresh every 3 seconds
-    _refreshTimer = Timer.periodic(const Duration(seconds: 3), (timer) {
-      _loadChatHistory(silent: true);
-    });
   }
 
   Future<void> _loadAccessToken() async {
@@ -72,6 +69,7 @@ class _ChatboxScreenState extends State<ChatboxScreen> {
     if (_accessToken != null) {
       await _loadMyProfile(); // Load avatar của mình
       await _loadChatHistory();
+      _connectWebSocket(); // === THÊM MỚI: Kết nối WebSocket sau khi load history ===
     } else {
       setState(() {
         _isLoading = false;
@@ -234,43 +232,120 @@ class _ChatboxScreenState extends State<ChatboxScreen> {
     }
   }
 
-  Future<void> _sendMessage() async {
-    final text = _controller.text.trim();
-    if (text.isEmpty || _accessToken == null) return;
-
-    final url = ApiConfig.getUri(ApiConfig.chatSend);
+  // === THÊM MỚI: Kết nối WebSocket ===
+  void _connectWebSocket() {
+    if (_accessToken == null) return;
 
     try {
-      final response = await http.post(
-        url,
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": "Bearer $_accessToken",
+      // Tạo WebSocket URL với token
+      final wsUrl = '${ApiConfig.chatWebSocket}?token=$_accessToken';
+      print('🔌 Connecting to WebSocket: $wsUrl');
+
+      _channel = WebSocketChannel.connect(Uri.parse(wsUrl));
+
+      // Lắng nghe tin nhắn từ server
+      _channel!.stream.listen(
+        (message) {
+          print('📥 WebSocket received: $message');
+          _handleWebSocketMessage(message);
         },
-        body: jsonEncode({
-          "content": text,
-          "message_type": "text",
-        }),
+        onError: (error) {
+          print('❌ WebSocket error: $error');
+          // Tự động reconnect sau 3 giây
+          Future.delayed(const Duration(seconds: 3), () {
+            if (mounted) {
+              _connectWebSocket();
+            }
+          });
+        },
+        onDone: () {
+          print('🔌 WebSocket connection closed');
+          // Tự động reconnect sau 3 giây
+          Future.delayed(const Duration(seconds: 3), () {
+            if (mounted) {
+              _connectWebSocket();
+            }
+          });
+        },
+      );
+    } catch (e) {
+      print('❌ Error connecting WebSocket: $e');
+    }
+  }
+
+  // === THÊM MỚI: Xử lý tin nhắn nhận từ WebSocket ===
+  void _handleWebSocketMessage(dynamic message) {
+    try {
+      final data = jsonDecode(message);
+
+      // Nếu là error message
+      if (data.containsKey('error')) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(data['error'])),
+        );
+        return;
+      }
+
+      // Parse tin nhắn mới
+      final createdAtUtc = DateTime.parse(data['created_at']);
+      final createdAtLocal = createdAtUtc.toLocal();
+      final timeStr = DateFormat('HH:mm').format(createdAtLocal);
+      final senderId = data['sender_id'] ?? '';
+      final isUser = _isSenderMe(senderId);
+
+      // Fetch avatar nếu là người khác
+      if (!isUser && !_userAvatars.containsKey(senderId)) {
+        _fetchUserAvatar(senderId);
+      }
+
+      final senderAvatarUrl = isUser ? null : _userAvatars[senderId];
+
+      final newMessage = Message(
+        sender: senderId,
+        message: data['content'] ?? '',
+        time: timeStr,
+        isOnline: true,
+        isUser: isUser,
+        imageUrl: data['image_url'],
+        messageType: data['message_type'] ?? 'text',
+        senderAvatarUrl: senderAvatarUrl,
       );
 
-      if (response.statusCode == 200) {
-        _controller.clear();
-        // Reload chat history to get the new message
-        await _loadChatHistory(silent: true);
+      // Thêm vào danh sách và update UI
+      setState(() {
+        _messages.add(newMessage);
+      });
 
-        // Scroll to bottom
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (_scrollController.hasClients) {
-            _scrollController.animateTo(
-              _scrollController.position.maxScrollExtent,
-              duration: const Duration(milliseconds: 250),
-              curve: Curves.easeOut,
-            );
-          }
-        });
-      } else {
-        throw Exception('Failed to send message: ${response.statusCode}');
-      }
+      // Scroll to bottom
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (_scrollController.hasClients) {
+          _scrollController.animateTo(
+            _scrollController.position.maxScrollExtent,
+            duration: const Duration(milliseconds: 250),
+            curve: Curves.easeOut,
+          );
+        }
+      });
+    } catch (e) {
+      print('❌ Error handling WebSocket message: $e');
+    }
+  }
+
+  // === SỬA ĐỔI: Gửi tin nhắn qua WebSocket thay vì HTTP POST ===
+  Future<void> _sendMessage() async {
+    final text = _controller.text.trim();
+    if (text.isEmpty || _channel == null) return;
+
+    try {
+      // Gửi tin nhắn qua WebSocket
+      _channel!.sink.add(jsonEncode({
+        "message_type": "text",
+        "content": text,
+      }));
+
+      _controller.clear();
+
+      print('📤 Message sent via WebSocket');
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('${'chat_error_send'.tr()}: $e')),
@@ -356,7 +431,7 @@ class _ChatboxScreenState extends State<ChatboxScreen> {
 
   // === THÊM MỚI (GĐ 13): Chọn và gửi ảnh ===
   Future<void> _pickAndSendImage({ImageSource source = ImageSource.gallery}) async {
-    if (_accessToken == null) return;
+    if (_channel == null) return;
 
     try {
       // Chọn ảnh từ gallery hoặc camera
@@ -386,37 +461,13 @@ class _ChatboxScreenState extends State<ChatboxScreen> {
         return;
       }
 
-      // Gửi tin nhắn ảnh
-      final url = ApiConfig.getUri(ApiConfig.chatSend);
-      final response = await http.post(
-        url,
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": "Bearer $_accessToken",
-        },
-        body: jsonEncode({
-          "message_type": "image",
-          "image_url": imageUrl,
-        }),
-      );
+      // Gửi tin nhắn ảnh qua WebSocket
+      _channel!.sink.add(jsonEncode({
+        "message_type": "image",
+        "image_url": imageUrl,
+      }));
 
-      if (response.statusCode == 200) {
-        // Reload chat history
-        await _loadChatHistory(silent: true);
-
-        // Scroll to bottom
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (_scrollController.hasClients) {
-            _scrollController.animateTo(
-              _scrollController.position.maxScrollExtent,
-              duration: const Duration(milliseconds: 250),
-              curve: Curves.easeOut,
-            );
-          }
-        });
-      } else {
-        throw Exception('Failed to send image: ${response.statusCode}');
-      }
+      print('📤 Image message sent via WebSocket');
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -434,7 +485,7 @@ class _ChatboxScreenState extends State<ChatboxScreen> {
 
   @override
   void dispose() {
-    _refreshTimer?.cancel();
+    _channel?.sink.close(status.normalClosure); // === SỬA MỚI: Close WebSocket ===
     _controller.dispose();
     _scrollController.dispose();
     _focusNode.removeListener(() {});
