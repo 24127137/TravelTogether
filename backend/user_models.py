@@ -1,5 +1,5 @@
 from pydantic import BaseModel, EmailStr, Field, field_validator, ValidationInfo
-from typing import List, Optional, Any, Dict
+from typing import List, Optional, Any, Dict, Union
 from datetime import datetime, date
 
 # ====================================================================
@@ -14,7 +14,7 @@ class ProfilePublic(BaseModel):
     preferred_city: Optional[str] = None
     travel_dates: Optional[Any] = None
     
-    # === ITINERARY ĐƠN GIẢN (Key: Value) ===
+    # === CẬP NHẬT: Itinerary đơn giản (Số thứ tự : Địa điểm) ===
     # Ví dụ: {"1": "Hồ Tây", "2": "Lăng Bác"}
     itinerary: Optional[Dict[str, str]] = None
     
@@ -41,7 +41,7 @@ class ProfileUpdate(BaseModel):
     password: Optional[str] = Field(default=None, min_length=6)
     travel_dates: Optional[Any] = None
     
-    # === ITINERARY ĐƠN GIẢN ===
+    # === CẬP NHẬT: Itinerary đơn giản ===
     itinerary: Optional[Dict[str, str]] = None
     
     owned_groups: Optional[List[Dict[str, Any]]] = None
