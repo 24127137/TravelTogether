@@ -7,15 +7,16 @@ import json
 # Import Models và Services
 from chat_models import MessageCreate, MessagePublic
 import chat_service
-from socket_manager import manager # Import bộ quản lý socket mới
+from socket_manager import manager 
 
 # Import Hỗ trợ
-from database import get_session, engine # Import engine để tạo session thủ công trong WebSocket
+from database import get_session, engine 
 from auth_guard import get_current_user
 from config import settings
 from supabase import create_client, Client
+from db_tables import Profiles # Cần import để query
 
-# Khởi tạo Supabase Client riêng cho WebSocket (vì WebSocket không dùng Dependency auth_guard dễ dàng)
+# Khởi tạo Supabase Client
 try:
     sb_client: Client = create_client(settings.SUPABASE_URL, settings.SUPABASE_KEY)
 except:
@@ -46,27 +47,23 @@ async def get_my_chat_history_auto(
         raise HTTPException(status_code=500, detail=f"Lỗi: {e}")
 
 # ====================================================================
-# API WEBSOCKET (MỚI - QUAN TRỌNG)
+# API WEBSOCKET (ĐÃ TỐI ƯU HÓA SESSION)
 # ====================================================================
 @router.websocket("/ws")
 async def websocket_chat_endpoint(
     websocket: WebSocket,
-    token: str = Query(...) # Nhận token qua URL: ws://.../chat/ws?token=...
+    token: str = Query(...) 
 ):
     """
-    Endpoint WebSocket để chat Real-time.
-    Quy trình:
-    1. Xác thực Token.
-    2. Tìm Group ID của User.
-    3. Kết nối vào Manager.
-    4. Vòng lặp: Nhận tin -> Lưu DB -> Broadcast cho cả nhóm.
+    Endpoint Chat Real-time Tối ưu hóa tốc độ.
+    Cải tiến: Chỉ mở Session DB 1 lần duy nhất cho toàn bộ cuộc hội thoại.
     """
     
-    # 1. XÁC THỰC TOKEN (Thủ công vì WS không dùng Header 'Authorization')
+    # 1. XÁC THỰC TOKEN
     user = None
     try:
         if not sb_client:
-            await websocket.close(code=1008) # Policy Violation
+            await websocket.close(code=1008) 
             return
             
         user_response = sb_client.auth.get_user(token)
@@ -82,18 +79,13 @@ async def websocket_chat_endpoint(
 
     auth_uuid = str(user.id)
     
-    # 2. TÌM GROUP ID (Cần Session DB)
-    group_id = None
-    sender_id = auth_uuid
-    
-    # Mở Session thủ công (vì WebSocket là async loop dài)
+    # === TỐI ƯU: MỞ SESSION DUY NHẤT Ở ĐÂY ===
+    # Session này sẽ sống cùng với vòng đời của WebSocket
     with Session(engine) as session:
+        
+        # 2. TÌM GROUP ID (Sử dụng ngay session vừa tạo)
+        group_id = None
         try:
-            # Tái sử dụng hàm logic tìm nhóm
-            # Lưu ý: Hàm get_user_group_info là async, nhưng trong context này
-            # ta có thể query trực tiếp hoặc wrapper lại. 
-            # Để đơn giản và an toàn, ta query lại logic tìm nhóm ở đây:
-            from db_tables import Profiles
             profile = session.exec(
                 select(Profiles).where(Profiles.auth_user_id == auth_uuid)
             ).first()
@@ -103,59 +95,55 @@ async def websocket_chat_endpoint(
                     group_id = profile.joined_groups[0]['group_id']
                 elif profile.owned_groups:
                     group_id = profile.owned_groups[0]['group_id']
+            
+            if not group_id:
+                print(f"User {auth_uuid} chưa có nhóm.")
+                await websocket.close(code=1000) 
+                return
+
         except Exception as e:
             print(f"WS Group Error: {e}")
             await websocket.close(code=1000)
             return
 
-    if not group_id:
-        print(f"User {auth_uuid} chưa có nhóm.")
-        await websocket.close(code=1000) # Normal Closure
-        return
+        # 3. KẾT NỐI VÀO MANAGER
+        await manager.connect(websocket, group_id)
 
-    # 3. KẾT NỐI VÀO MANAGER
-    await manager.connect(websocket, group_id)
-
-    try:
-        # 4. VÒNG LẶP NHẬN TIN NHẮN
-        while True:
-            # Chờ nhận data từ Client (Frontend gửi lên)
-            # Client gửi JSON: { "message_type": "text", "content": "Alo 123", "image_url": null }
-            data = await websocket.receive_json()
-            
-            print(f"WS nhận tin từ {auth_uuid}: {data}")
-
-            # Mở session mới để lưu tin nhắn vào DB
-            with Session(engine) as session:
+        try:
+            # 4. VÒNG LẶP NHẬN TIN NHẮN
+            while True:
+                # Chờ nhận data từ Client
+                data = await websocket.receive_json()
+                
+                # Tại đây không cần mở session mới nữa -> Tốc độ xử lý tăng vọt
                 try:
-                    # Validate dữ liệu đầu vào bằng Pydantic Model
+                    # Validate dữ liệu
                     msg_input = MessageCreate(**data)
                     
-                    # Gọi Service để lưu vào DB (Tái sử dụng logic cũ)
-                    # Lưu ý: Service cũ là async, ta gọi await
+                    # Gọi Service (Truyền session đang mở vào)
                     saved_msg = await chat_service.create_message_service_auto(
-                        session=session,
+                        session=session, # <--- Tái sử dụng session
                         auth_uuid=auth_uuid,
                         message_data=msg_input
                     )
                     
-                    # Convert sang Dict để gửi qua mạng
+                    # Broadcast ngay lập tức
                     msg_json = saved_msg.model_dump()
-                    # Convert datetime sang string (vì JSON không hiểu datetime)
                     if msg_json.get("created_at"):
                         msg_json["created_at"] = str(msg_json["created_at"])
                     
-                    # 5. BROADCAST (GỬI CHO TẤT CẢ)
                     await manager.broadcast(msg_json, group_id)
                     
-                except Exception as e:
-                    print(f"Lỗi khi lưu/gửi tin nhắn: {e}")
-                    # Gửi thông báo lỗi riêng cho người gửi (tùy chọn)
-                    await websocket.send_json({"error": "Không thể gửi tin nhắn"})
+                except Exception as inner_e:
+                    # Quan trọng: Nếu lỗi DB, phải rollback để session không bị kẹt
+                    print(f"Lỗi xử lý tin nhắn: {inner_e}")
+                    session.rollback() 
+                    # Gửi báo lỗi về cho riêng client này
+                    await websocket.send_json({"error": "Không thể gửi tin nhắn, vui lòng thử lại."})
                     
-    except WebSocketDisconnect:
-        manager.disconnect(websocket, group_id)
-        print(f"User {auth_uuid} đã ngắt kết nối.")
-    except Exception as e:
-        print(f"WS Loop Error: {e}")
-        manager.disconnect(websocket, group_id)
+        except WebSocketDisconnect:
+            manager.disconnect(websocket, group_id)
+            print(f"User {auth_uuid} đã ngắt kết nối.")
+        except Exception as e:
+            print(f"WS Loop Error: {e}")
+            manager.disconnect(websocket, group_id)

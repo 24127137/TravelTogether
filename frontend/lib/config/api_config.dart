@@ -3,8 +3,8 @@
 class ApiConfig {
   // Base URL for the API
   // static const String baseUrl = 'https://ddl23gmg-8000.asse.devtunnels.ms';
-  // static const String baseUrl = 'http://10.132.240.17:8000'; // server local mạng 4g
-  static const String baseUrl = 'http://192.168.1.7:8000'; // server local mạng wifi
+  static const String baseUrl = 'http://10.132.240.17:8000'; // server local mạng 4g
+  //static const String baseUrl = 'http://192.168.1.10:8000'; // server local mạng wifi
 
   static const String supabaseUrl = 'https://meuqntvawakdzntewscp.supabase.co';
   static const String supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1ldXFudHZhd2FrZHpudGV3c2NwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE2MzUxOTEsImV4cCI6MjA3NzIxMTE5MX0.w0wtRkKTelo9iHQfLtJ61H5xLCUu2VVMKr8BV4Ljcgw';
@@ -19,8 +19,8 @@ class ApiConfig {
 
   // Chat endpoints
   static const String chatHistory = '$baseUrl/chat/history';
-  // static const String chatWebSocket = 'ws://10.132.240.17:8000/chat/ws'; // WebSocket endpoint (4G network)
-  static const String chatWebSocket = 'ws://192.168.1.7:8000/chat/ws'; // WebSocket endpoint (WiFi network)
+  static const String chatWebSocket = 'ws://10.132.240.17:8000/chat/ws'; // WebSocket endpoint (4G network)
+  //static const String chatWebSocket = 'ws://192.168.1.10:8000/chat/ws'; // WebSocket endpoint (WiFi network)
 
   // Group endpoints
   static const String myGroup = '$baseUrl/groups/my-group';
