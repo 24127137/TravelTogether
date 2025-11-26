@@ -15,7 +15,7 @@ class Profiles(SQLModel, table=True):
     interests: Optional[List[str]] = Field(default=None, sa_column=Column(ARRAY(TEXT)))
     preferred_city: Optional[str] = Field(default=None)
     travel_dates: Optional[Any] = Field(default=None, sa_column=Column(DATERANGE))
-    itinerary: Optional[Dict[str, Any]] = Field(default=None, sa_column=Column(JSONB)) # <-- CỘT NÀY QUAN TRỌNG
+    itinerary: Optional[Dict[str, Any]] = Field(default=None, sa_column=Column(JSONB)) 
     owned_groups: Optional[List[Dict[str, Any]]] = Field(default=None, sa_column=Column(JSONB))
     joined_groups: Optional[List[Dict[str, Any]]] = Field(default=None, sa_column=Column(JSONB))
     pending_requests: Optional[List[Dict[str, Any]]] = Field(default=None, sa_column=Column(JSONB))
@@ -28,14 +28,13 @@ class Profiles(SQLModel, table=True):
 # BẢNG (SQLModel): "Destination" (KHÔNG THAY ĐỔI)
 # ====================================================================
 class Destination(SQLModel, table=True):
-    # (Code không thay đổi)
     id: Optional[int] = Field(default=None, primary_key=True)
     city: str
     location_name: str = Field(sa_column=Column(TEXT, unique=True))
     description: str
 
 # ====================================================================
-# BẢNG (SQLModel): "TravelGroups" (CẬP NHẬT GĐ 12)
+# BẢNG (SQLModel): "TravelGroups" (ĐÃ BỔ SUNG CỘT THIẾU)
 # ====================================================================
 class TravelGroup(SQLModel, table=True):
     __tablename__ = "travel_groups"
@@ -51,15 +50,16 @@ class TravelGroup(SQLModel, table=True):
     pending_requests: List[Dict[str, Any]] = Field(default_factory=list, sa_column=Column(JSONB))
     created_at: Optional[datetime] = Field(default=None, sa_column_kwargs={"default": "NOW()"})
     
-    # === THÊM MỚI (GĐ 12): Thêm cột Itinerary ===
     itinerary: Optional[Dict[str, Any]] = Field(default=None, sa_column=Column(JSONB))
-    # ========================================
+    
+    # === CỘT QUAN TRỌNG BẠN VỪA THIẾU ===
+    group_image_url: Optional[str] = Field(default=None, sa_column=Column(TEXT))
+    # ====================================
 
 # ====================================================================
 # BẢNG (SQLModel): "GroupMessages" (KHÔNG THAY ĐỔI)
 # ====================================================================
 class GroupMessages(SQLModel, table=True):
-    # (Code không thay đổi)
     __tablename__ = "group_messages" 
     id: Optional[int] = Field(default=None, primary_key=True)
     group_id: int = Field(foreign_key="travel_groups.id")

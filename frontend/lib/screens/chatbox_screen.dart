@@ -919,44 +919,36 @@ class _ChatboxScreenState extends State<ChatboxScreen> {
               color: Color(0xFF8A724C),
             ),
           )
-        : LayoutBuilder(
-        builder: (context, constraints) {
-          final bottomInset = MediaQuery.of(context).viewInsets.bottom;
-          const double inputBarHeight = 56.0; // estimated total height for input area
-          return Stack(
+        : Column(
             children: [
-              // Main column with header + list; list bottom padding accounts for inputBarHeight
-              Column(
-                children: [
-                  // White background section with rounded top corners
-                  Expanded(
-                    child: Container(
-                      decoration: const BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.only(
-                          topLeft: Radius.circular(30),
-                          topRight: Radius.circular(30),
-                        ),
-                      ),
-                      child: Column(
-                        children: [
-                          // === BỎ HEADER "HÔM NAY" CỐ ĐỊNH ===
-                          // Date separators sẽ được hiển thị động trong ListView
-                          Expanded(
-                            child: Container(
-                              color: Colors.white,
-                              child: ListView.builder(
-                                controller: _scrollController,
-                                padding: EdgeInsets.only(
-                                  left: 12,
-                                  right: 12,
-                                  top: 16,
-                                  bottom: inputBarHeight + 16, // === FIX: Bỏ bottomInset, chỉ giữ inputBarHeight + padding ===
-                                ),
-                                itemCount: _messages.length,
-                                itemBuilder: (context, index) {
-                                  final m = _messages[index];
-                                  final dateSeparator = _getDateSeparator(index);
+              Expanded(
+                child: Container(
+                  decoration: const BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.only(
+                      topLeft: Radius.circular(30),
+                      topRight: Radius.circular(30),
+                    ),
+                  ),
+                  child: Column(
+                    children: [
+                      // === BỎ HEADER "HÔM NAY" CỐ ĐỊNH ===
+                      // Date separators sẽ được hiển thị động trong ListView
+                      Expanded(
+                        child: Container(
+                          color: Colors.white,
+                          child: ListView.builder(
+                            controller: _scrollController,
+                            padding: const EdgeInsets.only(
+                              left: 12,
+                              right: 12,
+                              top: 16,
+                              bottom: 16,
+                            ),
+                            itemCount: _messages.length,
+                            itemBuilder: (context, index) {
+                              final m = _messages[index];
+                              final dateSeparator = _getDateSeparator(index);
 
                                   // Ensure we have a GlobalKey for this index
                                   _messageKeys[index] = _messageKeys[index] ?? GlobalKey();
@@ -1026,85 +1018,76 @@ class _ChatboxScreenState extends State<ChatboxScreen> {
                                     ],
                                   );
                                 },
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+                              ), // ListView.builder
+                            ), // Container (color: Colors.white)
+                          ), // Expanded
+                        ], // children of inner Column
+                      ), // Column
+                    ), // Container (with decoration)
+                  ), // Expanded
 
-              // Positioned input bar anchored above keyboard
-              Positioned(
-                left: 0,
-                right: 0,
-                bottom: bottomInset, // sits immediately above keyboard
-                child: SafeArea(
-                  top: false,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
-                    color: Colors.white,
-                    child: Row(
-                      children: [
-                        // === THÊM MỚI: Nút chọn ảnh - hiện bottom sheet để chọn camera/gallery ===
-                        Material(
-                          color: const Color(0xFFB99668),
-                          shape: const CircleBorder(),
-                          child: IconButton(
-                            icon: _isUploading
-                              ? const SizedBox(
-                                  width: 20,
-                                  height: 20,
-                                  child: CircularProgressIndicator(
-                                    color: Colors.white,
-                                    strokeWidth: 2,
-                                  ),
-                                )
-                              : const Icon(Icons.add_photo_alternate, color: Colors.white),
-                            onPressed: _isUploading ? null : _showImageSourceSelection,
-                          ),
+              // Input bar at bottom
+              SafeArea(
+                top: false,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
+                  color: Colors.white,
+                  child: Row(
+                    children: [
+                      // === THÊM MỚI: Nút chọn ảnh - hiện bottom sheet để chọn camera/gallery ===
+                      Material(
+                        color: const Color(0xFFB99668),
+                        shape: const CircleBorder(),
+                        child: IconButton(
+                          icon: _isUploading
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  color: Colors.white,
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : const Icon(Icons.add_photo_alternate, color: Colors.white),
+                          onPressed: _isUploading ? null : _showImageSourceSelection,
                         ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFEBE3D7),
-                              borderRadius: BorderRadius.circular(30.0),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFEBE3D7),
+                            borderRadius: BorderRadius.circular(30.0),
+                          ),
+                          child: TextField(
+                            controller: _controller,
+                            focusNode: _focusNode,
+                            decoration: InputDecoration(
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                              hintText: 'enter_message'.tr(),
+                              hintStyle: const TextStyle(color: Colors.black38),
+                              border: InputBorder.none,
                             ),
-                            child: TextField(
-                              controller: _controller,
-                              focusNode: _focusNode,
-                              decoration: InputDecoration(
-                                contentPadding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-                                hintText: 'enter_message'.tr(),
-                                hintStyle: const TextStyle(color: Colors.black38),
-                                border: InputBorder.none,
-                              ),
-                              onSubmitted: (_) => _sendMessage(),
-                            ),
+                            onSubmitted: (_) => _sendMessage(),
                           ),
                         ),
-                        const SizedBox(width: 8),
-                        Material(
-                          color: const Color(0xFFB99668),
-                          shape: const CircleBorder(),
-                          child: IconButton(
-                            icon: const Icon(Icons.send, color: Colors.white),
-                            onPressed: _sendMessage,
-                          ),
+                      ),
+                      const SizedBox(width: 8),
+                      Material(
+                        color: const Color(0xFFB99668),
+                        shape: const CircleBorder(),
+                        child: IconButton(
+                          icon: const Icon(Icons.send, color: Colors.white),
+                          onPressed: _sendMessage,
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                 ),
               ),
             ],
-          );
-        },
-      ),
+          ),
     );
   }
 }

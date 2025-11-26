@@ -508,77 +508,71 @@ class _AiChatbotScreenState extends State<AiChatbotScreen> {
                 color: Color(0xFF8A724C),
               ),
             )
-          : LayoutBuilder(
-              builder: (context, constraints) {
-                final bottomInset = MediaQuery.of(context).viewInsets.bottom;
-                const double inputBarHeight = 56.0;
-                return Stack(
-                  children: [
-                    Column(
+          : Column(
+              children: [
+                Expanded(
+                  child: Container(
+                    decoration: const BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.only(
+                        topLeft: Radius.circular(30),
+                        topRight: Radius.circular(30),
+                      ),
+                    ),
+                    child: Column(
                       children: [
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 16.0),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 16.0, vertical: 8.0),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFEBE3D7),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Text(
+                              'ai_chat_subtitle'.tr(),
+                              style: const TextStyle(
+                                  color: Colors.black54, fontSize: 12),
+                            ),
+                          ),
+                        ),
                         Expanded(
                           child: Container(
-                            decoration: const BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.only(
-                                topLeft: Radius.circular(30),
-                                topRight: Radius.circular(30),
-                              ),
-                            ),
-                            child: Column(
-                              children: [
-                                Padding(
-                                  padding: const EdgeInsets.symmetric(vertical: 16.0),
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 16.0, vertical: 8.0),
-                                    decoration: BoxDecoration(
-                                      color: const Color(0xFFEBE3D7),
-                                      borderRadius: BorderRadius.circular(20),
+                            color: Colors.white,
+                            child: _messages.isEmpty
+                                ? Center(
+                                    child: Column(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        Image.asset(
+                                          'assets/images/chatbot_icon.png',
+                                          width: 80,
+                                          height: 80,
+                                        ),
+                                        const SizedBox(height: 16),
+                                        Text(
+                                          'ai_chat_welcome'.tr(),
+                                          style: TextStyle(
+                                            fontSize: 16,
+                                            color: Colors.grey[600],
+                                          ),
+                                          textAlign: TextAlign.center,
+                                        ),
+                                      ],
                                     ),
-                                    child: Text(
-                                      'ai_chat_subtitle'.tr(),
-                                      style: const TextStyle(
-                                          color: Colors.black54, fontSize: 12),
+                                  )
+                                : ListView.builder(
+                                    controller: _scrollController,
+                                    padding: const EdgeInsets.only(
+                                      left: 12,
+                                      right: 12,
+                                      top: 0,
+                                      bottom: 16,
                                     ),
-                                  ),
-                                ),
-                                Expanded(
-                                  child: Container(
-                                    color: Colors.white,
-                                    child: _messages.isEmpty
-                                        ? Center(
-                                            child: Column(
-                                              mainAxisAlignment:
-                                                  MainAxisAlignment.center,
-                                              children: [
-                                                Image.asset(
-                                                  'assets/images/chatbot_icon.png',
-                                                  width: 80,
-                                                  height: 80,
-                                                ),
-                                                const SizedBox(height: 16),
-                                                Text(
-                                                  'ai_chat_welcome'.tr(),
-                                                  style: TextStyle(
-                                                    fontSize: 16,
-                                                    color: Colors.grey[600],
-                                                  ),
-                                                  textAlign: TextAlign.center,
-                                                ),
-                                              ],
-                                            ),
-                                          )
-                                        : ListView.builder(
-                                            controller: _scrollController,
-                                            padding: EdgeInsets.only(
-                                              left: 12,
-                                              right: 12,
-                                              top: 0,
-                                              bottom: inputBarHeight + 16, // === FIX: Bỏ bottomInset ===
-                                            ),
-                                            itemCount: _messages.length,
-                                            itemBuilder: (context, index) {
+                                    itemCount: _messages.length,
+                                    itemBuilder: (context, index) {
                                               final m = _messages[index];
 
                                               // Ensure we have a GlobalKey for this index
@@ -617,100 +611,91 @@ class _AiChatbotScreenState extends State<AiChatbotScreen> {
                                                   child: _AiMessageBubble(message: m),
                                                 ),
                                               );
-                                            },
-                                          ),
+                                    },
                                   ),
-                                ),
-                              ],
-                            ),
                           ),
                         ),
                       ],
                     ),
-                    // Input bar
-                    Positioned(
-                      left: 0,
-                      right: 0,
-                      bottom: bottomInset,
-                      child: SafeArea(
-                        top: false,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 12.0, vertical: 8.0),
-                          color: Colors.white,
-                          child: Row(
-                            children: [
-                              // === THÊM MỚI: Nút chọn ảnh ===
-                              Material(
-                                color: const Color(0xFFB99668),
-                                shape: const CircleBorder(),
-                                child: IconButton(
-                                  icon: _isUploading
-                                      ? const SizedBox(
-                                          width: 20,
-                                          height: 20,
-                                          child: CircularProgressIndicator(
-                                            color: Colors.white,
-                                            strokeWidth: 2,
-                                          ),
-                                        )
-                                      : const Icon(Icons.add_photo_alternate, color: Colors.white),
-                                  onPressed: (_isUploading || _isSending) ? null : _showImageSourceSelection,
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 8.0, vertical: 4.0),
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFFEBE3D7),
-                                    borderRadius: BorderRadius.circular(30.0),
-                                  ),
-                                  child: TextField(
-                                    controller: _controller,
-                                    focusNode: _focusNode,
-                                    enabled: !_isSending,
-                                    decoration: InputDecoration(
-                                      contentPadding: const EdgeInsets.symmetric(
-                                          horizontal: 16.0, vertical: 8.0),
-                                      hintText: 'ai_chat_input_hint'.tr(),
-                                      hintStyle:
-                                          const TextStyle(color: Colors.black38),
-                                      border: InputBorder.none,
+                  ),
+                ),
+                // Input bar
+                SafeArea(
+                  top: false,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12.0, vertical: 8.0),
+                    color: Colors.white,
+                    child: Row(
+                      children: [
+                        // === THÊM MỚI: Nút chọn ảnh ===
+                        Material(
+                          color: const Color(0xFFB99668),
+                          shape: const CircleBorder(),
+                          child: IconButton(
+                            icon: _isUploading
+                                ? const SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(
+                                      color: Colors.white,
+                                      strokeWidth: 2,
                                     ),
-                                    onSubmitted: (_) => _sendMessage(),
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Material(
-                                color: _isSending
-                                    ? Colors.grey
-                                    : const Color(0xFFB99668),
-                                shape: const CircleBorder(),
-                                child: IconButton(
-                                  icon: _isSending
-                                      ? const SizedBox(
-                                          width: 20,
-                                          height: 20,
-                                          child: CircularProgressIndicator(
-                                            strokeWidth: 2,
-                                            color: Colors.white,
-                                          ),
-                                        )
-                                      : const Icon(Icons.send, color: Colors.white),
-                                  onPressed: _isSending ? null : _sendMessage,
-                                ),
-                              ),
-                            ],
+                                  )
+                                : const Icon(Icons.add_photo_alternate, color: Colors.white),
+                            onPressed: (_isUploading || _isSending) ? null : _showImageSourceSelection,
                           ),
                         ),
-                      ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8.0, vertical: 4.0),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFEBE3D7),
+                              borderRadius: BorderRadius.circular(30.0),
+                            ),
+                            child: TextField(
+                              controller: _controller,
+                              focusNode: _focusNode,
+                              enabled: !_isSending,
+                              decoration: InputDecoration(
+                                contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 16.0, vertical: 8.0),
+                                hintText: 'ai_chat_input_hint'.tr(),
+                                hintStyle:
+                                    const TextStyle(color: Colors.black38),
+                                border: InputBorder.none,
+                              ),
+                              onSubmitted: (_) => _sendMessage(),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Material(
+                          color: _isSending
+                              ? Colors.grey
+                              : const Color(0xFFB99668),
+                          shape: const CircleBorder(),
+                          child: IconButton(
+                            icon: _isSending
+                                ? const SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: Colors.white,
+                                    ),
+                                  )
+                                : const Icon(Icons.send, color: Colors.white),
+                            onPressed: _isSending ? null : _sendMessage,
+                          ),
+                        ),
+                      ],
                     ),
-                  ],
-                );
-              },
+                  ),
+                ),
+              ],
             ),
     );
   }
