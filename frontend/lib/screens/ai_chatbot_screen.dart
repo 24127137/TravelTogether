@@ -4,7 +4,10 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'dart:async';
+import 'dart:io'; // === THÊM MỚI: For File ===
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:image_picker/image_picker.dart'; // === THÊM MỚI: For image selection ===
+import 'package:supabase_flutter/supabase_flutter.dart'; // === THÊM MỚI: For image upload ===
 import '../config/api_config.dart';
 import '../models/ai_message.dart';
 
@@ -20,10 +23,14 @@ class _AiChatbotScreenState extends State<AiChatbotScreen> {
   final TextEditingController _controller = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   final FocusNode _focusNode = FocusNode();
+  final ImagePicker _imagePicker = ImagePicker(); // === THÊM MỚI: ImagePicker ===
   List<AiMessage> _messages = [];
   bool _isLoading = true;
   bool _isSending = false;
+  bool _isUploading = false; // === THÊM MỚI: Trạng thái upload ảnh ===
   String? _sessionId;
+
+  Map<int, GlobalKey> _messageKeys = {}; // === THÊM MỚI: keys per message for ensureVisible ===
 
   @override
   void initState() {
@@ -31,7 +38,12 @@ class _AiChatbotScreenState extends State<AiChatbotScreen> {
     _initializeChat();
     _focusNode.addListener(() {
       if (_focusNode.hasFocus) {
-        _scrollToBottom();
+        // === SỬA: Thêm delay để đợi keyboard mở hoàn toàn ===
+        Future.delayed(const Duration(milliseconds: 300), () {
+          if (mounted) {
+            _scrollToBottom();
+          }
+        });
       }
     });
   }
@@ -224,11 +236,184 @@ class _AiChatbotScreenState extends State<AiChatbotScreen> {
       if (_scrollController.hasClients) {
         _scrollController.animateTo(
           _scrollController.position.maxScrollExtent,
-          duration: const Duration(milliseconds: 300),
+          duration: const Duration(milliseconds: 250),
           curve: Curves.easeOut,
         );
       }
     });
+  }
+
+  // === THÊM MỚI: Hiển thị bottom sheet để chọn nguồn ảnh ===
+  Future<void> _showImageSourceSelection() async {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ListTile(
+                  leading: const Icon(Icons.photo_library, color: Color(0xFFB99668)),
+                  title: const Text('Chọn từ thư viện'),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _pickAndSendImage(ImageSource.gallery);
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(Icons.camera_alt, color: Color(0xFFB99668)),
+                  title: const Text('Chụp ảnh'),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _pickAndSendImage(ImageSource.camera);
+                  },
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  // === THÊM MỚI: Chọn và gửi ảnh ===
+  Future<void> _pickAndSendImage(ImageSource source) async {
+    if (_isUploading || _sessionId == null) return;
+
+    try {
+      // Chọn ảnh
+      final XFile? pickedFile = await _imagePicker.pickImage(
+        source: source,
+        maxWidth: 1920,
+        maxHeight: 1920,
+        imageQuality: 85,
+      );
+
+      if (pickedFile == null) return;
+
+      setState(() {
+        _isUploading = true;
+      });
+
+      // Upload ảnh lên Supabase Storage
+      final file = File(pickedFile.path);
+      final fileName = 'ai_chat_${DateTime.now().millisecondsSinceEpoch}.jpg';
+      final supabase = Supabase.instance.client;
+
+      print('📤 Uploading image to Supabase...');
+      await supabase.storage
+          .from('chat-images')
+          .upload(fileName, file);
+
+      print('✅ Image uploaded: $fileName');
+
+      // Lấy public URL
+      final imageUrl = supabase.storage
+          .from('chat-images')
+          .getPublicUrl(fileName);
+
+      print('🖼️ Image URL: $imageUrl');
+
+      // Gửi tin nhắn ảnh
+      await _sendImageMessage(imageUrl);
+    } catch (e) {
+      print('❌ Error picking/uploading image: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Lỗi upload ảnh: $e')),
+        );
+      }
+    } finally {
+      setState(() {
+        _isUploading = false;
+      });
+    }
+  }
+
+  // === THÊM MỚI: Gửi tin nhắn ảnh ===
+  Future<void> _sendImageMessage(String imageUrl) async {
+    if (_sessionId == null || _isSending) return;
+
+    print('🚀 Sending AI image message...');
+    print('  Session ID: $_sessionId');
+    print('  Image URL: $imageUrl');
+
+    setState(() {
+      _isSending = true;
+    });
+
+    // Thêm tin nhắn ảnh của user vào UI
+    final userMessage = AiMessage(
+      role: 'user',
+      text: '[Đã gửi ảnh]',
+      time: DateFormat('HH:mm').format(DateTime.now()),
+      imageUrl: imageUrl,
+    );
+
+    setState(() {
+      _messages.add(userMessage);
+    });
+
+    _scrollToBottom();
+
+    // Gọi API với image_url thay vì message
+    try {
+      final url = ApiConfig.getUri(ApiConfig.aiSend);
+      print('  API URL: $url');
+
+      final requestBody = jsonEncode({
+        "session_id": _sessionId,
+        "image_url": imageUrl, // Gửi image_url thay vì message
+      });
+      print('  Request body: $requestBody');
+
+      final response = await http.post(
+        url,
+        headers: {"Content-Type": "application/json"},
+        body: requestBody,
+      );
+
+      print('  Response status: ${response.statusCode}');
+      print('  Response body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(utf8.decode(response.bodyBytes));
+        final aiReply = data['reply'];
+
+        // Thêm tin nhắn AI vào UI
+        final aiMessage = AiMessage(
+          role: 'assistant',
+          text: aiReply,
+          time: DateFormat('HH:mm').format(DateTime.now()),
+        );
+
+        setState(() {
+          _messages.add(aiMessage);
+        });
+
+        _scrollToBottom();
+        await _saveChatHistory();
+      } else {
+        throw Exception('Failed to send AI message: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('❌ Error sending AI image: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('ai_chat_error_send'.tr())),
+        );
+      }
+    } finally {
+      setState(() {
+        _isSending = false;
+      });
+    }
   }
 
   Future<void> _clearHistory() async {
@@ -272,7 +457,7 @@ class _AiChatbotScreenState extends State<AiChatbotScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      resizeToAvoidBottomInset: false,
+      resizeToAvoidBottomInset: true, // === SỬA: true để UI resize khi keyboard mở ===
       appBar: AppBar(
         backgroundColor: const Color(0xFFB99668),
         elevation: 0,
@@ -390,12 +575,48 @@ class _AiChatbotScreenState extends State<AiChatbotScreen> {
                                               left: 12,
                                               right: 12,
                                               top: 0,
-                                              bottom: inputBarHeight + 8 + bottomInset,
+                                              bottom: inputBarHeight + 16, // === FIX: Bỏ bottomInset ===
                                             ),
                                             itemCount: _messages.length,
                                             itemBuilder: (context, index) {
                                               final m = _messages[index];
-                                              return _AiMessageBubble(message: m);
+
+                                              // Ensure we have a GlobalKey for this index
+                                              _messageKeys[index] = _messageKeys[index] ?? GlobalKey();
+                                              final messageKey = _messageKeys[index]!;
+
+                                              return GestureDetector(
+                                                onTap: () async {
+                                                  // Focus input to open keyboard
+                                                  _focusNode.requestFocus();
+
+                                                  // Wait for keyboard to open
+                                                  await Future.delayed(const Duration(milliseconds: 350));
+
+                                                  if (messageKey.currentContext != null) {
+                                                    try {
+                                                      await Scrollable.ensureVisible(
+                                                        messageKey.currentContext!,
+                                                        duration: const Duration(milliseconds: 300),
+                                                        alignment: 0.3,
+                                                        curve: Curves.easeOut,
+                                                      );
+                                                    } catch (e) {
+                                                      if (_scrollController.hasClients) {
+                                                        _scrollController.animateTo(
+                                                          _scrollController.position.maxScrollExtent,
+                                                          duration: const Duration(milliseconds: 300),
+                                                          curve: Curves.easeOut,
+                                                        );
+                                                      }
+                                                    }
+                                                  }
+                                                },
+                                                child: Container(
+                                                  key: messageKey,
+                                                  child: _AiMessageBubble(message: m),
+                                                ),
+                                              );
                                             },
                                           ),
                                   ),
@@ -419,6 +640,25 @@ class _AiChatbotScreenState extends State<AiChatbotScreen> {
                           color: Colors.white,
                           child: Row(
                             children: [
+                              // === THÊM MỚI: Nút chọn ảnh ===
+                              Material(
+                                color: const Color(0xFFB99668),
+                                shape: const CircleBorder(),
+                                child: IconButton(
+                                  icon: _isUploading
+                                      ? const SizedBox(
+                                          width: 20,
+                                          height: 20,
+                                          child: CircularProgressIndicator(
+                                            color: Colors.white,
+                                            strokeWidth: 2,
+                                          ),
+                                        )
+                                      : const Icon(Icons.add_photo_alternate, color: Colors.white),
+                                  onPressed: (_isUploading || _isSending) ? null : _showImageSourceSelection,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
                               Expanded(
                                 child: Container(
                                   padding: const EdgeInsets.symmetric(
@@ -525,10 +765,49 @@ class _AiMessageBubble extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  Text(
-                    message.text,
-                    style: TextStyle(color: textColor, fontSize: 16),
-                  ),
+                  // === THÊM MỚI: Hiển thị ảnh nếu có ===
+                  if (message.imageUrl != null) ...[
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: Image.network(
+                        message.imageUrl!,
+                        fit: BoxFit.cover,
+                        loadingBuilder: (context, child, loadingProgress) {
+                          if (loadingProgress == null) return child;
+                          return Container(
+                            width: 200,
+                            height: 200,
+                            color: Colors.grey[300],
+                            child: Center(
+                              child: CircularProgressIndicator(
+                                value: loadingProgress.expectedTotalBytes != null
+                                    ? loadingProgress.cumulativeBytesLoaded /
+                                        loadingProgress.expectedTotalBytes!
+                                    : null,
+                                color: Colors.white,
+                              ),
+                            ),
+                          );
+                        },
+                        errorBuilder: (context, error, stackTrace) {
+                          return Container(
+                            width: 200,
+                            height: 200,
+                            color: Colors.grey[300],
+                            child: const Icon(Icons.error, color: Colors.white),
+                          );
+                        },
+                      ),
+                    ),
+                    if (message.text.isNotEmpty && message.text != '[Đã gửi ảnh]')
+                      const SizedBox(height: 8),
+                  ],
+                  // Hiển thị text (nếu không phải "[Đã gửi ảnh]")
+                  if (message.text.isNotEmpty && message.text != '[Đã gửi ảnh]')
+                    Text(
+                      message.text,
+                      style: TextStyle(color: textColor, fontSize: 16),
+                    ),
                   const SizedBox(height: 6),
                   Text(message.time,
                       style: TextStyle(

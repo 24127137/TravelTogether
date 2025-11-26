@@ -39,6 +39,8 @@ class _NotificationScreenState extends State<NotificationScreen> {
     final currentUserId = prefs.getString('user_id');
     final lastSeenMessageId = prefs.getString('last_seen_message_id');
 
+    print('🔍 Loading notifications - lastSeenMessageId: $lastSeenMessageId');
+
     List<NotificationData> notifications = [];
 
     // Load thông báo tin nhắn mới từ group chat
@@ -56,36 +58,55 @@ class _NotificationScreenState extends State<NotificationScreen> {
         if (response.statusCode == 200) {
           final List<dynamic> messages = jsonDecode(utf8.decode(response.bodyBytes));
 
-          // Đếm số tin nhắn chưa đọc
+          // Đếm số tin nhắn chưa đọc - CHỈ đếm từ tin nhắn SAU last_seen_message_id
           int unreadCount = 0;
           String? lastMessageContent;
           String? lastMessageTime;
           String? groupName;
-          String? groupId; // === THÊM MỚI: Lưu groupId để navigate ===
+          String? groupId;
 
-          for (var msg in messages.reversed) {
-            final senderId = msg['sender_id']?.toString() ?? '';
-            final messageId = msg['id']?.toString() ?? '';
-            final isMyMessage = (currentUserId != null && senderId == currentUserId);
+          print('📊 Total messages in history: ${messages.length}');
+          print('📊 Last seen message ID: $lastSeenMessageId');
 
-            // Nếu không phải tin nhắn của mình và chưa seen
-            if (!isMyMessage) {
-              if (lastSeenMessageId == null || messageId != lastSeenMessageId) {
-                unreadCount++;
-
-                // Lưu tin nhắn cuối cùng chưa đọc
-                if (lastMessageContent == null) {
-                  lastMessageContent = msg['content'] ?? '';
-                  final createdAtUtc = DateTime.parse(msg['created_at']);
-                  final createdAtLocal = createdAtUtc.toLocal();
-                  lastMessageTime = _formatTime(createdAtLocal);
-                }
-              } else {
-                // Đã gặp tin nhắn đã seen, dừng đếm
+          // Duyệt từ CŨ nhất đến MỚI nhất để tìm vị trí last_seen
+          int lastSeenIndex = -1;
+          if (lastSeenMessageId != null) {
+            for (int i = 0; i < messages.length; i++) {
+              if (messages[i]['id']?.toString() == lastSeenMessageId) {
+                lastSeenIndex = i;
+                print('📍 Found last_seen at index: $i');
                 break;
               }
             }
           }
+
+          // Đếm tin nhắn chưa đọc: chỉ những tin nhắn SAU last_seen_message_id
+          for (int i = lastSeenIndex + 1; i < messages.length; i++) {
+            final msg = messages[i];
+            final senderId = msg['sender_id']?.toString() ?? '';
+            final messageId = msg['id']?.toString() ?? '';
+            final isMyMessage = (currentUserId != null && senderId == currentUserId);
+
+            print('📨 Checking message [$i]: id=$messageId, sender=$senderId, isMyMessage=$isMyMessage');
+
+            // Bỏ qua tin nhắn của mình
+            if (isMyMessage) {
+              print('   ⏩ Skipping: My message');
+              continue;
+            }
+
+            // Đây là tin nhắn từ người khác, sau last_seen => chưa đọc
+            unreadCount++;
+            print('   📬 Unread message #$unreadCount');
+
+            // Lưu tin nhắn MỚI NHẤT chưa đọc
+            lastMessageContent = msg['content'] ?? '';
+            final createdAtUtc = DateTime.parse(msg['created_at']);
+            final createdAtLocal = createdAtUtc.toLocal();
+            lastMessageTime = _formatTime(createdAtLocal);
+          }
+
+          print('📊 Total unread messages: $unreadCount');
 
           // Load group name
           try {
@@ -101,13 +122,13 @@ class _NotificationScreenState extends State<NotificationScreen> {
             if (groupResponse.statusCode == 200) {
               final groupData = jsonDecode(utf8.decode(groupResponse.bodyBytes));
               groupName = groupData['name'] ?? 'Nhóm chat';
-              groupId = groupData['id']?.toString(); // === THÊM MỚI: Lưu groupId ===
+              groupId = groupData['id']?.toString();
 
-              // === THÊM MỚI: Cache group name cho background service ===
+              // Cache group name cho background service
               final prefs = await SharedPreferences.getInstance();
               await prefs.setString('cached_group_name', groupName ?? 'Nhóm chat');
               if (groupId != null) {
-                await prefs.setString('cached_group_id', groupId); // === THÊM MỚI: Cache groupId ===
+                await prefs.setString('cached_group_id', groupId);
               }
             }
           } catch (e) {
@@ -128,18 +149,20 @@ class _NotificationScreenState extends State<NotificationScreen> {
               unreadCount: unreadCount,
             ));
 
-            // === THÊM MỚI: Gửi system notification ===
+            // Gửi system notification chỉ khi có tin nhắn mới
             try {
               await NotificationService().showMessageNotification(
                 groupName: groupName ?? 'Nhóm chat',
                 message: lastMessageContent ?? '',
                 unreadCount: unreadCount,
-                groupId: groupId, // === THÊM MỚI: Truyền groupId để navigate chính xác ===
+                groupId: groupId,
               );
               debugPrint('📬 System notification sent: $unreadCount unread messages');
             } catch (e) {
               debugPrint('❌ Error sending system notification: $e');
             }
+          } else {
+            print('✅ No unread messages');
           }
         }
       } catch (e) {

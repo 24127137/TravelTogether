@@ -1,18 +1,17 @@
 @echo off
-REM Script khởi động backend cho thiết bị Android thật
-REM Chạy với: run_server.bat
+REM Script to start the backend for a real Android device
+REM Run with: run_server.bat
 
-echo === Khởi động Backend Travel Together ===
-echo Backend sẽ lắng nghe trên 0.0.0.0:8000 (cho phép thiết bị Android kết nối)
+echo === Starting Travel Together Backend ===
+echo The Backend will listen on 0.0.0.0:8000 (allowing Android device connection)
 echo.
 
-REM Kích hoạt môi trường ảo nếu có
+REM Activate virtual environment if available
 if exist venv\Scripts\activate.bat (
-    echo Kích hoạt môi trường ảo...
+    echo Activating virtual environment...
     call venv\Scripts\activate.bat
 )
 
-REM Chạy uvicorn với host 0.0.0.0
-echo Khởi động server...
+REM Start uvicorn with host 0.0.0.0
+echo Starting server...
 uvicorn main:app --host 0.0.0.0 --port 8000 --reload
-

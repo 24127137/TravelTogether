@@ -5,14 +5,13 @@ class Message {
   final String sender;
   final String message;
   final String time;
-  // make non-nullable with default false to avoid runtime null issues
   final bool isOnline;
   final bool isUser;
-  // === THÊM MỚI (GĐ 13): Hỗ trợ tin nhắn ảnh ===
   final String? imageUrl;
   final String messageType; // 'text' hoặc 'image'
   final String? senderAvatarUrl; // === THÊM MỚI: Avatar của người gửi ===
   final bool isSeen; // === THÊM MỚI: Trạng thái đã seen hay chưa ===
+  final DateTime? createdAt; // === THÊM MỚI: Thời gian tạo tin nhắn (để group theo ngày) ===
 
   const Message({
     required this.sender,
@@ -22,8 +21,9 @@ class Message {
     this.isUser = false,
     this.imageUrl,
     this.messageType = 'text',
-    this.senderAvatarUrl, // === THÊM MỚI ===
-    this.isSeen = true, // === THÊM MỚI: Mặc định là đã seen ===
+    this.senderAvatarUrl,
+    this.isSeen = true,
+    this.createdAt, // === THÊM MỚI ===
   });
 
   /// Create a Message from a dynamic map (e.g., Firestore document) safely.
@@ -52,7 +52,17 @@ class Message {
     // === THÊM MỚI (GĐ 13): Parse imageUrl và messageType ===
     final imageUrl = map['image_url']?.toString();
     final messageType = map['message_type']?.toString() ?? 'text';
-    final senderAvatarUrl = map['sender_avatar_url']?.toString(); // === THÊM MỚI ===
+    final senderAvatarUrl = map['sender_avatar_url']?.toString();
+
+    // === THÊM MỚI: Parse createdAt ===
+    DateTime? createdAt;
+    if (map['created_at'] != null) {
+      try {
+        createdAt = DateTime.parse(map['created_at'].toString()).toLocal();
+      } catch (e) {
+        createdAt = null;
+      }
+    }
 
     return Message(
       sender: sender,
@@ -62,7 +72,8 @@ class Message {
       isUser: isUser,
       imageUrl: imageUrl,
       messageType: messageType,
-      senderAvatarUrl: senderAvatarUrl, // === THÊM MỚI ===
+      senderAvatarUrl: senderAvatarUrl,
+      createdAt: createdAt, // === THÊM MỚI ===
     );
   }
 }
