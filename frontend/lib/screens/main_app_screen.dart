@@ -9,6 +9,7 @@ import 'messages_screen.dart';
 import '../widgets/custom_bottom_nav_bar.dart';
 import '../widgets/notification_permission_dialog.dart'; // === THÊM MỚI ===
 import '../services/background_notification_service.dart'; // === THÊM MỚI: Background WebSocket ===
+import '../services/notification_service.dart'; // === THÊM MỚI: Notification Service ===
 import '../models/destination.dart';
 import 'destination_detail_screen.dart';
 import 'destination_explore_screen.dart';
@@ -78,16 +79,21 @@ class _MainAppScreenState extends State<MainAppScreen> {
 
     if (!mounted) return;
 
-    // Kiểm tra đã hỏi quyền chưa
-    final prefs = await SharedPreferences.getInstance();
-    final hasAsked = prefs.getBool('notification_permission_asked') ?? false;
+    // === SỬA MỚI: Kiểm tra permission thực tế thay vì chỉ dựa vào flag ===
+    // Điều này đảm bảo dialog hiện lại nếu permission bị revoke (test)
+    final hasPermission = await NotificationService().checkPermission();
 
-    if (!hasAsked) {
-      // Hiển thị dialog xin quyền
-      await NotificationPermissionDialog.show(context);
+    if (!hasPermission) {
+      // Chưa có permission → hiển thị dialog giải thích
+      final granted = await NotificationPermissionDialog.show(context);
 
-      // Đánh dấu đã hỏi rồi
-      await prefs.setBool('notification_permission_asked', true);
+      // Lưu trạng thái để không hỏi lại (trừ khi user revoke)
+      if (granted) {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setBool('notification_permission_asked', true);
+      }
+    } else {
+      debugPrint('✅ Notification permission already granted, skip dialog');
     }
   }
 
