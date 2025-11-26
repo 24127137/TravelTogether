@@ -1,8 +1,0 @@
-fastapi
-uvicorn[standard]
-sqlmodel
-supabase
-google-generativeai
-psycopg2-binary
-pydantic-settings
-pydantic[email]

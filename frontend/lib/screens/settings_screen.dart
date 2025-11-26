@@ -11,6 +11,7 @@ import 'security.dart';
 import 'emergency_pin.dart';
 import '../services/auth_service.dart';
 import 'onboarding.dart';
+import 'list_group_feedback.dart';
 
 class SettingsScreen extends StatefulWidget {
   final VoidCallback onBack;
@@ -199,7 +200,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         Navigator.push(
                           context,
                           PageRouteBuilder(
-                            pageBuilder: (context, animation, secondaryAnimation) => const FeedbackScreen(),
+                            pageBuilder: (context, animation, secondaryAnimation) => const ListGroupFeedbackScreen(),
                             transitionsBuilder: (context, animation, secondaryAnimation, child) {
                               const begin = Offset(1.0, 0.0);
                               const end = Offset.zero;

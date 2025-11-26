@@ -7,6 +7,7 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'screens/onboarding.dart';
 import 'screens/main_app_screen.dart';
 import 'services/auth_service.dart';
+import 'screens/first_of_all.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -40,7 +41,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      home: const SplashScreen(),
+      home: const FirstScreen(),
       debugShowCheckedModeBanner: false,
       localizationsDelegates: context.localizationDelegates,
       supportedLocales: context.supportedLocales,
