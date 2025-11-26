@@ -8,7 +8,6 @@ import 'dart:io';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
-import 'package:web_socket_channel/status.dart' as status;
 import '../config/api_config.dart';
 import '../models/message.dart';
 import 'member_screen(Host).dart';
@@ -36,6 +35,7 @@ class _ChatboxScreenState extends State<ChatboxScreen> {
   String? _myAvatarUrl; // === THÊM MỚI: Avatar của mình ===
   Map<String, Map<String, dynamic>> _groupMembers = {}; // === THÊM MỚI: Lưu thông tin members từ group ===
   bool _isAutoScrolling = false; // === THÊM MỚI: Cờ để tránh mark seen khi auto scroll ===
+  Map<int, GlobalKey> _messageKeys = {}; // === THÊM MỚI: keys per message for ensureVisible ===
 
   @override
   void initState() {
@@ -43,11 +43,12 @@ class _ChatboxScreenState extends State<ChatboxScreen> {
     _loadAccessToken();
     _focusNode.addListener(() {
       if (_focusNode.hasFocus) {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (_scrollController.hasClients) {
+        // === SỬA: Thêm delay để đợi keyboard mở hoàn toàn ===
+        Future.delayed(const Duration(milliseconds: 300), () {
+          if (_scrollController.hasClients && mounted) {
             _scrollController.animateTo(
               _scrollController.position.maxScrollExtent,
-              duration: const Duration(milliseconds: 200),
+              duration: const Duration(milliseconds: 300),
               curve: Curves.easeOut,
             );
           }
@@ -74,6 +75,54 @@ class _ChatboxScreenState extends State<ChatboxScreen> {
         }
       }
     });
+  }
+
+  @override
+  void dispose() {
+    // === THÊM MỚI: Lưu last_seen_message_id khi rời khỏi màn hình ===
+    _saveLastSeenMessage();
+
+    // Đóng WebSocket connection
+    _channel?.sink.close();
+
+    // Clean up controllers
+    _controller.dispose();
+    _scrollController.dispose();
+    _focusNode.dispose();
+
+    super.dispose();
+  }
+
+  // === THÊM MỚI: Lưu ID của tin nhắn cuối cùng khi rời khỏi màn hình ===
+  Future<void> _saveLastSeenMessage() async {
+    if (_messages.isEmpty) return;
+
+
+    // Tìm ID của tin nhắn từ server (cần load lại từ history)
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final url = ApiConfig.getUri(ApiConfig.chatHistory);
+      final response = await http.get(
+        url,
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer $_accessToken",
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final List<dynamic> messages = jsonDecode(utf8.decode(response.bodyBytes));
+        if (messages.isNotEmpty) {
+          final lastMessageId = messages.last['id']?.toString();
+          if (lastMessageId != null) {
+            await prefs.setString('last_seen_message_id', lastMessageId);
+            print('💾 Saved last_seen_message_id on dispose: $lastMessageId');
+          }
+        }
+      }
+    } catch (e) {
+      print('❌ Error saving last_seen_message_id: $e');
+    }
   }
 
   Future<void> _loadAccessToken() async {
@@ -108,6 +157,115 @@ class _ChatboxScreenState extends State<ChatboxScreen> {
     if (senderId == null || _currentUserId == null) return false;
     // So sánh với currentUserId (đã lưu từ login)
     return senderId.toString().trim() == _currentUserId!.toString().trim();
+  }
+
+  // === THÊM MỚI: Format date separator như Messenger ===
+  String? _getDateSeparator(int index) {
+    if (index >= _messages.length) return null;
+
+    final currentMsg = _messages[index];
+
+    // Debug log
+    print('📅 _getDateSeparator for index $index: createdAt = ${currentMsg.createdAt}');
+
+    if (currentMsg.createdAt == null) {
+      print('⚠️ Message at index $index has null createdAt!');
+      return null;
+    }
+
+    final now = DateTime.now();
+    final msgDate = currentMsg.createdAt!;
+
+    print('📅 Current message date: ${msgDate.year}-${msgDate.month}-${msgDate.day} ${DateFormat('HH:mm').format(msgDate)}');
+
+    // === Kiểm tra với tin nhắn TRƯỚC ĐÓ ===
+    // Messages được sort từ CŨ → MỚI, nên index 0 = cũ nhất
+    bool shouldShowSeparator = false;
+
+    if (index > 0) {
+      // Có tin nhắn trước đó, kiểm tra xem có cùng ngày không
+      final prevMsg = _messages[index - 1];
+      if (prevMsg.createdAt != null) {
+        final prevDate = prevMsg.createdAt!;
+        print('📅 Previous message date: ${prevDate.year}-${prevDate.month}-${prevDate.day} ${DateFormat('HH:mm').format(prevDate)}');
+
+        // Nếu KHÁC NGÀY với tin nhắn trước → PHẢI hiện separator
+        if (msgDate.year != prevDate.year ||
+            msgDate.month != prevDate.month ||
+            msgDate.day != prevDate.day) {
+          print('📅 ⚠️ DIFFERENT day from previous message! MUST show separator!');
+          shouldShowSeparator = true;
+        } else {
+          print('📅 ✅ Same day as previous message, NO separator');
+          return null; // Cùng ngày → không hiện separator
+        }
+      } else {
+        // Tin trước không có createdAt, hiện separator cho tin này
+        shouldShowSeparator = true;
+      }
+    } else {
+      // Đây là tin nhắn ĐẦU TIÊN (index 0)
+      print('📅 This is the FIRST message (index 0)');
+      shouldShowSeparator = true; // Tin đầu tiên luôn hiện separator (trừ khi là hôm nay)
+    }
+
+    // === Nếu KHÔNG cần hiện separator → return null ===
+    if (!shouldShowSeparator) {
+      return null;
+    }
+
+    // === CẦN hiện separator → Format theo ngày ===
+    print('📅 Today: ${now.year}-${now.month}-${now.day}');
+
+    final isToday = msgDate.year == now.year &&
+        msgDate.month == now.month &&
+        msgDate.day == now.day;
+
+    print('📅 Is today: $isToday');
+
+    // KHÔNG hiện separator cho hôm nay (theo kiểu Messenger)
+    if (isToday) {
+      print('📅 Message is today, NO separator (Messenger style)');
+      return null;
+    }
+
+    // === Hiện separator cho ngày cũ hơn ===
+    final difference = now.difference(msgDate).inDays;
+    print('📅 Difference in days: $difference');
+
+    if (difference < 7 && difference >= 1) {
+      // Trong tuần (1-6 ngày trước): "TH 2 LÚC 20:05"
+      final weekday = _getVietnameseWeekday(msgDate.weekday);
+      final time = DateFormat('HH:mm').format(msgDate);
+      final separator = '$weekday LÚC $time';
+      print('✅ Separator (this week): $separator');
+      return separator;
+    }
+
+    // Cũ hơn 7 ngày: "13 THG 11 LÚC 20:05"
+    final day = msgDate.day;
+    final month = _getVietnameseMonth(msgDate.month);
+    final time = DateFormat('HH:mm').format(msgDate);
+    final separator = '$day $month LÚC $time';
+    print('✅ Separator (older): $separator');
+    return separator;
+  }
+
+  String _getVietnameseWeekday(int weekday) {
+    switch (weekday) {
+      case 1: return 'TH 2';
+      case 2: return 'TH 3';
+      case 3: return 'TH 4';
+      case 4: return 'TH 5';
+      case 5: return 'TH 6';
+      case 6: return 'TH 7';
+      case 7: return 'CN';
+      default: return '';
+    }
+  }
+
+  String _getVietnameseMonth(int month) {
+    return 'THG $month';
   }
 
   // === THÊM MỚI: Load profile của mình để lấy avatar ===
@@ -205,6 +363,7 @@ class _ChatboxScreenState extends State<ChatboxScreen> {
             messageType: msg.messageType,
             senderAvatarUrl: msg.senderAvatarUrl,
             isSeen: true, // Mark as seen
+            createdAt: msg.createdAt, // === THÊM MỚI: Giữ nguyên createdAt ===
           );
         }
         return msg;
@@ -277,6 +436,16 @@ class _ChatboxScreenState extends State<ChatboxScreen> {
             final timeStr = DateFormat('HH:mm').format(createdAtLocal);
             final senderId = msg['sender_id'] ?? '';
 
+            // === DEBUG: In ra createdAt để kiểm tra ===
+            print('\n📅 ===== MESSAGE DATE DEBUG =====');
+            print('📅 Message ID: ${msg['id']}');
+            print('📅 Created At UTC: ${msg['created_at']}');
+            print('📅 Created At Local: $createdAtLocal');
+            print('📅 Date: ${createdAtLocal.year}-${createdAtLocal.month}-${createdAtLocal.day}');
+            print('📅 Time: $timeStr');
+            print('📅 Content: "${msg['content']}"');
+            print('📅 ===============================\n');
+
             // DEBUG: In ra để kiểm tra CHI TIẾT
             print('\n🔍 ===== MESSAGE DEBUG =====');
             print('🔍 Current User ID: "$_currentUserId"');
@@ -304,6 +473,7 @@ class _ChatboxScreenState extends State<ChatboxScreen> {
               messageType: msg['message_type'] ?? 'text', // === THÊM MỚI ===
               senderAvatarUrl: senderAvatarUrl, // === THÊM MỚI ===
               isSeen: isUser, // === THÊM MỚI: Tin nhắn của mình luôn seen, tin nhắn người khác chưa seen ===
+              createdAt: createdAtLocal, // === THÊM MỚI: Lưu thời gian tạo ===
             );
           }).toList();
           _isLoading = false;
@@ -420,6 +590,7 @@ class _ChatboxScreenState extends State<ChatboxScreen> {
         messageType: data['message_type'] ?? 'text',
         senderAvatarUrl: senderAvatarUrl,
         isSeen: isUser, // === THÊM MỚI: Tin nhắn của mình luôn seen, tin nhắn người khác chưa seen ===
+        createdAt: createdAtLocal, // === THÊM MỚI: Lưu thời gian tạo ===
       );
 
       // === DEBUG: Kiểm tra trạng thái isSeen ===
@@ -625,20 +796,11 @@ class _ChatboxScreenState extends State<ChatboxScreen> {
     }
   }
 
-  @override
-  void dispose() {
-    _channel?.sink.close(status.normalClosure); // === SỬA MỚI: Close WebSocket ===
-    _controller.dispose();
-    _scrollController.dispose();
-    _focusNode.removeListener(() {});
-    _focusNode.dispose();
-    super.dispose();
-  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      resizeToAvoidBottomInset: false,
+      resizeToAvoidBottomInset: true, // === SỬA: true để UI resize khi keyboard mở ===
       appBar: AppBar(
         backgroundColor: const Color(0xFFB99668),
         elevation: 0,
@@ -778,20 +940,8 @@ class _ChatboxScreenState extends State<ChatboxScreen> {
                       ),
                       child: Column(
                         children: [
-                          Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 16.0),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFEBE3D7),
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                              child: Text(
-                                'today'.tr(),
-                                style: const TextStyle(color: Colors.black54, fontSize: 12),
-                              ),
-                            ),
-                          ),
+                          // === BỎ HEADER "HÔM NAY" CỐ ĐỊNH ===
+                          // Date separators sẽ được hiển thị động trong ListView
                           Expanded(
                             child: Container(
                               color: Colors.white,
@@ -800,16 +950,80 @@ class _ChatboxScreenState extends State<ChatboxScreen> {
                                 padding: EdgeInsets.only(
                                   left: 12,
                                   right: 12,
-                                  top: 0,
-                                  bottom: inputBarHeight + 8 + bottomInset,
+                                  top: 16,
+                                  bottom: inputBarHeight + 16, // === FIX: Bỏ bottomInset, chỉ giữ inputBarHeight + padding ===
                                 ),
                                 itemCount: _messages.length,
                                 itemBuilder: (context, index) {
                                   final m = _messages[index];
-                                  return _MessageBubble(
-                                    message: m,
-                                    senderAvatarUrl: m.senderAvatarUrl,
-                                    currentUserId: _currentUserId, // pass current user id so widget can decide
+                                  final dateSeparator = _getDateSeparator(index);
+
+                                  // Ensure we have a GlobalKey for this index
+                                  _messageKeys[index] = _messageKeys[index] ?? GlobalKey();
+                                  final messageKey = _messageKeys[index]!;
+
+                                  return Column(
+                                    children: [
+                                      // === THÊM MỚI: Date separator (nếu có) ===
+                                      if (dateSeparator != null)
+                                        Padding(
+                                          padding: const EdgeInsets.symmetric(vertical: 16.0),
+                                          child: Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                                            decoration: BoxDecoration(
+                                              color: const Color(0xFFEBE3D7),
+                                              borderRadius: BorderRadius.circular(20),
+                                            ),
+                                            child: Text(
+                                              dateSeparator,
+                                              style: const TextStyle(
+                                                color: Colors.black54,
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.w500,
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      // Message bubble wrapped with key and tap handler
+                                      GestureDetector(
+                                        onTap: () async {
+                                          // Focus the input so keyboard opens
+                                          _focusNode.requestFocus();
+
+                                          // Wait for keyboard to open
+                                          await Future.delayed(const Duration(milliseconds: 350));
+
+                                          // Ensure the tapped message is visible
+                                          if (messageKey.currentContext != null) {
+                                            try {
+                                              await Scrollable.ensureVisible(
+                                                messageKey.currentContext!,
+                                                duration: const Duration(milliseconds: 300),
+                                                alignment: 0.3, // try to position message above keyboard
+                                                curve: Curves.easeOut,
+                                              );
+                                            } catch (e) {
+                                              // fallback: animate to bottom
+                                              if (_scrollController.hasClients) {
+                                                _scrollController.animateTo(
+                                                  _scrollController.position.maxScrollExtent,
+                                                  duration: const Duration(milliseconds: 300),
+                                                  curve: Curves.easeOut,
+                                                );
+                                              }
+                                            }
+                                          }
+                                        },
+                                        child: Container(
+                                          key: messageKey,
+                                          child: _MessageBubble(
+                                            message: m,
+                                            senderAvatarUrl: m.senderAvatarUrl,
+                                            currentUserId: _currentUserId,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
                                   );
                                 },
                               ),
