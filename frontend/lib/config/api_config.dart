@@ -18,7 +18,10 @@ class ApiConfig {
 
   // Chat endpoints
   static const String chatHistory = '$baseUrl/chat/history';
-  static const String chatSend = '$baseUrl/chat/send';
+  static const String chatWebSocket = 'ws://10.132.240.17:8000/chat/ws'; // WebSocket endpoint
+
+  // Group endpoints
+  static const String myGroup = '$baseUrl/groups/my-group';
 
   // AI Chat endpoints
   static const String aiNewSession = '$baseUrl/ai/new_session';

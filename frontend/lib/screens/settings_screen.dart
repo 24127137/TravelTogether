@@ -12,6 +12,11 @@ import 'emergency_pin.dart';
 import '../services/auth_service.dart';
 import 'onboarding.dart';
 import 'list_group_feedback.dart';
+// Networking and storage
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../config/api_config.dart';
 
 class SettingsScreen extends StatefulWidget {
   final VoidCallback onBack;
@@ -29,6 +34,47 @@ class _SettingsScreenState extends State<SettingsScreen> {
   
   // State cho dropdown Bảo mật
   bool _isSecurityExpanded = false;
+
+  // Profile fields (loaded from GET /users/me)
+  String _profileFullname = 'User';
+  String _profileEmail = '';
+  String? _profileAvatarUrl;
+  String? _accessToken;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadProfile();
+  }
+
+  Future<void> _loadProfile() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      _accessToken = prefs.getString('access_token');
+      if (_accessToken == null) return;
+
+      final uri = ApiConfig.getUri(ApiConfig.userProfile);
+      final resp = await http.get(uri, headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $_accessToken',
+      });
+
+      if (resp.statusCode == 200) {
+        final data = jsonDecode(utf8.decode(resp.bodyBytes));
+        setState(() {
+          _profileFullname = (data['fullname'] as String?)?.trim() ?? (data['email'] as String?) ?? 'User';
+          _profileEmail = (data['email'] as String?) ?? '';
+          final avatar = (data['avatar_url'] as String?);
+          _profileAvatarUrl = (avatar != null && avatar.isNotEmpty) ? avatar : null;
+        });
+      } else {
+        // optional: print status for debugging
+        debugPrint('Failed to load profile: ${resp.statusCode}');
+      }
+    } catch (e) {
+      debugPrint('Error loading profile: $e');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -129,7 +175,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                 ),
                                 child: CircleAvatar(
                                   radius: avatarRadius,
-                                  backgroundImage: const AssetImage('assets/images/avatar.jpg'),
+                                  backgroundImage: _profileAvatarUrl != null
+                                      ? NetworkImage(_profileAvatarUrl!)
+                                      : const AssetImage('assets/images/avatar.jpg') as ImageProvider<Object>,
                                 ),
                               ),
                               const SizedBox(width: 16),
@@ -139,7 +187,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      'Sir. EUGENE',
+                                      _profileFullname,
                                       style: TextStyle(
                                         fontSize: userNameSize,
                                         fontWeight: FontWeight.bold,
@@ -149,7 +197,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                     ),
                                     SizedBox(height: 4 * scaleFactor),
                                     Text(
-                                      'abc@gmail.com',
+                                      _profileEmail,
                                       style: TextStyle(
                                         fontSize: userEmailSize,
                                         color: const Color(0xFFEDE2CC),
@@ -718,3 +766,4 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 }
+

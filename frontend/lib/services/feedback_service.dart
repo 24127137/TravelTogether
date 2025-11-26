@@ -65,4 +65,30 @@ class FeedbackService {
       return false;
     }
   }
+
+  Future<MyReputationResponse?> getMyReputation(String token) async {
+    try {
+      final url = Uri.parse('$baseUrl/my-reputation');
+      print("📡 Calling Reputation API: $url");
+
+      final response = await http.get(
+        url,
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(utf8.decode(response.bodyBytes));
+        return MyReputationResponse.fromJson(data);
+      } else {
+        print('❌ Error fetching reputation: ${response.statusCode} - ${response.body}');
+        return null;
+      }
+    } catch (e) {
+      print('❌ Exception in getMyReputation: $e');
+      return null;
+    }
+  }
 }
