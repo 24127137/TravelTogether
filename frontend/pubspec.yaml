@@ -40,17 +40,30 @@ dependencies:
   http: ^1.2.0
   shared_preferences: ^2.3.3
   image_picker: ^1.0.7
+  web_socket_channel: ^3.0.3
   supabase_flutter: 2.10.3
   path_provider: ^2.1.2
   path_provider_android: ^2.2.4
   hive_flutter: ^1.1.0
   sign_in_with_apple: ^6.1.2
   confetti: ^0.7.0
+  flutter_local_notifications: ^19.5.0
+  timezone: ^0.10.1
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^5.0.0
+  rename: ^3.1.0
+  flutter_launcher_icons: ^0.14.4
+
+# === THÊM MỚI: Cấu hình app icon ===
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/images/logo.png"
+  adaptive_icon_background: "#FFFFFF"
+  adaptive_icon_foreground: "assets/images/logo.png"
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -65,6 +78,16 @@ flutter:
 
   assets:
     - assets/images/
+    - assets/images/dia_diem/danang/
+    - assets/images/dia_diem/dalat/
+    - assets/images/dia_diem/hanoi/
+    - assets/images/dia_diem/hoian/
+    - assets/images/dia_diem/hue/
+    - assets/images/dia_diem/nhatrang/
+    - assets/images/dia_diem/phuquoc/
+    - assets/images/dia_diem/saigon/
+    - assets/images/dia_diem/sapa/
+    - assets/images/dia_diem/halong/
     - assets/images/group_creating/
     - assets/translations/
     - assets/images/travel_plan.png
@@ -73,7 +96,7 @@ flutter:
     - assets/images/onboarding/2.png
     - assets/images/onboarding/3.png
     - assets/images/saigon.jpg
-    - assets/images/logo.jpg
+    - assets/images/logo.png
     - assets/images/profile_page_background.png
     - assets/images/interests/culture.jpg
     - assets/images/interests/food.jpg

@@ -5,9 +5,13 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:intl/date_symbol_data_local.dart';
 
 import 'screens/onboarding.dart';
+import 'screens/first_of_all.dart';
 import 'screens/main_app_screen.dart';
 import 'services/auth_service.dart';
-import 'screens/first_of_all.dart';
+import 'services/notification_service.dart'; // === THÊM MỚI: Import notification service ===
+
+// === THÊM MỚI: Global Navigator Key để navigate từ notification ===
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -22,6 +26,14 @@ void main() async {
     url: 'https://meuqntvawakdzntewscp.supabase.co',
     anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1ldXFudHZhd2FrZHpudGV3c2NwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE2MzUxOTEsImV4cCI6MjA3NzIxMTE5MX0.w0wtRkKTelo9iHQfLtJ61H5xLCUu2VVMKr8BV4Ljcgw',
   );
+
+  // === THÊM MỚI: Initialize Notification Service ===
+  try {
+    await NotificationService().initialize();
+    debugPrint('✅ Notification service initialized successfully');
+  } catch (e) {
+    debugPrint('❌ Error initializing notification service: $e');
+  }
 
   runApp(
     EasyLocalization(
@@ -41,6 +53,8 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      navigatorKey: navigatorKey, // === THÊM MỚI: Global navigator key ===
+      // home: const SplashScreen(),
       home: const FirstScreen(),
       debugShowCheckedModeBanner: false,
       localizationsDelegates: context.localizationDelegates,
@@ -131,7 +145,7 @@ class _SplashScreenState extends State<SplashScreen> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Image.asset(
-              'assets/images/logo.jpg',
+              'assets/images/logo.png',
               width: 150,
               height: 150,
             ), // đến đây thôi

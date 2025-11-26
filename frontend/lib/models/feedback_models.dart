@@ -44,3 +44,80 @@ class PendingReviewGroup {
     );
   }
 }
+
+// --- CÁC MODEL MỚI CHO REPUTATION ---
+
+class FeedbackDetail {
+  final int id;
+  final double rating;
+  final List<String> content; // Tags
+  final String? senderName;
+  final bool anonymous;
+
+  FeedbackDetail({
+    required this.id,
+    required this.rating,
+    required this.content,
+    this.senderName,
+    required this.anonymous,
+  });
+
+  factory FeedbackDetail.fromJson(Map<String, dynamic> json) {
+    return FeedbackDetail(
+      id: json['id'],
+      rating: (json['rating'] ?? 0).toDouble(),
+      content: (json['content'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [],
+      senderName: json['sender_name'],
+      anonymous: json['anonymous'] ?? false,
+    );
+  }
+}
+
+class GroupReputationSummary {
+  final int groupId;
+  final String groupName;
+  final String? groupImageUrl;
+  final List<FeedbackDetail> feedbacks;
+
+  GroupReputationSummary({
+    required this.groupId,
+    required this.groupName,
+    this.groupImageUrl,
+    required this.feedbacks,
+  });
+
+  factory GroupReputationSummary.fromJson(Map<String, dynamic> json) {
+    var list = json['feedbacks'] as List? ?? [];
+    List<FeedbackDetail> fbList = list.map((i) => FeedbackDetail.fromJson(i)).toList();
+
+    return GroupReputationSummary(
+      groupId: json['group_id'],
+      groupName: json['group_name'] ?? 'Nhóm',
+      groupImageUrl: json['group_image_url'],
+      feedbacks: fbList,
+    );
+  }
+}
+
+class MyReputationResponse {
+  final double averageRating;
+  final int totalFeedbacks;
+  final List<GroupReputationSummary> groups;
+
+  MyReputationResponse({
+    required this.averageRating,
+    required this.totalFeedbacks,
+    required this.groups,
+  });
+
+  factory MyReputationResponse.fromJson(Map<String, dynamic> json) {
+    var list = json['groups'] as List? ?? [];
+    List<GroupReputationSummary> groupList = list.map((i) => GroupReputationSummary.fromJson(i)).toList();
+
+    return MyReputationResponse(
+      averageRating: (json['average_rating'] ?? 0).toDouble(),
+      totalFeedbacks: json['total_feedbacks'] ?? 0,
+      groups: groupList,
+    );
+  }
+}

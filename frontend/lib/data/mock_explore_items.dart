@@ -10,7 +10,7 @@ final List<DestinationExploreItem> mockExploreItems = [
     subtitleVi: 'Bãi biển nổi tiếng',
     subtitleEn: 'Famous Beach',
     location: 'Đà Nẵng',
-    imageUrl: 'assets/images/bien_my_khe.jpg',
+    imageUrl: 'assets/images/dia_diem/danang/my_khe.jpg',
     rating: 4.9,
   ),
   DestinationExploreItem(
@@ -20,7 +20,7 @@ final List<DestinationExploreItem> mockExploreItems = [
     subtitleVi: 'Biểu tượng thành phố',
     subtitleEn: 'City Symbol',
     location: 'Đà Nẵng',
-    imageUrl: 'assets/images/cau_rong.jpg',
+    imageUrl: 'assets/images/dia_diem/danang/cau_rong.jpg',
     rating: 4.8,
   ),
   DestinationExploreItem(
@@ -30,7 +30,7 @@ final List<DestinationExploreItem> mockExploreItems = [
     subtitleVi: 'Khu du lịch nổi tiếng',
     subtitleEn: 'Famous Resort',
     location: 'Đà Nẵng',
-    imageUrl: 'assets/images/ba_na_hills.jpg',
+    imageUrl: 'assets/images/dia_diem/danang/ba_na_hill.jpg',
     rating: 4.8,
   ),
   DestinationExploreItem(
@@ -40,7 +40,7 @@ final List<DestinationExploreItem> mockExploreItems = [
     subtitleVi: 'Danh thắng thiên nhiên',
     subtitleEn: 'Natural Wonder',
     location: 'Đà Nẵng',
-    imageUrl: 'assets/images/ngu_hanh_son.jpg',
+    imageUrl: 'assets/images/dia_diem/danang/ngu_hanh_son.jpg',
     rating: 4.7,
   ),
   DestinationExploreItem(
@@ -50,7 +50,7 @@ final List<DestinationExploreItem> mockExploreItems = [
     subtitleVi: 'Khu bảo tồn thiên nhiên',
     subtitleEn: 'Nature Reserve',
     location: 'Đà Nẵng',
-    imageUrl: 'assets/images/son_tra.jpg',
+    imageUrl: 'assets/images/dia_diem/danang/son_tra.jpg',
     rating: 4.8,
   ),
   DestinationExploreItem(
@@ -60,7 +60,7 @@ final List<DestinationExploreItem> mockExploreItems = [
     subtitleVi: 'Cầu quay nổi tiếng',
     subtitleEn: 'Famous Swing Bridge',
     location: 'Đà Nẵng',
-    imageUrl: 'assets/images/cau_song_han.jpg',
+    imageUrl: 'assets/images/dia_diem/danang/cau_song_han.jpg',
     rating: 4.7,
   ),
   DestinationExploreItem(
@@ -70,7 +70,7 @@ final List<DestinationExploreItem> mockExploreItems = [
     subtitleVi: 'Điểm check-in lãng mạn',
     subtitleEn: 'Romantic Check-in Spot',
     location: 'Đà Nẵng',
-    imageUrl: 'assets/images/cau_tinh_yeu.jpg',
+    imageUrl: 'assets/images/dia_diem/danang/cau_tinh_yeu.jpg',
     rating: 4.7,
   ),
   DestinationExploreItem(
@@ -80,7 +80,7 @@ final List<DestinationExploreItem> mockExploreItems = [
     subtitleVi: 'Khu nghỉ dưỡng',
     subtitleEn: 'Resort Area',
     location: 'Đà Nẵng',
-    imageUrl: 'assets/images/nui_than_tai.jpg',
+    imageUrl: 'assets/images/dia_diem/danang/nui_than_tai.jpg',
     rating: 4.8,
   ),
   DestinationExploreItem(
@@ -90,7 +90,7 @@ final List<DestinationExploreItem> mockExploreItems = [
     subtitleVi: 'Trung tâm mua sắm',
     subtitleEn: 'Shopping Center',
     location: 'Đà Nẵng',
-    imageUrl: 'assets/images/cho_han.jpg',
+    imageUrl: 'assets/images/dia_diem/danang/cho_han.jpg',
     rating: 4.7,
   ),
   DestinationExploreItem(
@@ -100,7 +100,7 @@ final List<DestinationExploreItem> mockExploreItems = [
     subtitleVi: 'Công viên giải trí',
     subtitleEn: 'Amusement Park',
     location: 'Đà Nẵng',
-    imageUrl: 'assets/images/asia_park.jpg',
+    imageUrl: 'assets/images/dia_diem/danang/asia_park.jpg',
     rating: 4.8,
   ),
 
@@ -112,7 +112,7 @@ final List<DestinationExploreItem> mockExploreItems = [
     subtitleVi: 'Hồ trung tâm',
     subtitleEn: 'Central Lake',
     location: 'Đà Lạt, Lâm Đồng',
-    imageUrl: 'assets/images/ho_xuan_huong.jpg',
+    imageUrl: 'assets/images/dia_diem/dalat/ho_xuan_huong.jpg',
     rating: 4.9,
   ),
   DestinationExploreItem(
@@ -122,7 +122,7 @@ final List<DestinationExploreItem> mockExploreItems = [
     subtitleVi: 'Điểm hẹn lãng mạn',
     subtitleEn: 'Romantic Rendezvous',
     location: 'Đà Lạt, Lâm Đồng',
-    imageUrl: 'assets/images/thung_lung_tinh_yeu.jpg',
+    imageUrl: 'assets/images/dia_diem/dalat/thung_lung_tinh_yeu.jpg',
     rating: 4.8,
   ),
   DestinationExploreItem(
@@ -132,7 +132,7 @@ final List<DestinationExploreItem> mockExploreItems = [
     subtitleVi: 'Cảnh đẹp thiên nhiên',
     subtitleEn: 'Natural Beauty',
     location: 'Đà Lạt, Lâm Đồng',
-    imageUrl: 'assets/images/doi_che_cau_dat.jpg',
+    imageUrl: 'assets/images/dia_diem/dalat/doi_che_cau_dat.jpg',
     rating: 4.8,
   ),
   DestinationExploreItem(
@@ -142,7 +142,7 @@ final List<DestinationExploreItem> mockExploreItems = [
     subtitleVi: 'Nóc nhà Đà Lạt',
     subtitleEn: 'Dalat\'s Roof',
     location: 'Đà Lạt, Lâm Đồng',
-    imageUrl: 'assets/images/langbiang.jpg',
+    imageUrl: 'assets/images/dia_diem/dalat/langbiang.jpg',
     rating: 4.7,
   ),
   DestinationExploreItem(
@@ -152,7 +152,7 @@ final List<DestinationExploreItem> mockExploreItems = [
     subtitleVi: 'Kiến trúc cổ',
     subtitleEn: 'Ancient Architecture',
     location: 'Đà Lạt, Lâm Đồng',
-    imageUrl: 'assets/images/nha_ga_dalat.jpg',
+    imageUrl: 'assets/images/dia_diem/dalat/nha_ga_dalat.jpg',
     rating: 4.7,
   ),
   DestinationExploreItem(
@@ -162,7 +162,7 @@ final List<DestinationExploreItem> mockExploreItems = [
     subtitleVi: 'Sắc màu Đà Lạt',
     subtitleEn: 'Colors of Dalat',
     location: 'Đà Lạt, Lâm Đồng',
-    imageUrl: 'assets/images/vuon_hoa_thanh_pho.jpg',
+    imageUrl: 'assets/images/dia_diem/dalat/vuon_hoa_thanh_pho.jpg',
     rating: 4.8,
   ),
   DestinationExploreItem(
@@ -172,7 +172,7 @@ final List<DestinationExploreItem> mockExploreItems = [
     subtitleVi: 'Kiến trúc độc đáo',
     subtitleEn: 'Unique Architecture',
     location: 'Đà Lạt, Lâm Đồng',
-    imageUrl: 'assets/images/duong_ham_dat_set.jpg',
+    imageUrl: 'assets/images/dia_diem/dalat/duong_ham_dat_set.jpg',
     rating: 4.7,
   ),
   DestinationExploreItem(
@@ -182,7 +182,7 @@ final List<DestinationExploreItem> mockExploreItems = [
     subtitleVi: 'Thác nước nổi tiếng',
     subtitleEn: 'Famous Waterfall',
     location: 'Đà Lạt, Lâm Đồng',
-    imageUrl: 'assets/images/thac_datanla.jpg',
+    imageUrl: 'assets/images/dia_diem/dalat/thac_datanla.jpg',
     rating: 4.8,
   ),
   DestinationExploreItem(
@@ -192,7 +192,7 @@ final List<DestinationExploreItem> mockExploreItems = [
     subtitleVi: 'Biểu tượng Đà Lạt',
     subtitleEn: 'Symbol of Dalat',
     location: 'Đà Lạt, Lâm Đồng',
-    imageUrl: 'assets/images/quang_truong_lam_vien.jpg',
+    imageUrl: 'assets/images/dia_diem/dalat/quang_truong_lam_vien.jpg',
     rating: 4.7,
   ),
   DestinationExploreItem(
@@ -202,7 +202,7 @@ final List<DestinationExploreItem> mockExploreItems = [
     subtitleVi: 'Cảnh đẹp hoang sơ',
     subtitleEn: 'Pristine Scenery',
     location: 'Đà Lạt, Lâm Đồng',
-    imageUrl: 'assets/images/tuyet_tinh_coc.jpg',
+    imageUrl: 'assets/images/dia_diem/dalat/tuyet_tinh_coc.jpg',
     rating: 4.8,
   ),
 
@@ -214,7 +214,7 @@ final List<DestinationExploreItem> mockExploreItems = [
     subtitleVi: 'Biển xanh cát trắng',
     subtitleEn: 'Blue Sea White Sand',
     location: 'Nha Trang, Khánh Hòa',
-    imageUrl: 'assets/images/vinh_nha_trang.jpg',
+    imageUrl: 'assets/images/dia_diem/nhatrang/vinh_nha_trang.jpg',
     rating: 4.9,
   ),
   DestinationExploreItem(
@@ -224,7 +224,7 @@ final List<DestinationExploreItem> mockExploreItems = [
     subtitleVi: 'Lặn ngắm san hô',
     subtitleEn: 'Coral Diving',
     location: 'Nha Trang, Khánh Hòa',
-    imageUrl: 'assets/images/dao_hon_mun.jpg',
+    imageUrl: 'assets/images/dia_diem/nhatrang/dao_hon_mun.jpg',
     rating: 4.8,
   ),
   DestinationExploreItem(
@@ -234,7 +234,7 @@ final List<DestinationExploreItem> mockExploreItems = [
     subtitleVi: 'Khu vui chơi lớn',
     subtitleEn: 'Large Amusement Park',
     location: 'Nha Trang, Khánh Hòa',
-    imageUrl: 'assets/images/vinwonders_nhatrang.jpg',
+    imageUrl: 'assets/images/dia_diem/nhatrang/vinwonders_nhatrang.jpg',
     rating: 4.8,
   ),
   DestinationExploreItem(
@@ -244,7 +244,7 @@ final List<DestinationExploreItem> mockExploreItems = [
     subtitleVi: 'Di tích Chăm Pa',
     subtitleEn: 'Champa Relic',
     location: 'Nha Trang, Khánh Hòa',
-    imageUrl: 'assets/images/thap_ba_ponagar.jpg',
+    imageUrl: 'assets/images/dia_diem/nhatrang/thap_ba_ponagar.jpg',
     rating: 4.7,
   ),
   DestinationExploreItem(
@@ -254,7 +254,7 @@ final List<DestinationExploreItem> mockExploreItems = [
     subtitleVi: 'Bãi biển hoang sơ',
     subtitleEn: 'Pristine Beach',
     location: 'Nha Trang, Khánh Hòa',
-    imageUrl: 'assets/images/bai_dai.jpg',
+    imageUrl: 'assets/images/dia_diem/nhatrang/bai_dai.jpg',
     rating: 4.7,
   ),
   DestinationExploreItem(
@@ -264,7 +264,7 @@ final List<DestinationExploreItem> mockExploreItems = [
     subtitleVi: 'Khu nghỉ dưỡng',
     subtitleEn: 'Resort Area',
     location: 'Nha Trang, Khánh Hòa',
-    imageUrl: 'assets/images/hon_tam.jpg',
+    imageUrl: 'assets/images/dia_diem/nhatrang/hon_tam.jpg',
     rating: 4.8,
   ),
   DestinationExploreItem(
@@ -274,7 +274,7 @@ final List<DestinationExploreItem> mockExploreItems = [
     subtitleVi: 'Điểm check-in nổi tiếng',
     subtitleEn: 'Famous Check-in Spot',
     location: 'Nha Trang, Khánh Hòa',
-    imageUrl: 'assets/images/hon_chong.jpg',
+    imageUrl: 'assets/images/dia_diem/nhatrang/hon_chong.jpg',
     rating: 4.7,
   ),
   DestinationExploreItem(
@@ -284,7 +284,7 @@ final List<DestinationExploreItem> mockExploreItems = [
     subtitleVi: 'Bảo tàng biển',
     subtitleEn: 'Marine Museum',
     location: 'Nha Trang, Khánh Hòa',
-    imageUrl: 'assets/images/vien_hai_duong_hoc.jpg',
+    imageUrl: 'assets/images/dia_diem/nhatrang/vien_hai_duong_hoc.jpg',
     rating: 4.8,
   ),
   DestinationExploreItem(
@@ -294,7 +294,7 @@ final List<DestinationExploreItem> mockExploreItems = [
     subtitleVi: 'Trung tâm mua sắm',
     subtitleEn: 'Shopping Center',
     location: 'Nha Trang, Khánh Hòa',
-    imageUrl: 'assets/images/cho_dam.jpg',
+    imageUrl: 'assets/images/dia_diem/nhatrang/cho_dam.jpg',
     rating: 4.7,
   ),
   DestinationExploreItem(
@@ -304,10 +304,11 @@ final List<DestinationExploreItem> mockExploreItems = [
     subtitleVi: 'Kiến trúc Pháp cổ',
     subtitleEn: 'Ancient French Architecture',
     location: 'Nha Trang, Khánh Hòa',
-    imageUrl: 'assets/images/nha_tho_nui_nhatrang.jpg',
+    imageUrl: 'assets/images/dia_diem/nhatrang/nha_tho_nui_nhatrang.jpg',
     rating: 4.8,
   ),
 
+  // Phú Quốc
   // Phú Quốc
   DestinationExploreItem(
     id: 'phuquoc_1',
@@ -316,7 +317,7 @@ final List<DestinationExploreItem> mockExploreItems = [
     subtitleVi: 'Bãi biển đẹp',
     subtitleEn: 'Beautiful Beach',
     location: 'Phú Quốc, Kiên Giang',
-    imageUrl: 'assets/images/bai_sao.jpg',
+    imageUrl: 'assets/images/dia_diem/phuquoc/bai_sao.jpg',
     rating: 4.9,
   ),
   DestinationExploreItem(
@@ -326,7 +327,7 @@ final List<DestinationExploreItem> mockExploreItems = [
     subtitleVi: 'Bãi biển hoang sơ',
     subtitleEn: 'Pristine Beach',
     location: 'Phú Quốc, Kiên Giang',
-    imageUrl: 'assets/images/bai_dai.jpg',
+    imageUrl: 'assets/images/dia_diem/phuquoc/bai_dai.jpg',
     rating: 4.8,
   ),
   DestinationExploreItem(
@@ -336,7 +337,7 @@ final List<DestinationExploreItem> mockExploreItems = [
     subtitleVi: 'Thị trấn hoàng hôn',
     subtitleEn: 'Sunset Town',
     location: 'Phú Quốc, Kiên Giang',
-    imageUrl: 'assets/images/sunset_town.jpg',
+    imageUrl: 'assets/images/dia_diem/phuquoc/sunset_town.png',
     rating: 4.8,
   ),
   DestinationExploreItem(
@@ -346,7 +347,7 @@ final List<DestinationExploreItem> mockExploreItems = [
     subtitleVi: 'Cáp treo vượt biển',
     subtitleEn: 'Sea Cable Car',
     location: 'Phú Quốc, Kiên Giang',
-    imageUrl: 'assets/images/cap_treo_hon_thom.jpg',
+    imageUrl: 'assets/images/dia_diem/phuquoc/cap_treo_hon_thom.jpg',
     rating: 4.7,
   ),
   DestinationExploreItem(
@@ -356,7 +357,7 @@ final List<DestinationExploreItem> mockExploreItems = [
     subtitleVi: 'Vườn thú bán hoang dã',
     subtitleEn: 'Safari Zoo',
     location: 'Phú Quốc, Kiên Giang',
-    imageUrl: 'assets/images/vinpearl_safari.jpg',
+    imageUrl: 'assets/images/dia_diem/phuquoc/vinpearl_safari.jpg',
     rating: 4.8,
   ),
   DestinationExploreItem(
@@ -366,7 +367,7 @@ final List<DestinationExploreItem> mockExploreItems = [
     subtitleVi: 'Khu du lịch phức hợp',
     subtitleEn: 'Complex Resort',
     location: 'Phú Quốc, Kiên Giang',
-    imageUrl: 'assets/images/grand_world.jpg',
+    imageUrl: 'assets/images/dia_diem/phuquoc/grand_world.jpg',
     rating: 4.7,
   ),
   DestinationExploreItem(
@@ -376,7 +377,7 @@ final List<DestinationExploreItem> mockExploreItems = [
     subtitleVi: 'Di tích tâm linh',
     subtitleEn: 'Spiritual Relic',
     location: 'Phú Quốc, Kiên Giang',
-    imageUrl: 'assets/images/dinh_cau.jpg',
+    imageUrl: 'assets/images/dia_diem/phuquoc/dinh_cau.jpg',
     rating: 4.7,
   ),
   DestinationExploreItem(
@@ -386,7 +387,7 @@ final List<DestinationExploreItem> mockExploreItems = [
     subtitleVi: 'Làng chài truyền thống',
     subtitleEn: 'Traditional Fishing Village',
     location: 'Phú Quốc, Kiên Giang',
-    imageUrl: 'assets/images/lang_chai_ham_ninh.jpg',
+    imageUrl: 'assets/images/dia_diem/phuquoc/lang_chai_ham_ninh.jpg',
     rating: 4.8,
   ),
   DestinationExploreItem(
@@ -396,7 +397,7 @@ final List<DestinationExploreItem> mockExploreItems = [
     subtitleVi: 'Thác nước thiên nhiên',
     subtitleEn: 'Natural Waterfall',
     location: 'Phú Quốc, Kiên Giang',
-    imageUrl: 'assets/images/suoi_tranh.jpg',
+    imageUrl: 'assets/images/dia_diem/phuquoc/suoi_tranh.jpg',
     rating: 4.7,
   ),
   DestinationExploreItem(
@@ -406,7 +407,7 @@ final List<DestinationExploreItem> mockExploreItems = [
     subtitleVi: 'Di tích lịch sử',
     subtitleEn: 'Historical Relic',
     location: 'Phú Quốc, Kiên Giang',
-    imageUrl: 'assets/images/nha_tu_phu_quoc.jpg',
+    imageUrl: 'assets/images/dia_diem/phuquoc/nha_tu_phu_quoc.jpg',
     rating: 4.8,
   ),
 
@@ -418,7 +419,7 @@ final List<DestinationExploreItem> mockExploreItems = [
     subtitleVi: 'Trái tim thủ đô',
     subtitleEn: 'Heart of the Capital',
     location: 'Hà Nội',
-    imageUrl: 'assets/images/ho_hoan_kiem.jpg',
+    imageUrl: 'assets/images/dia_diem/hanoi/ho_hoan_kiem.jpg',
     rating: 4.9,
   ),
   DestinationExploreItem(
@@ -428,7 +429,7 @@ final List<DestinationExploreItem> mockExploreItems = [
     subtitleVi: 'Di sản văn hóa',
     subtitleEn: 'Cultural Heritage',
     location: 'Hà Nội',
-    imageUrl: 'assets/images/pho_co_ha_noi.jpg',
+    imageUrl: 'assets/images/dia_diem/hanoi/pho_co_ha_noi.jpg',
     rating: 4.8,
   ),
   DestinationExploreItem(
@@ -438,7 +439,7 @@ final List<DestinationExploreItem> mockExploreItems = [
     subtitleVi: 'Di tích lịch sử',
     subtitleEn: 'Historical Relic',
     location: 'Hà Nội',
-    imageUrl: 'assets/images/van_mieu_quoc_tu_giam.jpg',
+    imageUrl: 'assets/images/dia_diem/hanoi/van_mieu_quoc_tu_giam.jpg',
     rating: 4.8,
   ),
   DestinationExploreItem(
@@ -448,7 +449,7 @@ final List<DestinationExploreItem> mockExploreItems = [
     subtitleVi: 'Biểu tượng quốc gia',
     subtitleEn: 'National Symbol',
     location: 'Hà Nội',
-    imageUrl: 'assets/images/lang_bac.jpg',
+    imageUrl: 'assets/images/dia_diem/hanoi/lang_bac.jpg',
     rating: 4.7,
   ),
   DestinationExploreItem(
@@ -458,7 +459,7 @@ final List<DestinationExploreItem> mockExploreItems = [
     subtitleVi: 'Kiến trúc độc đáo',
     subtitleEn: 'Unique Architecture',
     location: 'Hà Nội',
-    imageUrl: 'assets/images/chua_mot_cot.jpg',
+    imageUrl: 'assets/images/dia_diem/hanoi/chua_mot_cot.jpg',
     rating: 4.7,
   ),
   DestinationExploreItem(
@@ -468,7 +469,7 @@ final List<DestinationExploreItem> mockExploreItems = [
     subtitleVi: 'Kiến trúc Gothic',
     subtitleEn: 'Gothic Architecture',
     location: 'Hà Nội',
-    imageUrl: 'assets/images/nha_tho_lon_hanoi.jpg',
+    imageUrl: 'assets/images/dia_diem/hanoi/nha_tho_lon_hanoi.jpg',
     rating: 4.8,
   ),
   DestinationExploreItem(
@@ -478,7 +479,7 @@ final List<DestinationExploreItem> mockExploreItems = [
     subtitleVi: 'Bảo tàng văn hóa',
     subtitleEn: 'Culture Museum',
     location: 'Hà Nội',
-    imageUrl: 'assets/images/bao_tang_dan_toc_hoc.jpg',
+    imageUrl: 'assets/images/dia_diem/hanoi/bao_tang_dan_toc_hoc.jpg',
     rating: 4.7,
   ),
   DestinationExploreItem(
@@ -488,7 +489,7 @@ final List<DestinationExploreItem> mockExploreItems = [
     subtitleVi: 'Di sản thế giới',
     subtitleEn: 'World Heritage',
     location: 'Hà Nội',
-    imageUrl: 'assets/images/hoang_thanh_thang_long.jpg',
+    imageUrl: 'assets/images/dia_diem/hanoi/hoang_thanh_thang_long.jpg',
     rating: 4.8,
   ),
   DestinationExploreItem(
@@ -498,7 +499,7 @@ final List<DestinationExploreItem> mockExploreItems = [
     subtitleVi: 'Hồ lớn nhất Hà Nội',
     subtitleEn: 'Largest Lake in Hanoi',
     location: 'Hà Nội',
-    imageUrl: 'assets/images/ho_tay.jpg',
+    imageUrl: 'assets/images/dia_diem/hanoi/ho_tay.jpg',
     rating: 4.7,
   ),
   DestinationExploreItem(
@@ -508,9 +509,10 @@ final List<DestinationExploreItem> mockExploreItems = [
     subtitleVi: 'Cầu lịch sử',
     subtitleEn: 'Historical Bridge',
     location: 'Hà Nội',
-    imageUrl: 'assets/images/cau_long_bien.jpg',
+    imageUrl: 'assets/images/dia_diem/hanoi/cau_long_bien.jpg',
     rating: 4.8,
   ),
+
 
   // Hội An
   DestinationExploreItem(
@@ -520,7 +522,7 @@ final List<DestinationExploreItem> mockExploreItems = [
     subtitleVi: 'Biểu tượng Hội An',
     subtitleEn: 'Symbol of Hoi An',
     location: 'Hội An, Quảng Nam',
-    imageUrl: 'assets/images/chua_cau.jpg',
+    imageUrl: 'assets/images/dia_diem/hoian/chua_cau.jpg',
     rating: 4.9,
   ),
   DestinationExploreItem(
@@ -530,7 +532,7 @@ final List<DestinationExploreItem> mockExploreItems = [
     subtitleVi: 'Dòng sông thơ mộng',
     subtitleEn: 'Poetic River',
     location: 'Hội An, Quảng Nam',
-    imageUrl: 'assets/images/song_hoai.jpg',
+    imageUrl: 'assets/images/dia_diem/hoian/song_hoai.jpg',
     rating: 4.8,
   ),
   DestinationExploreItem(
@@ -540,7 +542,7 @@ final List<DestinationExploreItem> mockExploreItems = [
     subtitleVi: 'Không gian lung linh',
     subtitleEn: 'Sparkling Space',
     location: 'Hội An, Quảng Nam',
-    imageUrl: 'assets/images/pho_den_long.jpg',
+    imageUrl: 'assets/images/dia_diem/hoian/pho_den_long.jpg',
     rating: 4.8,
   ),
   DestinationExploreItem(
@@ -550,7 +552,7 @@ final List<DestinationExploreItem> mockExploreItems = [
     subtitleVi: 'Di tích lịch sử',
     subtitleEn: 'Historical Relic',
     location: 'Hội An, Quảng Nam',
-    imageUrl: 'assets/images/nha_co_phung_hung.jpg',
+    imageUrl: 'assets/images/dia_diem/hoian/nha_co_phung_hung.jpg',
     rating: 4.7,
   ),
   DestinationExploreItem(
@@ -560,7 +562,7 @@ final List<DestinationExploreItem> mockExploreItems = [
     subtitleVi: 'Kiến trúc cổ',
     subtitleEn: 'Ancient Architecture',
     location: 'Hội An, Quảng Nam',
-    imageUrl: 'assets/images/nha_co_tan_ky.jpg',
+    imageUrl: 'assets/images/dia_diem/hoian/nha_co_tan_ky.jpg',
     rating: 4.7,
   ),
   DestinationExploreItem(
@@ -570,7 +572,7 @@ final List<DestinationExploreItem> mockExploreItems = [
     subtitleVi: 'Kiến trúc Trung Hoa',
     subtitleEn: 'Chinese Architecture',
     location: 'Hội An, Quảng Nam',
-    imageUrl: 'assets/images/hoi_quan_phuc_kien.jpg',
+    imageUrl: 'assets/images/dia_diem/hoian/hoi_quan_phuc_kien.jpg',
     rating: 4.8,
   ),
   DestinationExploreItem(
@@ -580,7 +582,7 @@ final List<DestinationExploreItem> mockExploreItems = [
     subtitleVi: 'Làng nghề truyền thống',
     subtitleEn: 'Traditional Craft Village',
     location: 'Hội An, Quảng Nam',
-    imageUrl: 'assets/images/lang_gom_thanh_ha.jpg',
+    imageUrl: 'assets/images/dia_diem/hoian/lang_gom_thanh_ha.jpg',
     rating: 4.7,
   ),
   DestinationExploreItem(
@@ -590,7 +592,7 @@ final List<DestinationExploreItem> mockExploreItems = [
     subtitleVi: 'Bãi biển đẹp',
     subtitleEn: 'Beautiful Beach',
     location: 'Hội An, Quảng Nam',
-    imageUrl: 'assets/images/bai_bien_cua_dai.jpg',
+    imageUrl: 'assets/images/dia_diem/hoian/bai_bien_cua_dai.jpg',
     rating: 4.8,
   ),
   DestinationExploreItem(
@@ -600,7 +602,7 @@ final List<DestinationExploreItem> mockExploreItems = [
     subtitleVi: 'Hòn đảo thiên nhiên',
     subtitleEn: 'Natural Island',
     location: 'Hội An, Quảng Nam',
-    imageUrl: 'assets/images/cu_lao_cham.jpg',
+    imageUrl: 'assets/images/dia_diem/hoian/cu_lao_cham.jpg',
     rating: 4.7,
   ),
   DestinationExploreItem(
@@ -610,11 +612,12 @@ final List<DestinationExploreItem> mockExploreItems = [
     subtitleVi: 'Làng rau nổi tiếng',
     subtitleEn: 'Famous Vegetable Village',
     location: 'Hội An, Quảng Nam',
-    imageUrl: 'assets/images/lang_rau_tra_que.jpg',
+    imageUrl: 'assets/images/dia_diem/hoian/lang_rau_tra_que.jpg',
     rating: 4.8,
   ),
 
-  // Huế
+
+// Huế
   DestinationExploreItem(
     id: 'hue_1',
     cityId: 'hue',
@@ -622,7 +625,7 @@ final List<DestinationExploreItem> mockExploreItems = [
     subtitleVi: 'Di sản thế giới',
     subtitleEn: 'World Heritage',
     location: 'Huế, Thừa Thiên Huế',
-    imageUrl: 'assets/images/kinh_thanh_hue.jpg',
+    imageUrl: 'assets/images/dia_diem/hue/kinh_thanh_hue.jpg',
     rating: 4.9,
   ),
   DestinationExploreItem(
@@ -632,7 +635,7 @@ final List<DestinationExploreItem> mockExploreItems = [
     subtitleVi: 'Cung điện hoàng gia',
     subtitleEn: 'Royal Palace',
     location: 'Huế, Thừa Thiên Huế',
-    imageUrl: 'assets/images/dai_noi.jpg',
+    imageUrl: 'assets/images/dia_diem/hue/dai_noi.jpg',
     rating: 4.8,
   ),
   DestinationExploreItem(
@@ -642,7 +645,7 @@ final List<DestinationExploreItem> mockExploreItems = [
     subtitleVi: 'Dòng sông thơ mộng',
     subtitleEn: 'Poetic River',
     location: 'Huế, Thừa Thiên Huế',
-    imageUrl: 'assets/images/song_huong.jpg',
+    imageUrl: 'assets/images/dia_diem/hue/song_huong.jpg',
     rating: 4.8,
   ),
   DestinationExploreItem(
@@ -652,7 +655,7 @@ final List<DestinationExploreItem> mockExploreItems = [
     subtitleVi: 'Cầu nổi tiếng',
     subtitleEn: 'Famous Bridge',
     location: 'Huế, Thừa Thiên Huế',
-    imageUrl: 'assets/images/cau_truong_tien.jpg',
+    imageUrl: 'assets/images/dia_diem/hue/cau_truong_tien.jpg',
     rating: 4.7,
   ),
   DestinationExploreItem(
@@ -662,7 +665,7 @@ final List<DestinationExploreItem> mockExploreItems = [
     subtitleVi: 'Lăng tẩm hoàng gia',
     subtitleEn: 'Royal Tomb',
     location: 'Huế, Thừa Thiên Huế',
-    imageUrl: 'assets/images/lang_khai_dinh.jpg',
+    imageUrl: 'assets/images/dia_diem/hue/lang_khai_dinh.jpg',
     rating: 4.7,
   ),
   DestinationExploreItem(
@@ -672,7 +675,7 @@ final List<DestinationExploreItem> mockExploreItems = [
     subtitleVi: 'Lăng tẩm hoàng gia',
     subtitleEn: 'Royal Tomb',
     location: 'Huế, Thừa Thiên Huế',
-    imageUrl: 'assets/images/lang_tu_duc.jpg',
+    imageUrl: 'assets/images/dia_diem/hue/lang_tu_duc.jpg',
     rating: 4.8,
   ),
   DestinationExploreItem(
@@ -682,7 +685,7 @@ final List<DestinationExploreItem> mockExploreItems = [
     subtitleVi: 'Chùa cổ nổi tiếng',
     subtitleEn: 'Famous Ancient Pagoda',
     location: 'Huế, Thừa Thiên Huế',
-    imageUrl: 'assets/images/chua_thien_mu.jpg',
+    imageUrl: 'assets/images/dia_diem/hue/chua_thien_mu.jpg',
     rating: 4.7,
   ),
   DestinationExploreItem(
@@ -692,7 +695,7 @@ final List<DestinationExploreItem> mockExploreItems = [
     subtitleVi: 'Danh thắng thiên nhiên',
     subtitleEn: 'Natural Wonder',
     location: 'Huế, Thừa Thiên Huế',
-    imageUrl: 'assets/images/nui_ngu_binh.jpg',
+    imageUrl: 'assets/images/dia_diem/hue/nui_ngu_binh.jpg',
     rating: 4.8,
   ),
   DestinationExploreItem(
@@ -702,7 +705,7 @@ final List<DestinationExploreItem> mockExploreItems = [
     subtitleVi: 'Bãi biển đẹp',
     subtitleEn: 'Beautiful Beach',
     location: 'Huế, Thừa Thiên Huế',
-    imageUrl: 'assets/images/bien_thuan_an.jpg',
+    imageUrl: 'assets/images/dia_diem/hue/bien_thuan_an.jpg',
     rating: 4.7,
   ),
   DestinationExploreItem(
@@ -712,7 +715,7 @@ final List<DestinationExploreItem> mockExploreItems = [
     subtitleVi: 'Không gian văn hóa',
     subtitleEn: 'Cultural Space',
     location: 'Huế, Thừa Thiên Huế',
-    imageUrl: 'assets/images/pho_di_bo_nguyen_dinh_chieu.jpg',
+    imageUrl: 'assets/images/dia_diem/hue/pho_di_bo_nguyen_dinh_chieu.jpg',
     rating: 4.8,
   ),
 
@@ -724,7 +727,7 @@ final List<DestinationExploreItem> mockExploreItems = [
     subtitleVi: 'Kiến trúc Pháp cổ',
     subtitleEn: 'Ancient French Architecture',
     location: 'TP. Hồ Chí Minh',
-    imageUrl: 'assets/images/nha_tho_duc_ba.jpg',
+    imageUrl: 'assets/images/dia_diem/saigon/nha_tho_duc_ba.jpg',
     rating: 4.9,
   ),
   DestinationExploreItem(
@@ -734,7 +737,7 @@ final List<DestinationExploreItem> mockExploreItems = [
     subtitleVi: 'Di tích lịch sử',
     subtitleEn: 'Historical Relic',
     location: 'TP. Hồ Chí Minh',
-    imageUrl: 'assets/images/dinh_doc_lap.jpg',
+    imageUrl: 'assets/images/dia_diem/saigon/dinh_doc_lap.jpg',
     rating: 4.8,
   ),
   DestinationExploreItem(
@@ -744,7 +747,7 @@ final List<DestinationExploreItem> mockExploreItems = [
     subtitleVi: 'Kiến trúc cổ',
     subtitleEn: 'Ancient Architecture',
     location: 'TP. Hồ Chí Minh',
-    imageUrl: 'assets/images/buu_dien_trung_tam.jpg',
+    imageUrl: 'assets/images/dia_diem/saigon/buu_dien_trung_tam.jpg',
     rating: 4.8,
   ),
   DestinationExploreItem(
@@ -754,7 +757,7 @@ final List<DestinationExploreItem> mockExploreItems = [
     subtitleVi: 'Trung tâm mua sắm',
     subtitleEn: 'Shopping Center',
     location: 'TP. Hồ Chí Minh',
-    imageUrl: 'assets/images/cho_ben_thanh.jpg',
+    imageUrl: 'assets/images/dia_diem/saigon/cho_ben_thanh.jpg',
     rating: 4.7,
   ),
   DestinationExploreItem(
@@ -764,7 +767,7 @@ final List<DestinationExploreItem> mockExploreItems = [
     subtitleVi: 'Không gian hiện đại',
     subtitleEn: 'Modern Space',
     location: 'TP. Hồ Chí Minh',
-    imageUrl: 'assets/images/pho_di_bo_nguyen_hue.jpg',
+    imageUrl: 'assets/images/dia_diem/saigon/pho_di_bo_nguyen_hue.jpg',
     rating: 4.7,
   ),
   DestinationExploreItem(
@@ -774,7 +777,7 @@ final List<DestinationExploreItem> mockExploreItems = [
     subtitleVi: 'Tòa nhà cao nhất Việt Nam',
     subtitleEn: 'Tallest Building in Vietnam',
     location: 'TP. Hồ Chí Minh',
-    imageUrl: 'assets/images/landmark_81.jpg',
+    imageUrl: 'assets/images/dia_diem/saigon/landmark_81.jpg',
     rating: 4.8,
   ),
   DestinationExploreItem(
@@ -784,7 +787,7 @@ final List<DestinationExploreItem> mockExploreItems = [
     subtitleVi: 'Bảo tàng lịch sử',
     subtitleEn: 'History Museum',
     location: 'TP. Hồ Chí Minh',
-    imageUrl: 'assets/images/bao_tang_chung_tich_chien_tranh.jpg',
+    imageUrl: 'assets/images/dia_diem/saigon/bao_tang_chung_tich_chien_tranh.jpg',
     rating: 4.7,
   ),
   DestinationExploreItem(
@@ -794,7 +797,7 @@ final List<DestinationExploreItem> mockExploreItems = [
     subtitleVi: 'Tòa nhà biểu tượng',
     subtitleEn: 'Iconic Building',
     location: 'TP. Hồ Chí Minh',
-    imageUrl: 'assets/images/bitexco_tower.jpg',
+    imageUrl: 'assets/images/dia_diem/saigon/bitexco_tower.jpg',
     rating: 4.8,
   ),
   DestinationExploreItem(
@@ -804,7 +807,7 @@ final List<DestinationExploreItem> mockExploreItems = [
     subtitleVi: 'Khu phố sôi động',
     subtitleEn: 'Vibrant Street',
     location: 'TP. Hồ Chí Minh',
-    imageUrl: 'assets/images/khu_pho_tay_bui_vien.jpg',
+    imageUrl: 'assets/images/dia_diem/saigon/khu_pho_tay_bui_vien.jpg',
     rating: 4.7,
   ),
   DestinationExploreItem(
@@ -814,9 +817,10 @@ final List<DestinationExploreItem> mockExploreItems = [
     subtitleVi: 'Không gian xanh',
     subtitleEn: 'Green Space',
     location: 'TP. Hồ Chí Minh',
-    imageUrl: 'assets/images/cong_vien_tao_dan.jpg',
+    imageUrl: 'assets/images/dia_diem/saigon/cong_vien_tao_dan.jpg',
     rating: 4.8,
   ),
+
 
   // Sa Pa
   DestinationExploreItem(
@@ -826,7 +830,7 @@ final List<DestinationExploreItem> mockExploreItems = [
     subtitleVi: 'Nóc nhà Đông Dương',
     subtitleEn: 'Roof of Indochina',
     location: 'Sa Pa, Lào Cai',
-    imageUrl: 'assets/images/fansipan.jpg',
+    imageUrl: 'assets/images/dia_diem/sapa/fansipan.jpg',
     rating: 4.9,
   ),
   DestinationExploreItem(
@@ -836,7 +840,7 @@ final List<DestinationExploreItem> mockExploreItems = [
     subtitleVi: 'Kiến trúc Pháp cổ',
     subtitleEn: 'Ancient French Architecture',
     location: 'Sa Pa, Lào Cai',
-    imageUrl: 'assets/images/nha_tho_da_sapa.jpg',
+    imageUrl: 'assets/images/dia_diem/sapa/nha_tho_da_sapa.jpg',
     rating: 4.8,
   ),
   DestinationExploreItem(
@@ -846,7 +850,7 @@ final List<DestinationExploreItem> mockExploreItems = [
     subtitleVi: 'Làng dân tộc',
     subtitleEn: 'Ethnic Village',
     location: 'Sa Pa, Lào Cai',
-    imageUrl: 'assets/images/ban_cat_cat.jpg',
+    imageUrl: 'assets/images/dia_diem/sapa/ban_cat_cat.jpg',
     rating: 4.8,
   ),
   DestinationExploreItem(
@@ -856,7 +860,7 @@ final List<DestinationExploreItem> mockExploreItems = [
     subtitleVi: 'Làng dân tộc',
     subtitleEn: 'Ethnic Village',
     location: 'Sa Pa, Lào Cai',
-    imageUrl: 'assets/images/ban_ta_van.jpg',
+    imageUrl: 'assets/images/dia_diem/sapa/ban_ta_van.jpg',
     rating: 4.7,
   ),
   DestinationExploreItem(
@@ -866,7 +870,7 @@ final List<DestinationExploreItem> mockExploreItems = [
     subtitleVi: 'Làng dân tộc',
     subtitleEn: 'Ethnic Village',
     location: 'Sa Pa, Lào Cai',
-    imageUrl: 'assets/images/ban_lao_chai.jpg',
+    imageUrl: 'assets/images/dia_diem/sapa/ban_lao_chai.jpg',
     rating: 4.7,
   ),
   DestinationExploreItem(
@@ -876,7 +880,7 @@ final List<DestinationExploreItem> mockExploreItems = [
     subtitleVi: 'Thác nước nổi tiếng',
     subtitleEn: 'Famous Waterfall',
     location: 'Sa Pa, Lào Cai',
-    imageUrl: 'assets/images/thac_bac.jpg',
+    imageUrl: 'assets/images/dia_diem/sapa/thac_bac.jpg',
     rating: 4.8,
   ),
   DestinationExploreItem(
@@ -886,7 +890,7 @@ final List<DestinationExploreItem> mockExploreItems = [
     subtitleVi: 'Cảnh đẹp thiên nhiên',
     subtitleEn: 'Natural Beauty',
     location: 'Sa Pa, Lào Cai',
-    imageUrl: 'assets/images/thung_lung_muong_hoa.jpg',
+    imageUrl: 'assets/images/dia_diem/sapa/thung_lung_muong_hoa.jpg',
     rating: 4.7,
   ),
   DestinationExploreItem(
@@ -896,7 +900,7 @@ final List<DestinationExploreItem> mockExploreItems = [
     subtitleVi: 'Cầu treo nổi tiếng',
     subtitleEn: 'Famous Suspension Bridge',
     location: 'Sa Pa, Lào Cai',
-    imageUrl: 'assets/images/cau_may.jpg',
+    imageUrl: 'assets/images/dia_diem/sapa/cau_may.jpg',
     rating: 4.8,
   ),
   DestinationExploreItem(
@@ -906,7 +910,7 @@ final List<DestinationExploreItem> mockExploreItems = [
     subtitleVi: 'Điểm ngắm cảnh',
     subtitleEn: 'Viewpoint',
     location: 'Sa Pa, Lào Cai',
-    imageUrl: 'assets/images/cong_troi_o_quy_ho.jpg',
+    imageUrl: 'assets/images/dia_diem/sapa/cong_troi_o_quy_ho.jpg',
     rating: 4.7,
   ),
   DestinationExploreItem(
@@ -916,10 +920,12 @@ final List<DestinationExploreItem> mockExploreItems = [
     subtitleVi: 'Trung tâm mua sắm',
     subtitleEn: 'Shopping Center',
     location: 'Sa Pa, Lào Cai',
-    imageUrl: 'assets/images/cho_sapa.jpg',
+    imageUrl: 'assets/images/dia_diem/sapa/cho_sapa.jpg',
     rating: 4.8,
   ),
 
+
+  // Hạ Long
   // Hạ Long
   DestinationExploreItem(
     id: 'halong_1',
@@ -928,7 +934,7 @@ final List<DestinationExploreItem> mockExploreItems = [
     subtitleVi: 'Di sản thiên nhiên',
     subtitleEn: 'Natural Heritage',
     location: 'Hạ Long, Quảng Ninh',
-    imageUrl: 'assets/images/vinh_ha_long.jpg',
+    imageUrl: 'assets/images/dia_diem/halong/vinh_ha_long.jpg',
     rating: 4.9,
   ),
   DestinationExploreItem(
@@ -938,7 +944,7 @@ final List<DestinationExploreItem> mockExploreItems = [
     subtitleVi: 'Khu du lịch nổi tiếng',
     subtitleEn: 'Famous Resort',
     location: 'Hạ Long, Quảng Ninh',
-    imageUrl: 'assets/images/dao_tuan_chau.jpg',
+    imageUrl: 'assets/images/dia_diem/halong/dao_tuan_chau.jpg',
     rating: 4.8,
   ),
   DestinationExploreItem(
@@ -948,7 +954,7 @@ final List<DestinationExploreItem> mockExploreItems = [
     subtitleVi: 'Hang động đẹp',
     subtitleEn: 'Beautiful Cave',
     location: 'Hạ Long, Quảng Ninh',
-    imageUrl: 'assets/images/hang_sung_sot.jpg',
+    imageUrl: 'assets/images/dia_diem/halong/hang_sung_sot.jpg',
     rating: 4.8,
   ),
   DestinationExploreItem(
@@ -958,7 +964,7 @@ final List<DestinationExploreItem> mockExploreItems = [
     subtitleVi: 'Hang động đẹp',
     subtitleEn: 'Beautiful Cave',
     location: 'Hạ Long, Quảng Ninh',
-    imageUrl: 'assets/images/dong_thien_cung.jpg',
+    imageUrl: 'assets/images/dia_diem/halong/dong_thien_cung.jpg',
     rating: 4.7,
   ),
   DestinationExploreItem(
@@ -968,7 +974,7 @@ final List<DestinationExploreItem> mockExploreItems = [
     subtitleVi: 'Bãi biển nổi tiếng',
     subtitleEn: 'Famous Beach',
     location: 'Hạ Long, Quảng Ninh',
-    imageUrl: 'assets/images/bai_chay.jpg',
+    imageUrl: 'assets/images/dia_diem/halong/bai_chay.jpg',
     rating: 4.7,
   ),
   DestinationExploreItem(
@@ -978,7 +984,7 @@ final List<DestinationExploreItem> mockExploreItems = [
     subtitleVi: 'Điểm ngắm cảnh',
     subtitleEn: 'Viewpoint',
     location: 'Hạ Long, Quảng Ninh',
-    imageUrl: 'assets/images/nui_bai_tho.jpg',
+    imageUrl: 'assets/images/dia_diem/halong/nui_bai_tho.jpg',
     rating: 4.8,
   ),
   DestinationExploreItem(
@@ -988,7 +994,7 @@ final List<DestinationExploreItem> mockExploreItems = [
     subtitleVi: 'Bảo tàng hiện đại',
     subtitleEn: 'Modern Museum',
     location: 'Hạ Long, Quảng Ninh',
-    imageUrl: 'assets/images/bao_tang_quang_ninh.jpg',
+    imageUrl: 'assets/images/dia_diem/halong/bao_tang_quang_ninh.jpg',
     rating: 4.7,
   ),
   DestinationExploreItem(
@@ -998,7 +1004,7 @@ final List<DestinationExploreItem> mockExploreItems = [
     subtitleVi: 'Công viên giải trí',
     subtitleEn: 'Amusement Park',
     location: 'Hạ Long, Quảng Ninh',
-    imageUrl: 'assets/images/sun_world_ha_long_park.jpg',
+    imageUrl: 'assets/images/dia_diem/halong/sun_world_ha_long_park.jpg',
     rating: 4.8,
   ),
   DestinationExploreItem(
@@ -1008,7 +1014,7 @@ final List<DestinationExploreItem> mockExploreItems = [
     subtitleVi: 'Cầu nổi tiếng',
     subtitleEn: 'Famous Bridge',
     location: 'Hạ Long, Quảng Ninh',
-    imageUrl: 'assets/images/cau_bai_chay.jpg',
+    imageUrl: 'assets/images/dia_diem/halong/cau_bai_chay.jpg',
     rating: 4.7,
   ),
   DestinationExploreItem(
@@ -1018,7 +1024,7 @@ final List<DestinationExploreItem> mockExploreItems = [
     subtitleVi: 'Trung tâm mua sắm',
     subtitleEn: 'Shopping Center',
     location: 'Hạ Long, Quảng Ninh',
-    imageUrl: 'assets/images/cho_dem_ha_long.jpg',
+    imageUrl: 'assets/images/dia_diem/halong/cho_dem_ha_long.jpg',
     rating: 4.8,
   ),
 ];

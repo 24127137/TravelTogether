@@ -1,15 +1,17 @@
 // feedback_screen.dart
 import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
-import '../../models/feedback_models.dart';
-import '../../services/feedback_service.dart';
+import '../../models/feedback_models.dart'; // Import models
+import '../../services/feedback_service.dart'; // Import service
 
 class FeedbackScreen extends StatefulWidget {
-  final PendingReviewGroup groupData; // Nhận dữ liệu từ màn hình list
+  final PendingReviewGroup groupData;
+  final String accessToken; // <--- Thêm biến này
 
   const FeedbackScreen({
     super.key,
     required this.groupData,
+    required this.accessToken, // <--- Yêu cầu bắt buộc
   });
 
   @override
@@ -27,8 +29,6 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
   bool isLoading = false;
 
   // --- MAPPING TAGS ---
-  // Key: UI hiển thị (Tiếng Việt)
-  // Value: API cần (Tiếng Anh - khớp với predefined_tags trong Python)
   final Map<int, Map<String, String>> tagsMapping = {
     1: {
       'Tệ': 'bad', 'Không đáng tin': 'unreliable', 'Thiếu trách nhiệm': 'irresponsible',
@@ -55,7 +55,6 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
   @override
   void initState() {
     super.initState();
-    // Tạo list clone để có thể xóa dần
     _remainingMembers = List.from(widget.groupData.unreviewedMembers);
   }
 
@@ -78,14 +77,14 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
     setState(() => isLoading = true);
 
     try {
-      // 1. Convert tags hiển thị sang tags tiếng Anh cho API
+      // 1. Convert tags
       final englishTags = selectedTags.map((displayTag) {
         return tagsMapping[selectedStars]![displayTag]!;
       }).toList();
 
-      // 2. Gọi API
+      // 2. Gọi API dùng Token được truyền vào
       final success = await _apiService.submitFeedback(
-        token: "user_token_here", // TODO: Lấy token thật
+        token: widget.accessToken, // <--- Dùng token từ widget
         revId: selectedMember!.profileId,
         groupId: widget.groupData.groupId,
         rating: selectedStars,
@@ -95,14 +94,12 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
       if (success) {
         final evaluatedName = selectedMember!.fullname;
 
-        // 3. Xóa member đã đánh giá khỏi list
         setState(() {
           _remainingMembers.removeWhere((m) => m.profileId == selectedMember!.profileId);
           _resetForm();
           isLoading = false;
         });
 
-        // 4. Kiểm tra xem còn ai để đánh giá không
         if (_remainingMembers.isEmpty) {
           _showCompletionDialog();
         } else {
@@ -110,6 +107,8 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
             SnackBar(content: Text('Đã gửi đánh giá cho $evaluatedName'), backgroundColor: Colors.green),
           );
         }
+      } else {
+        throw Exception("Server trả về lỗi (có thể do 401/400)");
       }
     } catch (e) {
       setState(() => isLoading = false);
@@ -129,8 +128,8 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
         actions: [
           TextButton(
             onPressed: () {
-              Navigator.pop(ctx); // Đóng dialog
-              Navigator.pop(context, true); // Quay về list và báo cần refresh
+              Navigator.pop(ctx);
+              Navigator.pop(context, true);
             },
             child: const Text("OK"),
           )
@@ -141,15 +140,12 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Lấy list tags hiển thị dựa trên số sao
     final availableDisplayTags = selectedStars > 0 ? tagsMapping[selectedStars]!.keys.toList() : <String>[];
 
-    // Responsive Logic giữ nguyên
     return Scaffold(
       resizeToAvoidBottomInset: false,
       body: Stack(
         children: [
-          // Background cũ
           Container(
             color: const Color(0xFFB64B12),
             child: Column(
@@ -176,7 +172,6 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
                 final scaleFactor = (screenHeight / 800).clamp(0.65, 1.0);
                 final langScale = context.locale.languageCode == 'en' ? 0.75 : 1.0;
 
-                // Scaled sizes
                 final titleFontSize = 96.0 * scaleFactor * langScale;
                 final titleOffset = -55.0 * scaleFactor * langScale;
                 final contentTopPosition = 50.0 * scaleFactor;
@@ -192,14 +187,13 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
 
                 return Column(
                   children: [
-                    // Header
                     Padding(
                       padding: EdgeInsets.symmetric(horizontal: 26, vertical: headerVerticalPadding),
                       child: Row(
                         children: [
                           _buildCircleBtn(
                               icon: Icons.arrow_back,
-                              onTap: () => Navigator.pop(context, true) // Quay về list
+                              onTap: () => Navigator.pop(context, true)
                           ),
                           const Spacer(),
                           if (isLoading)
@@ -231,7 +225,6 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
                               child: ListView(
                                 padding: EdgeInsets.fromLTRB(24 * scaleFactor, contentTopPadding, 24 * scaleFactor, 24 * scaleFactor),
                                 children: [
-                                  // Group Info (Dynamic Data)
                                   Row(
                                     children: [
                                       Container(
@@ -261,7 +254,6 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
                                               maxLines: 2, overflow: TextOverflow.ellipsis,
                                             ),
                                             SizedBox(height: 8 * scaleFactor),
-                                            // Star Selector
                                             Row(
                                               children: List.generate(5, (index) {
                                                 return GestureDetector(
@@ -290,7 +282,6 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
 
                                   SizedBox(height: sectionSpacing),
 
-                                  // SECTION: Đối tượng
                                   Text('Đối tượng'.tr(), style: _sectionTitleStyle(sectionTitleSize)),
                                   SizedBox(height: containerPadding),
                                   Container(
@@ -317,7 +308,6 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
 
                                   SizedBox(height: sectionSpacing),
 
-                                  // SECTION: Ý kiến
                                   Text('Ý kiến'.tr(), style: _sectionTitleStyle(sectionTitleSize)),
                                   SizedBox(height: containerPadding),
                                   Container(
@@ -356,7 +346,6 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
                             ),
                           ),
 
-                          // TITLE GÓP Ý
                           Positioned(
                             top: 0, left: 0, right: 0,
                             child: Transform.translate(
@@ -395,8 +384,6 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
       ),
     );
   }
-
-  // --- Helpers for cleaner build ---
 
   Widget _buildCircleBtn({required IconData icon, required VoidCallback onTap}) {
     return Container(

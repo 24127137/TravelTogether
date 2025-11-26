@@ -13,8 +13,9 @@ class ListGroupFeedbackScreen extends StatefulWidget {
 }
 
 class _ListGroupFeedbackScreenState extends State<ListGroupFeedbackScreen> {
-  // Giả lập token, thực tế bạn lấy từ AuthProvider/Storage
-  final String _fakeToken = "eyJhbGciOiJIUzI1NiIsImtpZCI6IjQ4Ukk2RTJWbEpFQkJMN3ciLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL21ldXFudHZhd2FrZHpudGV3c2NwLnN1cGFiYXNlLmNvL2F1dGgvdjEiLCJzdWIiOiJiYWZiYWQ1MS0xYzg3LTQ1MDYtOWJmMC1kYzgyZGU4ZTAzNjUiLCJhdWQiOiJhdXRoZW50aWNhdGVkIiwiZXhwIjoxNzY0NDQ4OTA2LCJpYXQiOjE3NjQwODg5MDYsImVtYWlsIjoia2hvYUB0ZXN0LmNvbSIsInBob25lIjoiIiwiYXBwX21ldGFkYXRhIjp7InByb3ZpZGVyIjoiZW1haWwiLCJwcm92aWRlcnMiOlsiZW1haWwiXX0sInVzZXJfbWV0YWRhdGEiOnsiZW1haWwiOiJraG9hQHRlc3QuY29tIiwiZW1haWxfdmVyaWZpZWQiOnRydWUsInBob25lX3ZlcmlmaWVkIjpmYWxzZSwic3ViIjoiYmFmYmFkNTEtMWM4Ny00NTA2LTliZjAtZGM4MmRlOGUwMzY1In0sInJvbGUiOiJhdXRoZW50aWNhdGVkIiwiYWFsIjoiYWFsMSIsImFtciI6W3sibWV0aG9kIjoicGFzc3dvcmQiLCJ0aW1lc3RhbXAiOjE3NjQwODg5MDZ9XSwic2Vzc2lvbl9pZCI6IjhjYmVmZDcwLWRiZmMtNGU4OC05ZWRhLTY2OWFmYmFhOWY1YyIsImlzX2Fub255bW91cyI6ZmFsc2V9.SVZ8bJ3CxKQxD7xDlMSAO9xJeewEY81-3ZB2zcDnOd0";
+  // Giả lập token (Lưu ý: Token này phải còn hạn sử dụng)
+  final String _fakeToken = "eyJhbGciOiJIUzI1NiIsImtpZCI6IjQ4Ukk2RTJWbEpFQkJMN3ciLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL21ldXFudHZhd2FrZHpudGV3c2NwLnN1cGFiYXNlLmNvL2F1dGgvdjEiLCJzdWIiOiJiYWZiYWQ1MS0xYzg3LTQ1MDYtOWJmMC1kYzgyZGU4ZTAzNjUiLCJhdWQiOiJhdXRoZW50aWNhdGVkIiwiZXhwIjoxNzY0NTE3MDA4LCJpYXQiOjE3NjQxNTcwMDgsImVtYWlsIjoia2hvYUB0ZXN0LmNvbSIsInBob25lIjoiIiwiYXBwX21ldGFkYXRhIjp7InByb3ZpZGVyIjoiZW1haWwiLCJwcm92aWRlcnMiOlsiZW1haWwiXX0sInVzZXJfbWV0YWRhdGEiOnsiZW1haWwiOiJraG9hQHRlc3QuY29tIiwiZW1haWxfdmVyaWZpZWQiOnRydWUsInBob25lX3ZlcmlmaWVkIjpmYWxzZSwic3ViIjoiYmFmYmFkNTEtMWM4Ny00NTA2LTliZjAtZGM4MmRlOGUwMzY1In0sInJvbGUiOiJhdXRoZW50aWNhdGVkIiwiYWFsIjoiYWFsMSIsImFtciI6W3sibWV0aG9kIjoicGFzc3dvcmQiLCJ0aW1lc3RhbXAiOjE3NjQxNTcwMDh9XSwic2Vzc2lvbl9pZCI6Ijc3NmU4NTFiLTNjZjEtNDljYi04ZjZhLWVjZjBhZTdkMmNkOSIsImlzX2Fub255bW91cyI6ZmFsc2V9.mXmfiEvBEjz5P2nguOsSInkNx62KykpMW7DeobPGOrE";
+
   final FeedbackService _service = FeedbackService();
 
   late Future<List<PendingReviewGroup>> _pendingGroupsFuture;
@@ -33,7 +34,6 @@ class _ListGroupFeedbackScreenState extends State<ListGroupFeedbackScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Background image setup
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
@@ -54,7 +54,6 @@ class _ListGroupFeedbackScreenState extends State<ListGroupFeedbackScreen> {
               image: DecorationImage(
                 image: AssetImage('assets/images/list_group.png'),
                 fit: BoxFit.cover,
-                // colorFilter: ColorFilter.mode(Colors.black45, BlendMode.darken), // Làm tối ảnh nền chút
               ),
             ),
           ),
@@ -73,7 +72,8 @@ class _ListGroupFeedbackScreenState extends State<ListGroupFeedbackScreen> {
                       children: [
                         const Icon(Icons.error_outline, color: Colors.white, size: 48),
                         const SizedBox(height: 16),
-                        Text('Lỗi tải dữ liệu'.tr(), style: const TextStyle(color: Colors.white)),
+                        Text('Lỗi tải dữ liệu: ${snapshot.error}'.tr(), style: const TextStyle(color: Colors.white), textAlign: TextAlign.center),
+                        const SizedBox(height: 8),
                         TextButton(onPressed: _refreshData, child: Text('Thử lại'.tr())),
                       ],
                     ),
@@ -120,17 +120,17 @@ class _ListGroupFeedbackScreenState extends State<ListGroupFeedbackScreen> {
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: () async {
-          // Navigate tới màn FeedbackScreen với dữ liệu nhóm
+          // === QUAN TRỌNG: Truyền token sang màn hình Feedback ===
           final result = await Navigator.push(
             context,
             MaterialPageRoute(
               builder: (context) => FeedbackScreen(
-                groupData: group, // Truyền data nhóm vào
+                groupData: group,
+                accessToken: _fakeToken, // <--- Thêm dòng này
               ),
             ),
           );
 
-          // Khi quay lại, refresh list vì có thể user đã đánh giá xong nhóm đó
           if (result == true) {
             _refreshData();
           }
@@ -141,7 +141,7 @@ class _ListGroupFeedbackScreenState extends State<ListGroupFeedbackScreen> {
             image: DecorationImage(
               image: (group.groupImageUrl != null && group.groupImageUrl!.isNotEmpty)
                   ? NetworkImage(group.groupImageUrl!) as ImageProvider
-                  : const AssetImage('assets/images/default_group.jpg'), // Ảnh mặc định
+                  : const AssetImage('assets/images/default_group.jpg'),
               fit: BoxFit.cover,
             ),
           ),

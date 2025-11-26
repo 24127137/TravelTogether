@@ -85,6 +85,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
       try {
         final prefs = await SharedPreferences.getInstance();
         final currentUserId = prefs.getString('user_id');
+        final lastSeenMessageId = prefs.getString('last_seen_message_id'); // === THÊM MỚI: Lấy ID tin nhắn cuối đã seen ===
 
         final url = ApiConfig.getUri(ApiConfig.chatHistory);
         final response = await http.get(
@@ -126,12 +127,24 @@ class _MessagesScreenState extends State<MessagesScreen> {
               messagePreview = isMyMessage ? 'Bạn: $content' : content;
             }
 
+            // === THÊM MỚI: Kiểm tra có tin nhắn chưa seen không ===
+            bool hasUnseen = false;
+            if (!isMyMessage) {
+              // Tin nhắn cuối là của người khác
+              final lastMessageId = lastMsg['id']?.toString() ?? '';
+              // Nếu ID tin nhắn cuối khác với ID đã seen, hoặc chưa có ID đã seen
+              hasUnseen = (lastSeenMessageId == null || lastSeenMessageId != lastMessageId);
+            }
+
+            print('📬 Group chat - lastMessageId: ${lastMsg['id']}, lastSeenId: $lastSeenMessageId, hasUnseen: $hasUnseen');
+
             conversations.add(ConversationItem(
               sender: 'chat_title'.tr(), // "Nhóm chat"
               message: messagePreview,
               time: timeStr,
               isOnline: true,
               isAiChat: false,
+              hasUnseenMessages: hasUnseen, // === THÊM MỚI ===
             ));
           }
         }
@@ -252,6 +265,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
                                       time: conv.time,
                                       isOnline: conv.isOnline,
                                       isAiChat: conv.isAiChat, // Pass isAiChat
+                                      hasUnseenMessages: conv.hasUnseenMessages, // === THÊM MỚI: Pass unseen status ===
                                       scaleFactor: scaleFactor,
                                     );
                                   },
@@ -315,6 +329,7 @@ class _MessageTile extends StatelessWidget {
   final String sender, message, time;
   final bool isOnline;
   final bool isAiChat; // Thêm parameter
+  final bool hasUnseenMessages; // === THÊM MỚI: Có tin nhắn chưa seen không ===
   final double scaleFactor;
 
   const _MessageTile({
@@ -323,6 +338,7 @@ class _MessageTile extends StatelessWidget {
     required this.time,
     required this.isOnline,
     required this.isAiChat, // Thêm required
+    this.hasUnseenMessages = false, // === THÊM MỚI ===
     this.scaleFactor = 1.0,
     Key? key,
   }) : super(key: key);
@@ -380,20 +396,7 @@ class _MessageTile extends StatelessWidget {
                     backgroundColor: const Color(0xFFD9CBB3),
                     child: Icon(Icons.person, size: 32 * scaleFactor, color: Colors.white),
                   ),
-              if (isOnline)
-                Positioned(
-                  right: 2,
-                  bottom: 2,
-                  child: Container(
-                    width: 14 * scaleFactor,
-                    height: 14 * scaleFactor,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFFD336),
-                      shape: BoxShape.circle,
-                      border: Border.all(color: Colors.white, width: 2),
-                    ),
-                  ),
-                ),
+              // Removed the small online indicator dot per request
             ],
           ),
           SizedBox(width: 16 * scaleFactor),
@@ -406,7 +409,7 @@ class _MessageTile extends StatelessWidget {
                   style: TextStyle(
                     color: const Color(0xFF1B1E28),
                     fontSize: 17 * scaleFactor,
-                    fontWeight: FontWeight.w600,
+                    fontWeight: hasUnseenMessages ? FontWeight.bold : FontWeight.w600, // === In đậm nếu chưa seen ===
                   ),
                 ),
                 SizedBox(height: 6 * scaleFactor),
@@ -415,8 +418,9 @@ class _MessageTile extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                    color: const Color(0xFF7C838D),
+                    color: hasUnseenMessages ? const Color(0xFF1B1E28) : const Color(0xFF7C838D), // === Đổi màu đậm hơn nếu chưa seen ===
                     fontSize: 14 * scaleFactor,
+                    fontWeight: hasUnseenMessages ? FontWeight.w600 : FontWeight.normal, // === In đậm nếu chưa seen ===
                   ),
                 ),
               ],
@@ -450,6 +454,7 @@ class ConversationItem {
   final String time;
   final bool isOnline;
   final bool isAiChat; // Thêm flag để phân biệt AI chat vs Group chat
+  final bool hasUnseenMessages; // === THÊM MỚI: Có tin nhắn chưa đọc không ===
 
   ConversationItem({
     required this.sender,
@@ -457,5 +462,6 @@ class ConversationItem {
     required this.time,
     this.isOnline = false,
     this.isAiChat = false, // Default là group chat
+    this.hasUnseenMessages = false, // === THÊM MỚI: Mặc định là đã seen ===
   });
 }
