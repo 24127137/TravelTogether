@@ -51,6 +51,11 @@ class NotificationService {
 
     _initialized = true;
     debugPrint('✅ NotificationService initialized');
+
+    // === LUU Ý: KHÔNG tự động request permission ở đây ===
+    // Thay vào đó, app sẽ hiển thị NotificationPermissionDialog (custom UI)
+    // để giải thích tại sao cần permission trước khi gọi requestPermission()
+    // Xem: widgets/notification_permission_dialog.dart
   }
 
   /// Xử lý khi user tap vào notification

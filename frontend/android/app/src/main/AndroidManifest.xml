@@ -5,6 +5,9 @@
     <uses-permission android:name="android.permission.CAMERA"/>
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES"/>
 
+    <!-- === THÊM MỚI: Permission cho Notifications (Android 13+) === -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+
     <application
         android:label="Travel Together"
         android:name="${applicationName}"
