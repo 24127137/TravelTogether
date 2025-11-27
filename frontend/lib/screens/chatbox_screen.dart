@@ -36,6 +36,7 @@ class _ChatboxScreenState extends State<ChatboxScreen> {
   Map<String, Map<String, dynamic>> _groupMembers = {}; // === THÊM MỚI: Lưu thông tin members từ group ===
   bool _isAutoScrolling = false; // === THÊM MỚI: Cờ để tránh mark seen khi auto scroll ===
   Map<int, GlobalKey> _messageKeys = {}; // === THÊM MỚI: keys per message for ensureVisible ===
+  bool _showScrollToBottomButton = false; // === THÊM MỚI: Hiển thị nút scroll xuống ===
 
   @override
   void initState() {
@@ -56,8 +57,23 @@ class _ChatboxScreenState extends State<ChatboxScreen> {
       }
     });
 
-    // === THÊM MỚI: Lắng nghe scroll để mark messages as seen ===
+    // === SỬA ĐỔI: Lắng nghe scroll để mark messages as seen VÀ hiển thị nút scroll-to-bottom ===
     _scrollController.addListener(() {
+      // Logic hiển thị/ẩn nút scroll-to-bottom
+      if (_scrollController.position.pixels < _scrollController.position.maxScrollExtent - 200) {
+        if (!_showScrollToBottomButton) {
+          setState(() {
+            _showScrollToBottomButton = true;
+          });
+        }
+      } else {
+        if (_showScrollToBottomButton) {
+          setState(() {
+            _showScrollToBottomButton = false;
+          });
+        }
+      }
+
       // If we are auto-scrolling (programmatic), don't trigger seen logic
       if (_isAutoScrolling) return;
       if (_scrollController.hasClients) {
@@ -919,36 +935,38 @@ class _ChatboxScreenState extends State<ChatboxScreen> {
               color: Color(0xFF8A724C),
             ),
           )
-        : Column(
+        : Stack( // === SỬA ĐỔI: Sử dụng Stack để chồng nút lên trên danh sách tin nhắn ===
             children: [
-              Expanded(
-                child: Container(
-                  decoration: const BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.only(
-                      topLeft: Radius.circular(30),
-                      topRight: Radius.circular(30),
-                    ),
-                  ),
-                  child: Column(
-                    children: [
-                      // === BỎ HEADER "HÔM NAY" CỐ ĐỊNH ===
-                      // Date separators sẽ được hiển thị động trong ListView
-                      Expanded(
-                        child: Container(
-                          color: Colors.white,
-                          child: ListView.builder(
-                            controller: _scrollController,
-                            padding: const EdgeInsets.only(
-                              left: 12,
-                              right: 12,
-                              top: 16,
-                              bottom: 16,
-                            ),
-                            itemCount: _messages.length,
-                            itemBuilder: (context, index) {
-                              final m = _messages[index];
-                              final dateSeparator = _getDateSeparator(index);
+              Column(
+                children: [
+                  Expanded(
+                    child: Container(
+                      decoration: const BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.only(
+                          topLeft: Radius.circular(30),
+                          topRight: Radius.circular(30),
+                        ),
+                      ),
+                      child: Column(
+                        children: [
+                          // === BỎ HEADER "HÔM NAY" CỐ ĐỊNH ===
+                          // Date separators sẽ được hiển thị động trong ListView
+                          Expanded(
+                            child: Container(
+                              color: Colors.white,
+                              child: ListView.builder(
+                                controller: _scrollController,
+                                padding: const EdgeInsets.only(
+                                  left: 12,
+                                  right: 12,
+                                  top: 16,
+                                  bottom: 16,
+                                ),
+                                itemCount: _messages.length,
+                                itemBuilder: (context, index) {
+                                  final m = _messages[index];
+                                  final dateSeparator = _getDateSeparator(index);
 
                                   // Ensure we have a GlobalKey for this index
                                   _messageKeys[index] = _messageKeys[index] ?? GlobalKey();
@@ -1026,70 +1044,103 @@ class _ChatboxScreenState extends State<ChatboxScreen> {
                     ), // Container (with decoration)
                   ), // Expanded
 
-              // Input bar at bottom
-              SafeArea(
-                top: false,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
-                  color: Colors.white,
-                  child: Row(
-                    children: [
-                      // === THÊM MỚI: Nút chọn ảnh - hiện bottom sheet để chọn camera/gallery ===
-                      Material(
-                        color: const Color(0xFFB99668),
-                        shape: const CircleBorder(),
-                        child: IconButton(
-                          icon: _isUploading
-                            ? const SizedBox(
-                                width: 20,
-                                height: 20,
-                                child: CircularProgressIndicator(
-                                  color: Colors.white,
-                                  strokeWidth: 2,
-                                ),
-                              )
-                            : const Icon(Icons.add_photo_alternate, color: Colors.white),
-                          onPressed: _isUploading ? null : _showImageSourceSelection,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFEBE3D7),
-                            borderRadius: BorderRadius.circular(30.0),
-                          ),
-                          child: TextField(
-                            controller: _controller,
-                            focusNode: _focusNode,
-                            decoration: InputDecoration(
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-                              hintText: 'enter_message'.tr(),
-                              hintStyle: const TextStyle(color: Colors.black38),
-                              border: InputBorder.none,
+                  // Input bar at bottom
+                  SafeArea(
+                    top: false,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
+                      color: Colors.white,
+                      child: Row(
+                        children: [
+                          // === THÊM MỚI: Nút chọn ảnh - hiện bottom sheet để chọn camera/gallery ===
+                          Material(
+                            color: const Color(0xFFB99668),
+                            shape: const CircleBorder(),
+                            child: IconButton(
+                              icon: _isUploading
+                                ? const SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(
+                                      color: Colors.white,
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                : const Icon(Icons.add_photo_alternate, color: Colors.white),
+                              onPressed: _isUploading ? null : _showImageSourceSelection,
                             ),
-                            onSubmitted: (_) => _sendMessage(),
                           ),
-                        ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFEBE3D7),
+                                borderRadius: BorderRadius.circular(30.0),
+                              ),
+                              child: TextField(
+                                controller: _controller,
+                                focusNode: _focusNode,
+                                decoration: InputDecoration(
+                                  contentPadding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                                  hintText: 'enter_message'.tr(),
+                                  hintStyle: const TextStyle(color: Colors.black38),
+                                  border: InputBorder.none,
+                                ),
+                                onSubmitted: (_) => _sendMessage(),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Material(
+                            color: const Color(0xFFB99668),
+                            shape: const CircleBorder(),
+                            child: IconButton(
+                              icon: const Icon(Icons.send, color: Colors.white),
+                              onPressed: _sendMessage,
+                            ),
+                          ),
+                        ],
                       ),
-                      const SizedBox(width: 8),
-                      Material(
-                        color: const Color(0xFFB99668),
-                        shape: const CircleBorder(),
-                        child: IconButton(
-                          icon: const Icon(Icons.send, color: Colors.white),
-                          onPressed: _sendMessage,
-                        ),
-                      ),
-                    ],
+                    ),
                   ),
-                ),
+                ],
               ),
-            ],
-          ),
-    );
-  }
+              // === THÊM MỚI: Nút "Go to latest message" ===
+              if (_showScrollToBottomButton)
+                Center(
+                  child: Material(
+                    color: const Color(0xFFB99668),
+                    elevation: 6,
+                    shape: const CircleBorder(),
+                    child: IconButton(
+                      tooltip: 'Đi tới tin nhắn mới nhất',
+                      icon: const Icon(Icons.arrow_downward, color: Colors.white),
+                      onPressed: _isAutoScrolling
+                          ? null
+                          : () async {
+                              if (!_scrollController.hasClients) return;
+                              try {
+                                _isAutoScrolling = true;
+                                await _scrollController.animateTo(
+                                  _scrollController.position.maxScrollExtent,
+                                  duration: const Duration(milliseconds: 300),
+                                  curve: Curves.easeOut,
+                                );
+                              } catch (e) {
+                                // ignore
+                              } finally {
+                                _isAutoScrolling = false;
+                                if (mounted) setState(() => _showScrollToBottomButton = false);
+                              }
+                            },
+                    ),
+                 ),
+               ),
+             ],
+           ),
+     );
+   }
 }
 
 class _MessageBubble extends StatelessWidget {

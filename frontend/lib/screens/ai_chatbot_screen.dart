@@ -31,6 +31,8 @@ class _AiChatbotScreenState extends State<AiChatbotScreen> {
   String? _sessionId;
 
   Map<int, GlobalKey> _messageKeys = {}; // === THÊM MỚI: keys per message for ensureVisible ===
+  bool _showScrollToBottom = false; // === THÊM MỚI: show centered button ===
+  bool _isAutoScrolling = false; // === THÊM MỚI: flag to avoid reacting to programmatic scroll ===
 
   @override
   void initState() {
@@ -43,6 +45,21 @@ class _AiChatbotScreenState extends State<AiChatbotScreen> {
           if (mounted) {
             _scrollToBottom();
           }
+        });
+      }
+    });
+
+    // === THÊM MỚI: lắng nghe scroll để hiển thị nút scroll-to-bottom ===
+    _scrollController.addListener(() {
+      if (!_scrollController.hasClients) return;
+      final pos = _scrollController.position.pixels;
+      final max = _scrollController.position.maxScrollExtent;
+
+      // Nếu cách đáy > 200 show button
+      final show = pos < (max - 200);
+      if (show != _showScrollToBottom && mounted) {
+        setState(() {
+          _showScrollToBottom = show;
         });
       }
     });
@@ -232,13 +249,25 @@ class _AiChatbotScreenState extends State<AiChatbotScreen> {
   }
 
   void _scrollToBottom() {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (_scrollController.hasClients) {
-        _scrollController.animateTo(
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!_scrollController.hasClients) return;
+
+      try {
+        _isAutoScrolling = true;
+        await _scrollController.animateTo(
           _scrollController.position.maxScrollExtent,
           duration: const Duration(milliseconds: 250),
           curve: Curves.easeOut,
         );
+      } catch (e) {
+        // ignore
+      } finally {
+        _isAutoScrolling = false;
+        if (mounted) {
+          setState(() {
+            _showScrollToBottom = false;
+          });
+        }
       }
     });
   }
@@ -308,14 +337,14 @@ class _AiChatbotScreenState extends State<AiChatbotScreen> {
 
       print('📤 Uploading image to Supabase...');
       await supabase.storage
-          .from('chat-images')
+          .from('chat_images')
           .upload(fileName, file);
 
       print('✅ Image uploaded: $fileName');
 
       // Lấy public URL
       final imageUrl = supabase.storage
-          .from('chat-images')
+          .from('chat_images')
           .getPublicUrl(fileName);
 
       print('🖼️ Image URL: $imageUrl');
@@ -508,193 +537,213 @@ class _AiChatbotScreenState extends State<AiChatbotScreen> {
                 color: Color(0xFF8A724C),
               ),
             )
-          : Column(
+          : Stack(
               children: [
-                Expanded(
-                  child: Container(
-                    decoration: const BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.only(
-                        topLeft: Radius.circular(30),
-                        topRight: Radius.circular(30),
+                Column(
+                  children: [
+                    Expanded(
+                      child: Container(
+                        decoration: const BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.only(
+                            topLeft: Radius.circular(30),
+                            topRight: Radius.circular(30),
+                          ),
+                        ),
+                        child: Column(
+                          children: [
+                            Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 16.0),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 16.0, vertical: 8.0),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFEBE3D7),
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: Text(
+                                  'ai_chat_subtitle'.tr(),
+                                  style: const TextStyle(
+                                      color: Colors.black54, fontSize: 12),
+                                ),
+                              ),
+                            ),
+                            Expanded(
+                              child: Container(
+                                color: Colors.white,
+                                child: _messages.isEmpty
+                                    ? Center(
+                                        child: Column(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.center,
+                                          children: [
+                                            Image.asset(
+                                              'assets/images/chatbot_icon.png',
+                                              width: 80,
+                                              height: 80,
+                                            ),
+                                            const SizedBox(height: 16),
+                                            Text(
+                                              'ai_chat_welcome'.tr(),
+                                              style: TextStyle(
+                                                fontSize: 16,
+                                                color: Colors.grey[600],
+                                              ),
+                                              textAlign: TextAlign.center,
+                                            ),
+                                          ],
+                                        ),
+                                      )
+                                    : ListView.builder(
+                                        controller: _scrollController,
+                                        padding: const EdgeInsets.only(
+                                          left: 12,
+                                          right: 12,
+                                          top: 0,
+                                          bottom: 16,
+                                        ),
+                                        itemCount: _messages.length,
+                                        itemBuilder: (context, index) {
+                                          final m = _messages[index];
+
+                                          // Ensure we have a GlobalKey for this index
+                                          _messageKeys[index] = _messageKeys[index] ?? GlobalKey();
+                                          final messageKey = _messageKeys[index]!;
+
+                                          return GestureDetector(
+                                            onTap: () async {
+                                              // Focus input to open keyboard
+                                              _focusNode.requestFocus();
+
+                                              // Wait for keyboard to open
+                                              await Future.delayed(const Duration(milliseconds: 350));
+
+                                              if (messageKey.currentContext != null) {
+                                                try {
+                                                  await Scrollable.ensureVisible(
+                                                    messageKey.currentContext!,
+                                                    duration: const Duration(milliseconds: 300),
+                                                    alignment: 0.3,
+                                                    curve: Curves.easeOut,
+                                                  );
+                                                } catch (e) {
+                                                  if (_scrollController.hasClients) {
+                                                    _scrollController.animateTo(
+                                                      _scrollController.position.maxScrollExtent,
+                                                      duration: const Duration(milliseconds: 300),
+                                                      curve: Curves.easeOut,
+                                                    );
+                                                  }
+                                                }
+                                              }
+                                            },
+                                            child: Container(
+                                              key: messageKey,
+                                              child: _AiMessageBubble(message: m),
+                                            ),
+                                          );
+                                        },
+                                      ),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
-                    child: Column(
-                      children: [
-                        Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 16.0),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 16.0, vertical: 8.0),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFEBE3D7),
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: Text(
-                              'ai_chat_subtitle'.tr(),
-                              style: const TextStyle(
-                                  color: Colors.black54, fontSize: 12),
-                            ),
-                          ),
-                        ),
-                        Expanded(
-                          child: Container(
-                            color: Colors.white,
-                            child: _messages.isEmpty
-                                ? Center(
-                                    child: Column(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.center,
-                                      children: [
-                                        Image.asset(
-                                          'assets/images/chatbot_icon.png',
-                                          width: 80,
-                                          height: 80,
+
+                    // Input bar
+                    SafeArea(
+                      top: false,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12.0, vertical: 8.0),
+                        color: Colors.white,
+                        child: Row(
+                          children: [
+                            // === THÊM MỚI: Nút chọn ảnh ===
+                            Material(
+                              color: const Color(0xFFB99668),
+                              shape: const CircleBorder(),
+                              child: IconButton(
+                                icon: _isUploading
+                                    ? const SizedBox(
+                                        width: 20,
+                                        height: 20,
+                                        child: CircularProgressIndicator(
+                                          color: Colors.white,
+                                          strokeWidth: 2,
                                         ),
-                                        const SizedBox(height: 16),
-                                        Text(
-                                          'ai_chat_welcome'.tr(),
-                                          style: TextStyle(
-                                            fontSize: 16,
-                                            color: Colors.grey[600],
-                                          ),
-                                          textAlign: TextAlign.center,
-                                        ),
-                                      ],
-                                    ),
-                                  )
-                                : ListView.builder(
-                                    controller: _scrollController,
-                                    padding: const EdgeInsets.only(
-                                      left: 12,
-                                      right: 12,
-                                      top: 0,
-                                      bottom: 16,
-                                    ),
-                                    itemCount: _messages.length,
-                                    itemBuilder: (context, index) {
-                                              final m = _messages[index];
-
-                                              // Ensure we have a GlobalKey for this index
-                                              _messageKeys[index] = _messageKeys[index] ?? GlobalKey();
-                                              final messageKey = _messageKeys[index]!;
-
-                                              return GestureDetector(
-                                                onTap: () async {
-                                                  // Focus input to open keyboard
-                                                  _focusNode.requestFocus();
-
-                                                  // Wait for keyboard to open
-                                                  await Future.delayed(const Duration(milliseconds: 350));
-
-                                                  if (messageKey.currentContext != null) {
-                                                    try {
-                                                      await Scrollable.ensureVisible(
-                                                        messageKey.currentContext!,
-                                                        duration: const Duration(milliseconds: 300),
-                                                        alignment: 0.3,
-                                                        curve: Curves.easeOut,
-                                                      );
-                                                    } catch (e) {
-                                                      if (_scrollController.hasClients) {
-                                                        _scrollController.animateTo(
-                                                          _scrollController.position.maxScrollExtent,
-                                                          duration: const Duration(milliseconds: 300),
-                                                          curve: Curves.easeOut,
-                                                        );
-                                                      }
-                                                    }
-                                                  }
-                                                },
-                                                child: Container(
-                                                  key: messageKey,
-                                                  child: _AiMessageBubble(message: m),
-                                                ),
-                                              );
-                                    },
-                                  ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                // Input bar
-                SafeArea(
-                  top: false,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 12.0, vertical: 8.0),
-                    color: Colors.white,
-                    child: Row(
-                      children: [
-                        // === THÊM MỚI: Nút chọn ảnh ===
-                        Material(
-                          color: const Color(0xFFB99668),
-                          shape: const CircleBorder(),
-                          child: IconButton(
-                            icon: _isUploading
-                                ? const SizedBox(
-                                    width: 20,
-                                    height: 20,
-                                    child: CircularProgressIndicator(
-                                      color: Colors.white,
-                                      strokeWidth: 2,
-                                    ),
-                                  )
-                                : const Icon(Icons.add_photo_alternate, color: Colors.white),
-                            onPressed: (_isUploading || _isSending) ? null : _showImageSourceSelection,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 8.0, vertical: 4.0),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFEBE3D7),
-                              borderRadius: BorderRadius.circular(30.0),
-                            ),
-                            child: TextField(
-                              controller: _controller,
-                              focusNode: _focusNode,
-                              enabled: !_isSending,
-                              decoration: InputDecoration(
-                                contentPadding: const EdgeInsets.symmetric(
-                                    horizontal: 16.0, vertical: 8.0),
-                                hintText: 'ai_chat_input_hint'.tr(),
-                                hintStyle:
-                                    const TextStyle(color: Colors.black38),
-                                border: InputBorder.none,
+                                      )
+                                    : const Icon(Icons.add_photo_alternate, color: Colors.white),
+                                onPressed: (_isUploading || _isSending) ? null : _showImageSourceSelection,
                               ),
-                              onSubmitted: (_) => _sendMessage(),
                             ),
-                          ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 8.0, vertical: 4.0),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFEBE3D7),
+                                  borderRadius: BorderRadius.circular(30.0),
+                                ),
+                                child: TextField(
+                                  controller: _controller,
+                                  focusNode: _focusNode,
+                                  enabled: !_isSending,
+                                  decoration: InputDecoration(
+                                    contentPadding: const EdgeInsets.symmetric(
+                                        horizontal: 16.0, vertical: 8.0),
+                                    hintText: 'ai_chat_input_hint'.tr(),
+                                    hintStyle:
+                                        const TextStyle(color: Colors.black38),
+                                    border: InputBorder.none,
+                                  ),
+                                  onSubmitted: (_) => _sendMessage(),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Material(
+                              color: _isSending
+                                  ? Colors.grey
+                                  : const Color(0xFFB99668),
+                              shape: const CircleBorder(),
+                              child: IconButton(
+                                icon: _isSending
+                                    ? const SizedBox(
+                                        width: 20,
+                                        height: 20,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          color: Colors.white,
+                                        ),
+                                      )
+                                    : const Icon(Icons.send, color: Colors.white),
+                                onPressed: _isSending ? null : _sendMessage,
+                              ),
+                            ),
+                          ],
                         ),
-                        const SizedBox(width: 8),
-                        Material(
-                          color: _isSending
-                              ? Colors.grey
-                              : const Color(0xFFB99668),
-                          shape: const CircleBorder(),
-                          child: IconButton(
-                            icon: _isSending
-                                ? const SizedBox(
-                                    width: 20,
-                                    height: 20,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      color: Colors.white,
-                                    ),
-                                  )
-                                : const Icon(Icons.send, color: Colors.white),
-                            onPressed: _isSending ? null : _sendMessage,
-                          ),
-                        ),
-                      ],
+                      ),
+                    ),
+                  ],
+                ),
+
+                // === THÊM MỚI: Centered scroll-to-bottom button ===
+                if (_showScrollToBottom)
+                  Center(
+                    child: Material(
+                      color: const Color(0xFFB99668),
+                      elevation: 6,
+                      shape: const CircleBorder(),
+                      child: IconButton(
+                        tooltip: 'Đi tới tin nhắn mới nhất',
+                        icon: const Icon(Icons.arrow_downward, color: Colors.white),
+                        onPressed: _isAutoScrolling ? null : _scrollToBottom,
+                      ),
                     ),
                   ),
-                ),
               ],
             ),
     );
