@@ -11,6 +11,7 @@ import 'security.dart';
 import 'emergency_pin.dart';
 import '../services/auth_service.dart';
 import 'onboarding.dart';
+import 'list_group_feedback.dart';
 // Networking and storage
 import 'package:http/http.dart' as http;
 import 'dart:convert';
@@ -247,7 +248,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         Navigator.push(
                           context,
                           PageRouteBuilder(
-                            pageBuilder: (context, animation, secondaryAnimation) => const FeedbackScreen(),
+                            pageBuilder: (context, animation, secondaryAnimation) => const ListGroupFeedbackScreen(),
                             transitionsBuilder: (context, animation, secondaryAnimation, child) {
                               const begin = Offset(1.0, 0.0);
                               const end = Offset.zero;

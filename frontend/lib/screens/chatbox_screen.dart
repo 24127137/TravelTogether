@@ -10,7 +10,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 import '../config/api_config.dart';
 import '../models/message.dart';
-import 'member_screen(Host).dart';
+import 'host_member_screen.dart';
 
 //màn hình lúc chat
 class ChatboxScreen extends StatefulWidget {

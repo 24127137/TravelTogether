@@ -88,7 +88,7 @@
               Positioned(
                 left: -100,
                 right: -60,
-                bottom: 95,
+                bottom: 0,
                 child: Container(
                   width: 419,
                   height: 840,

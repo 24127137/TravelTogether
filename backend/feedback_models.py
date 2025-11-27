@@ -4,7 +4,9 @@ from sqlmodel import SQLModel, Field as SQLField, Column, ForeignKey
 from datetime import datetime
 from sqlalchemy.dialects.postgresql import TEXT, ARRAY
 
+# ====================================================================
 # SQLModel table
+# ====================================================================
 class Feedbacks(SQLModel, table=True):
     __tablename__ = "feedbacks"
     id: Optional[int] = SQLField(default=None, primary_key=True)
@@ -17,18 +19,16 @@ class Feedbacks(SQLModel, table=True):
     anonymous: bool = SQLField(default=False)
     created_at: Optional[datetime] = SQLField(default=None, sa_column_kwargs={"default": "NOW()"})
 
+# ====================================================================
 # Pydantic models for API input/output
+# ====================================================================
 class CreateFeedbackInput(BaseModel):
     rev_id: int = Field(..., description="ID profile người nhận")
-    group_id: Optional[int] = Field(None, description="ID của nhóm du lịch liên quan")
+    group_id: int = Field(..., description="ID của nhóm du lịch (bắt buộc)")
     group_image_url: Optional[str] = Field(None, description="URL ảnh đại diện của group")
     rating: Optional[int] = Field(None, ge=1, le=5)
     content: Optional[List[str]] = Field(None, description="List tags cho nội dung đánh giá (e.g., ['friendly', 'punctual'])")
     anonymous: Optional[bool] = Field(False)
-
-class BatchCreateFeedbackInput(BaseModel):
-    group_id: int = Field(..., description="ID nhóm để validate")
-    feedbacks: List[CreateFeedbackInput] = Field(..., description="List feedbacks cho multiple recipients")
 
 class UpdateFeedbackInput(BaseModel):
     rating: Optional[int] = Field(None, ge=1, le=5)
@@ -47,15 +47,42 @@ class FeedbackPublic(BaseModel):
     created_at: Optional[datetime]
 
     class Config:
-        orm_mode = True
-
-# Public models cho list groups với feedback
-class UserGroupFeedbackSummary(BaseModel):
-    group_id: int
-    group_name: str
-    group_image_url: Optional[str]
-    average_rating: float  # Trung bình sao cho user trong group
+        from_attributes = True
 
 class FeedbackDetail(FeedbackPublic):
     sender_name: Optional[str]  # Chỉ hiển thị nếu không anonymous
-    rev_name: Optional[str]  # Tên người nhận
+    sender_email: Optional[str]  # Email sender (ẩn nếu anonymous)
+    receiver_name: Optional[str]  # Tên người nhận
+    receiver_email: Optional[str]  # Email người nhận
+
+# ====================================================================
+# Models cho My Reputation
+# ====================================================================
+class GroupReputationSummary(BaseModel):
+    group_id: int
+    group_name: str
+    group_image_url: Optional[str]
+    feedbacks: List[FeedbackDetail]
+
+class MyReputationResponse(BaseModel):
+    average_rating: float
+    total_feedbacks: int
+    groups: List[GroupReputationSummary]
+
+# ====================================================================
+# Models cho Pending Reviews
+# ====================================================================
+class UnreviewedMember(BaseModel):
+    profile_id: int
+    profile_uuid: str
+    email: str
+    fullname: Optional[str]
+
+class PendingReviewGroup(BaseModel):
+    group_id: int
+    group_name: str
+    group_image_url: Optional[str]
+    unreviewed_members: List[UnreviewedMember]
+
+class PendingReviewsResponse(BaseModel):
+    pending_groups: List[PendingReviewGroup]
