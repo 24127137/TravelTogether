@@ -43,7 +43,6 @@ class _TravelPlanScreenState extends State<TravelPlanScreen> {
     }
   }
 
-  // Hàm trả về Future<void> chuẩn để dùng cho RefreshIndicator
   Future<void> _loadTravelPlanData() async {
     try {
       if (_places.isEmpty && mounted) setState(() { _isLoading = true; _error = null; });
@@ -54,7 +53,6 @@ class _TravelPlanScreenState extends State<TravelPlanScreen> {
       final profile = await _userService.getUserProfile();
       if (profile == null) throw Exception("Không lấy được thông tin cá nhân");
 
-      // 1. Khai báo dynamic để chứa mọi kiểu dữ liệu
       dynamic itineraryData;
 
       List owned = profile['owned_groups'] ?? [];
@@ -66,13 +64,27 @@ class _TravelPlanScreenState extends State<TravelPlanScreen> {
         itineraryData = profile['itinerary'];
       }
       else if (joined.isNotEmpty) {
-        print("👥 User là MEMBER");
+        print("👥 User là MEMBER -> Dùng kế hoạch 'Lách luật'");
         _isMemberView = true;
 
-        final groupPlan = await _groupService.getMyGroupPlan(token);
-        if (groupPlan != null) {
-          itineraryData = groupPlan['itinerary'];
+        // --- SỬA ĐOẠN NÀY: LẤY ID NHÓM RỒI GỌI API PUBLIC ---
+        try {
+          // 1. Lấy Group ID từ thông tin profile
+          var firstGroup = joined[0]; // {"group_id": 123, "name": "..."}
+          int groupId = firstGroup['group_id'];
+
+          // 2. Gọi API Public (Cái API không bị lỗi 500)
+          final groupPlan = await _groupService.getGroupPlanById(token, groupId);
+
+          if (groupPlan != null) {
+            itineraryData = groupPlan['itinerary'];
+          }
+        } catch (e) {
+          print("⚠️ Lỗi lấy plan: $e");
+          // Fallback nếu không lấy được
+          itineraryData = profile['itinerary'];
         }
+        // -----------------------------------------------------
       }
       else {
         print("👤 User SOLO");
@@ -80,16 +92,16 @@ class _TravelPlanScreenState extends State<TravelPlanScreen> {
         itineraryData = profile['itinerary'];
       }
 
-      // 2. Xử lý dữ liệu an toàn (Safe Parsing)
+      // 2. Xử lý dữ liệu hiển thị (Safe Parsing)
       List<String> rawNames = [];
 
       if (itineraryData != null) {
         if (itineraryData is Map) {
-          // Case Map: {"1": "A", "2": "B"} hoặc {"places": [...]}
           if (itineraryData.containsKey('places') && itineraryData['places'] is List) {
             var listPlaces = itineraryData['places'] as List;
             rawNames = listPlaces.map((e) => e.toString()).toList();
           } else {
+            // Sort theo key "1", "2"...
             var sortedKeys = itineraryData.keys.toList()
               ..sort((a, b) {
                 int? iA = int.tryParse(a.toString());
@@ -106,11 +118,11 @@ class _TravelPlanScreenState extends State<TravelPlanScreen> {
           }
         }
         else if (itineraryData is List) {
-          // SỬA FIX LỖI: Ép kiểu tường minh (as List) để Compiler không hiểu nhầm
           rawNames = (itineraryData as List).map((e) => e.toString()).toList();
         }
       }
 
+      // Map tên sang ảnh
       List<Map<String, String>> newPlaces = rawNames.map((name) {
         String imagePath = _findImageUrl(name);
         return {
@@ -140,21 +152,20 @@ class _TravelPlanScreenState extends State<TravelPlanScreen> {
       places: _places,
       isLoading: _isLoading,
       error: _error,
-      onRefresh: _loadTravelPlanData, // Truyền hàm Future vào
+      onRefresh: _loadTravelPlanData,
       isMemberView: _isMemberView,
     );
   }
 }
 
+// ... (Phần _TravelPlanContent và _PlaceCard giữ nguyên như cũ) ...
+// Copy lại phần UI từ code trước của tôi để đảm bảo không thiếu sót
 class _TravelPlanContent extends StatelessWidget {
   final VoidCallback? onBack;
   final List<Map<String, String>> places;
   final bool isLoading;
   final String? error;
-
-  // FIX LỖI VOID: Định nghĩa chính xác kiểu hàm trả về Future
   final Future<void> Function()? onRefresh;
-
   final bool isMemberView;
 
   const _TravelPlanContent({
@@ -262,7 +273,6 @@ class _TravelPlanContent extends StatelessWidget {
             SizedBox(height: 16 * scaleFactor),
             ElevatedButton(
                 onPressed: () {
-                  // Gọi hàm refresh an toàn
                   if (onRefresh != null) onRefresh!();
                 },
                 child: Text('Thử lại', style: TextStyle(fontSize: 14 * scaleFactor))
@@ -295,7 +305,6 @@ class _TravelPlanContent extends StatelessWidget {
 
     return RefreshIndicator(
       onRefresh: () async {
-        // Chỗ này giờ đã hợp lệ vì onRefresh là Future Function
         if (onRefresh != null) await onRefresh!();
       },
       child: GridView.builder(

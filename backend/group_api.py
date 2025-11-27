@@ -11,7 +11,6 @@ from typing import List
 
 # Import từ các file service đã chia nhỏ
 from group_services import host, join, member, discovery
-import group_service
 
 router = APIRouter(prefix="/groups", tags=["GĐ 18 - Groups Final"])
 
@@ -50,8 +49,7 @@ async def get_my_group_detail(session: Session = Depends(get_session), user = De
 @router.get("/plan", response_model=GroupPlanOutput) 
 async def get_my_group_plan(session: Session = Depends(get_session), user = Depends(get_current_user)):
     auth_uuid = str(user.id)
-    # return await member.get_group_plan(session, auth_uuid)
-    return await group_service.get_group_plan_service(session, auth_uuid)
+    return await member.get_group_plan(session, auth_uuid)
 
 @router.post("/leave")
 async def leave_group(session: Session = Depends(get_session), user = Depends(get_current_user)):
