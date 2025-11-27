@@ -8,7 +8,7 @@ ECHO ======================================================
 ECHO.
 
 :: Lệnh chạy server (giống hệt lệnh bạn hay gõ)
-uvicorn main:app --reload --host 127.0.0.1 --port 8000
+python -m uvicorn main:app --reload --host 127.0.0.1 --port 8000
 
 :: Giữ màn hình không bị tắt nếu có lỗi
 PAUSE
