@@ -5,11 +5,11 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="fc62ebc6-5fea-4dae-abc1-b5859c194cd0" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/NOTIFICATION_PERMISSION_TEST_GUIDE.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/frontend/Chatbot_Summary.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/frontend/FIX_AI_CHATBOT_IMAGE_UPLOAD.md" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/android/app/src/main/AndroidManifest.xml" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/android/app/src/main/AndroidManifest.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/lib/screens/main_app_screen.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/lib/screens/main_app_screen.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/lib/services/notification_service.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/lib/services/notification_service.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/lib/screens/ai_chatbot_screen.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/lib/screens/ai_chatbot_screen.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/lib/screens/chatbox_screen.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/lib/screens/chatbox_screen.dart" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -60,6 +60,7 @@
     "io.flutter.reload.alreadyRun": "true",
     "kotlin-language-version-configured": "true",
     "last_opened_file_path": "C:/Users/tn421/TravelTogether",
+    "settings.editor.selected.configurable": "flutter.settings",
     "show.migrate.to.gradle.popup": "false"
   }
 }]]></component>
