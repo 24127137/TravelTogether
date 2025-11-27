@@ -44,14 +44,13 @@ class WelcomeScreen extends StatelessWidget {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                  children: [
-                //   Image.asset(
-                //     'assets/images/logo.jpg',
-                //     fit: BoxFit.cover,
-                //     width: 125,
-                //     height: 125,
-                //   ),
-                //   const SizedBox(height: 36),
-
+                  Image.asset(
+                    'assets/images/logo.png',
+                    fit: BoxFit.cover,
+                    width: 125,
+                    height: 125,
+                  ),
+                  const SizedBox(height: 36),
                   SizedBox(
                     width: 320,
                     height: 60,

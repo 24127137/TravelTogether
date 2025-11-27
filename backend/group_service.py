@@ -486,5 +486,15 @@ async def get_pending_requests_service(session: Session, current_user: Any) -> L
 
 async def get_group_plan_service(session: Session, auth_uuid: str) -> GroupPlanOutput:
     sender_id, group_id, group_db_object = await get_user_group_info(session, auth_uuid)
-    plan_output = GroupPlanOutput.model_validate(group_db_object)
-    return plan_output
+    # plan_output = GroupPlanOutput.model_validate(group_db_object)
+    # return plan_output
+    # 2. Map thủ công để khớp tên trường (FIX LỖI 500 TẠI ĐÂY)
+    # Thay vì dùng model_validate, ta tự điền từng trường một
+    return GroupPlanOutput(
+        group_id=group_db_object.id,          # Lấy id từ DB gán vào group_id
+        group_name=group_db_object.name,      # Lấy name từ DB gán vào group_name
+        preferred_city=group_db_object.preferred_city,
+        travel_dates=group_db_object.travel_dates,
+        itinerary=group_db_object.itinerary,
+        group_image_url=group_db_object.group_image_url
+    )
