@@ -5,7 +5,7 @@ from config import settings
 from supabase import create_client, Client
 from typing import Any
 from user_models import ProfilePublic, ProfileUpdate
-from db_tables import Profiles
+from db_tables import Profiles, TravelGroup
 
 # Khởi tạo Supabase client (chỉ dùng cho cập nhật Email/Pass)
 try:
@@ -18,21 +18,70 @@ except Exception as e:
 # ====================================================================
 # LOGIC GĐ 5: Lấy Profile (Cho GET /users/me)
 # ====================================================================
+# async def get_profile_by_uuid_service(session: Session, auth_user_id: str) -> ProfilePublic:
+#     """
+#     Tìm profile trong bảng 'profiles' bằng 'auth_user_id'.
+#     """
+#     print(f"Đang tìm profile cho Auth UUID: {auth_user_id}")
+#
+#     statement = select(Profiles).where(Profiles.auth_user_id == auth_user_id)
+#     db_profile = session.exec(statement).first()
+#
+#     if not db_profile:
+#         print("LỖI: Không tìm thấy profile khớp với UUID.")
+#         raise Exception("Profile not found for this user")
+#
+#     public_profile = ProfilePublic.model_validate(db_profile)
+#
+#     return public_profile
+
 async def get_profile_by_uuid_service(session: Session, auth_user_id: str) -> ProfilePublic:
     """
-    Tìm profile trong bảng 'profiles' bằng 'auth_user_id'.
+    Lấy profile. Nếu User đang trong nhóm -> Trả về Itinerary của Nhóm.
     """
     print(f"Đang tìm profile cho Auth UUID: {auth_user_id}")
-    
+
+    # 1. Lấy thông tin gốc của User
     statement = select(Profiles).where(Profiles.auth_user_id == auth_user_id)
     db_profile = session.exec(statement).first()
-    
+
     if not db_profile:
-        print("LỖI: Không tìm thấy profile khớp với UUID.")
-        raise Exception("Profile not found for this user")
-        
+        raise Exception("Profile not found")
+
+    # 2. KIỂM TRA: User có đang trong nhóm nào không?
+    group_id = None
+
+    # Check nếu là Member (Joined)
+    if db_profile.joined_groups and isinstance(db_profile.joined_groups, list) and len(db_profile.joined_groups) > 0:
+        first_group = db_profile.joined_groups[0]
+        if isinstance(first_group, dict):
+            group_id = first_group.get('group_id')
+
+    # Check nếu là Host (Owned) - (Phòng trường hợp Host chưa set itinerary cá nhân nhưng Group đã có)
+    elif db_profile.owned_groups and isinstance(db_profile.owned_groups, list) and len(db_profile.owned_groups) > 0:
+        first_group = db_profile.owned_groups[0]
+        if isinstance(first_group, dict):
+            group_id = first_group.get('group_id')
+
+    # 3. NẾU CÓ NHÓM -> LẤY PLAN CỦA NHÓM ĐÈ LÊN
+    final_itinerary = db_profile.itinerary # Mặc định lấy của cá nhân
+
+    if group_id:
+        print(f"🚀 User thuộc Group ID {group_id}. Đang lấy Group Itinerary...")
+        travel_group = session.get(TravelGroup, group_id)
+
+        if travel_group and travel_group.itinerary:
+            # LẤY ITINERARY CỦA NHÓM GÁN VÀO BIẾN TẠM
+            final_itinerary = travel_group.itinerary
+            print("✅ Đã áp dụng Itinerary của nhóm.")
+        else:
+            print("⚠️ Nhóm không có itinerary hoặc không tìm thấy nhóm.")
+
+    # 4. TẠO MODEL TRẢ VỀ (KHÔNG SỬA DATABASE)
+    # Validate từ db_profile nhưng ghi đè itinerary
     public_profile = ProfilePublic.model_validate(db_profile)
-    
+    public_profile.itinerary = final_itinerary
+
     return public_profile
 
 # ====================================================================
