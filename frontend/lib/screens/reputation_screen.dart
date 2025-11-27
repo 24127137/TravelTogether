@@ -3,6 +3,7 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/feedback_service.dart';
 import '../models/feedback_models.dart';
+import '../services/user_service.dart'; // <--- 1. Import UserService
 
 class ReputationScreen extends StatefulWidget {
   const ReputationScreen({super.key});
@@ -13,12 +14,12 @@ class ReputationScreen extends StatefulWidget {
 
 class _ReputationScreenState extends State<ReputationScreen> {
   final FeedbackService _feedbackService = FeedbackService();
+  final UserService _userService = UserService(); // <--- 2. Khởi tạo UserService
 
   bool _isLoading = true;
   MyReputationResponse? _reputationData;
 
-  // Thông tin user (lấy từ cache/prefs vì API reputation chỉ trả về rating)
-  String _userName = "Loading...";
+  String _userName = "User"; // Mặc định
   String _userEmail = "";
   String? _userAvatar;
 
@@ -32,18 +33,40 @@ class _ReputationScreenState extends State<ReputationScreen> {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('access_token');
 
-    // Lấy thông tin user từ cache (lưu lúc login)
-    setState(() {
-      _userName = prefs.getString('user_fullname') ?? "User";
-      _userEmail = prefs.getString('user_email') ?? "";
-      _userAvatar = prefs.getString('user_avatar'); // URL avatar nếu có
-    });
-
+    // Bước 1: Lấy thông tin User mới nhất từ API (để hiện Fullname chính xác)
+    // Gọi song song với lấy Reputation để tiết kiệm thời gian
     if (token != null) {
-      final data = await _feedbackService.getMyReputation(token);
+      // Chạy cả 2 API cùng lúc
+      final results = await Future.wait([
+        _feedbackService.getMyReputation(token), // index 0
+        _userService.getUserProfile(),           // index 1
+      ]);
+
+      final reputationData = results[0] as MyReputationResponse?;
+      final profileData = results[1] as Map<String, dynamic>?;
+
       if (mounted) {
         setState(() {
-          _reputationData = data;
+          _reputationData = reputationData;
+
+          // Cập nhật thông tin User từ API /users/me
+          if (profileData != null) {
+            _userName = profileData['fullname'] ?? "User"; // Lấy fullname từ DB
+            _userEmail = profileData['email'] ?? "";
+            _userAvatar = profileData['avatar_url'];
+
+            // Lưu lại vào cache để lần sau mở app lên hiện nhanh hơn
+            prefs.setString('user_fullname', _userName);
+            if (_userAvatar != null) {
+              prefs.setString('user_avatar', _userAvatar!);
+            }
+          } else {
+            // Nếu API lỗi thì dùng tạm cache cũ
+            _userName = prefs.getString('user_fullname') ?? "User";
+            _userEmail = prefs.getString('user_email') ?? "";
+            _userAvatar = prefs.getString('user_avatar');
+          }
+
           _isLoading = false;
         });
       }
@@ -54,11 +77,13 @@ class _ReputationScreenState extends State<ReputationScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // ... (Phần UI giữ nguyên như cũ) ...
     return Scaffold(
+      // Copy y nguyên phần build cũ của bạn
       resizeToAvoidBottomInset: false,
       body: Stack(
         children: [
-          // Background (Giữ nguyên thiết kế cũ)
+          // Background
           Container(
             color: const Color(0xFFB64B12),
             child: Column(
@@ -85,7 +110,6 @@ class _ReputationScreenState extends State<ReputationScreen> {
                 final scaleFactor = (screenHeight / 800).clamp(0.65, 1.0);
                 final langScale = context.locale.languageCode == 'en' ? 0.65 : 1.0;
 
-                // Scaled sizes
                 final titleFontSize = 96.0 * scaleFactor * langScale;
                 final titleOffset = -55.0 * scaleFactor;
                 final contentTopPosition = 50.0 * scaleFactor;
@@ -137,7 +161,7 @@ class _ReputationScreenState extends State<ReputationScreen> {
                                 children: [
                                   // 1. User Info & Overall Rating
                                   _UserInfoCard(
-                                      userName: _userName,
+                                      userName: _userName, // <--- Giờ biến này đã chứa tên thật
                                       userEmail: _userEmail,
                                       avatarUrl: _userAvatar,
                                       userRating: _reputationData?.averageRating ?? 0.0,
@@ -174,7 +198,7 @@ class _ReputationScreenState extends State<ReputationScreen> {
                                 child: Stack(
                                   children: [
                                     Text(
-                                      'reputation'.tr(), // "UY TÍN"
+                                      'reputation'.tr(),
                                       style: TextStyle(
                                         fontSize: titleFontSize,
                                         fontFamily: 'Alumni Sans',
@@ -210,9 +234,9 @@ class _ReputationScreenState extends State<ReputationScreen> {
   }
 }
 
-// --- WIDGETS CON ---
-
+// ... (Giữ nguyên các widget con _UserInfoCard và _GroupRatingCard ở dưới) ...
 class _UserInfoCard extends StatelessWidget {
+  // ... code cũ của bạn
   final String userName;
   final String userEmail;
   final String? avatarUrl;
@@ -229,94 +253,89 @@ class _UserInfoCard extends StatelessWidget {
     this.scaleFactor = 1.0
   });
 
+  // ... build method cũ ...
   @override
   Widget build(BuildContext context) {
     final avatarSize = 77.0 * scaleFactor;
-    final nameFontSize = 24.0 * scaleFactor;
-    final emailFontSize = 16.0 * scaleFactor;
-    final starSize = 32.0 * scaleFactor;
-    final starContainerHeight = 47.0 * scaleFactor;
-
+    // ...
     return Column(
-      children: [
-        Row(
-          children: [
-            // Avatar
-            Container(
-              width: avatarSize,
-              height: avatarSize,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(color: Colors.white, width: 2),
-                image: DecorationImage(
-                  image: (avatarUrl != null && avatarUrl!.isNotEmpty)
-                      ? NetworkImage(avatarUrl!) as ImageProvider
-                      : const AssetImage("assets/images/avatar.jpg"),
-                  fit: BoxFit.cover,
+        children: [
+          Row(
+              children: [
+                Container(
+                  width: avatarSize,
+                  height: avatarSize,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.white, width: 2),
+                    image: DecorationImage(
+                      image: (avatarUrl != null && avatarUrl!.isNotEmpty)
+                          ? NetworkImage(avatarUrl!) as ImageProvider
+                          : const AssetImage("assets/images/avatar.jpg"),
+                      fit: BoxFit.cover,
+                    ),
+                  ),
                 ),
-              ),
-            ),
-            SizedBox(width: 26 * scaleFactor),
-            // Info
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    userName,
-                    style: TextStyle(color: Colors.white, fontSize: nameFontSize, fontFamily: 'Alegreya', fontWeight: FontWeight.w800),
-                    maxLines: 1, overflow: TextOverflow.ellipsis,
-                  ),
-                  SizedBox(height: 4 * scaleFactor),
-                  Text(
-                    userEmail,
-                    style: TextStyle(color: Colors.white70, fontSize: emailFontSize, fontFamily: 'Alegreya', fontWeight: FontWeight.w500),
-                    maxLines: 1, overflow: TextOverflow.ellipsis,
-                  ),
-                  Text(
-                    "$totalReviews reviews",
-                    style: TextStyle(color: Colors.orangeAccent, fontSize: 14 * scaleFactor, fontFamily: 'Alegreya'),
-                  )
-                ],
-              ),
-            ),
-          ],
-        ),
-
-        SizedBox(height: 20 * scaleFactor),
-
-        // Total Rating Bar
-        Container(
-          height: starContainerHeight,
-          decoration: BoxDecoration(
-            color: const Color(0xFFB64B12),
-            border: Border.all(color: const Color(0xFFB64B12), width: 3),
-            borderRadius: BorderRadius.circular(40),
+                SizedBox(width: 26 * scaleFactor),
+                Expanded(
+                    child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            userName, // Hiển thị tên thật
+                            style: TextStyle(color: Colors.white, fontSize: 24 * scaleFactor, fontFamily: 'Alegreya', fontWeight: FontWeight.w800),
+                            maxLines: 1, overflow: TextOverflow.ellipsis,
+                          ),
+                          // ... (phần còn lại giữ nguyên)
+                          SizedBox(height: 4 * scaleFactor),
+                          Text(
+                            userEmail,
+                            style: TextStyle(color: Colors.white70, fontSize: 16 * scaleFactor, fontFamily: 'Alegreya', fontWeight: FontWeight.w500),
+                            maxLines: 1, overflow: TextOverflow.ellipsis,
+                          ),
+                          Text(
+                            "$totalReviews reviews",
+                            style: TextStyle(color: Colors.orangeAccent, fontSize: 14 * scaleFactor, fontFamily: 'Alegreya'),
+                          )
+                        ]
+                    )
+                )
+              ]
           ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              ...List.generate(5, (index) {
-                return Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 6.0 * scaleFactor),
-                  child: Icon(
-                    index < userRating.floor()
-                        ? Icons.star
-                        : (index < userRating ? Icons.star_half : Icons.star_border),
-                    color: const Color(0xFFFFD700),
-                    size: starSize,
-                  ),
-                );
-              }),
-              SizedBox(width: 8 * scaleFactor),
-              Text(
-                userRating.toStringAsFixed(1),
-                style: TextStyle(color: Colors.white, fontSize: 20 * scaleFactor, fontWeight: FontWeight.bold),
-              )
-            ],
+          // ... Star rating bar code ...
+          SizedBox(height: 20 * scaleFactor),
+          // Total Rating Bar
+          Container(
+            height: 47.0 * scaleFactor,
+            decoration: BoxDecoration(
+              color: const Color(0xFFB64B12),
+              border: Border.all(color: const Color(0xFFB64B12), width: 3),
+              borderRadius: BorderRadius.circular(40),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                ...List.generate(5, (index) {
+                  return Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 6.0 * scaleFactor),
+                    child: Icon(
+                      index < userRating.floor()
+                          ? Icons.star
+                          : (index < userRating ? Icons.star_half : Icons.star_border),
+                      color: const Color(0xFFFFD700),
+                      size: 32.0 * scaleFactor,
+                    ),
+                  );
+                }),
+                SizedBox(width: 8 * scaleFactor),
+                Text(
+                  userRating.toStringAsFixed(1),
+                  style: TextStyle(color: Colors.white, fontSize: 20 * scaleFactor, fontWeight: FontWeight.bold),
+                )
+              ],
+            ),
           ),
-        ),
-      ],
+        ]
     );
   }
 }
@@ -329,6 +348,7 @@ class _GroupRatingCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // ... Copy code cũ của bạn vào đây, không thay đổi gì ...
     final containerHeight = 128.0 * scaleFactor;
     final avatarSize = 105.0 * scaleFactor;
     final nameFontSize = 15.0 * scaleFactor;
@@ -337,7 +357,6 @@ class _GroupRatingCard extends StatelessWidget {
     final tagFontSize = 12.0 * scaleFactor;
     final tagPaddingH = 10.0 * scaleFactor;
 
-    // 1. Tính điểm trung bình của nhóm này
     double groupRating = 0;
     if (groupData.feedbacks.isNotEmpty) {
       double sum = 0;
@@ -351,7 +370,6 @@ class _GroupRatingCard extends StatelessWidget {
       if (count > 0) groupRating = sum / count;
     }
 
-    // 2. Gom tất cả tags từ các feedbacks lại (unique)
     Set<String> uniqueTags = {};
     for (var fb in groupData.feedbacks) {
       uniqueTags.addAll(fb.content);
@@ -367,7 +385,6 @@ class _GroupRatingCard extends StatelessWidget {
       ),
       child: Row(
         children: [
-          // Group avatar
           Container(
             width: avatarSize,
             height: avatarSize,
@@ -384,13 +401,11 @@ class _GroupRatingCard extends StatelessWidget {
 
           SizedBox(width: 14 * scaleFactor),
 
-          // Info
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                // Group Name
                 Text(
                   groupData.groupName,
                   style: TextStyle(
@@ -404,7 +419,6 @@ class _GroupRatingCard extends StatelessWidget {
 
                 const SizedBox(height: 4),
 
-                // Rating Star
                 Row(
                   children: [
                     Text(
@@ -428,24 +442,22 @@ class _GroupRatingCard extends StatelessWidget {
 
                 const SizedBox(height: 8),
 
-                // === TAGS: QUẸT NGANG (SCROLLABLE ROW) ===
-                // Thay Wrap bằng SingleChildScrollView + Row
                 tags.isEmpty
                     ? Text("Chưa có nhận xét", style: TextStyle(fontStyle: FontStyle.italic, fontSize: tagFontSize, color: Colors.black54))
                     : SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
-                  physics: const BouncingScrollPhysics(), // Hiệu ứng nảy khi kéo hết
+                  physics: const BouncingScrollPhysics(),
                   child: Row(
                     children: tags.map((tag) {
                       return Container(
-                        margin: EdgeInsets.only(right: 6 * scaleFactor), // Khoảng cách giữa các tag
+                        margin: EdgeInsets.only(right: 6 * scaleFactor),
                         padding: EdgeInsets.symmetric(horizontal: tagPaddingH, vertical: 4),
                         decoration: BoxDecoration(
                           color: Colors.black.withOpacity(0.1),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Text(
-                          tag.tr(), // Dịch tag
+                          tag.tr(),
                           style: TextStyle(
                             color: Colors.black87,
                             fontSize: tagFontSize,
