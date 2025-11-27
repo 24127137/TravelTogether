@@ -5,6 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:intl/date_symbol_data_local.dart';
 
 import 'screens/onboarding.dart';
+import 'screens/first_of_all.dart';
 import 'screens/main_app_screen.dart';
 import 'services/auth_service.dart';
 import 'services/notification_service.dart'; // === THÊM MỚI: Import notification service ===
@@ -53,7 +54,8 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       navigatorKey: navigatorKey, // === THÊM MỚI: Global navigator key ===
-      home: const SplashScreen(),
+      // home: const SplashScreen(),
+      home: const FirstScreen(),
       debugShowCheckedModeBanner: false,
       localizationsDelegates: context.localizationDelegates,
       supportedLocales: context.supportedLocales,

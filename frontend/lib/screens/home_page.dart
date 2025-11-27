@@ -1,5 +1,5 @@
 /// File: home_page.dart
-/// Mô tả: Widget nội dung cho tab Trang chủ. Đã dịch sang tiếng Việt.
+/// Trạng thái: Đã sửa lỗi layout (Unbounded Height)
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -8,7 +8,7 @@ import '../data/mock_destinations.dart';
 import '../models/destination.dart';
 import '../widgets/destination_search_modal.dart';
 import '../widgets/calendar_card.dart';
-import 'group_matcing_announcement_screen.dart';
+import 'group_matcing_announcement_screen.dart'; // Kiểm tra lại tên file này xem có đúng chính tả "matching" không nhé
 
 class HomePage extends StatefulWidget {
   final void Function(Destination)? onDestinationTap;
@@ -34,6 +34,7 @@ class _HomePageState extends State<HomePage> {
   }
 
   void _showCalendar() => setState(() => _isCalendarVisible = true);
+
   void _hideCalendar() => setState(() => _isCalendarVisible = false);
 
   void _onDaySelected(DateTime selectedDay, DateTime focusedDay) {
@@ -82,48 +83,64 @@ class _HomePageState extends State<HomePage> {
       ..sort((a, b) => b.rating.compareTo(a.rating));
     final top5 = top5Cities.take(5).toList();
 
-    // 1. Loại bỏ Scaffold và BottomNavigationBar
-    // 2. Wrap nội dung chính bằng Container có màu nền Scaffold cũ
     return Container(
       color: const Color(0xFFB99668), // Màu nền Scaffold cũ
       child: ClipRRect(
         borderRadius: BorderRadius.circular(30),
         child: Stack(
           children: [
-            // Dùng ListView để nội dung cuộn được.
-            ListView(
-              padding: EdgeInsets.zero,
-              children: [
-                _TopSection(
-                  durationText: _durationText,
-                  onDestinationTap: _openDestinationScreen,
-                  onDurationTap: _showCalendar,
-                  onSettingsTap: widget.onSettingsTap,
-                ),
-                // Hiển thị 5 thẻ thành phố rating cao nhất
-                Padding(
-                  padding: const EdgeInsets.all(20.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      Text(
-                        "top_destinations".tr(),
-                        style: const TextStyle(
-                          color: Color(0xFFFFFFFF),
-                          fontSize: 19,
-                          fontFamily: 'Alegreya',
-                          fontWeight: FontWeight.w900,
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-                      ...top5.map((dest) => _RecommendedCard(destination: dest, onTap: widget.onDestinationTap)).toList(),
-                    ],
+            // --- FIX QUAN TRỌNG: Positioned.fill ---
+            // Bắt buộc Column phải khớp độ cao với Stack để Expanded hoạt động
+            Positioned.fill(
+              child: Column(
+                children: [
+                  // 1. Phần Fixed (Cố định)
+                  _TopSection(
+                    durationText: _durationText,
+                    onDestinationTap: _openDestinationScreen,
+                    onDurationTap: _showCalendar,
+                    onSettingsTap: widget.onSettingsTap,
                   ),
-                ),
-                // Padding cuối cùng để tránh bị BottomNavigationBar bên ngoài che.
-                SizedBox(height: MediaQuery.of(context).padding.bottom + 100),
-              ],
+
+                  // 2. Phần Scroll (Cuộn) - Chiếm hết không gian còn lại
+                  Expanded(
+                    child: ListView(
+                      padding: EdgeInsets.zero,
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.all(20.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              Text(
+                                "top_destinations".tr(),
+                                style: const TextStyle(
+                                  color: Color(0xFFFFFFFF),
+                                  fontSize: 19,
+                                  fontFamily: 'Alegreya',
+                                  fontWeight: FontWeight.w900,
+                                ),
+                              ),
+                              const SizedBox(height: 20),
+                              // Render danh sách thành phố
+                              ...top5.map((dest) => _RecommendedCard(
+                                destination: dest,
+                                onTap: widget.onDestinationTap,
+                              )).toList(),
+
+                              // Padding cuối cùng để tránh bị BottomNavigationBar bên ngoài che
+                              SizedBox(height: MediaQuery.of(context).padding.bottom + 100),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
+
+            // Lớp phủ Calendar (nằm trên cùng Stack)
             if (_isCalendarVisible)
               _CalendarOverlay(
                 focusedDay: _focusedDay,
@@ -160,7 +177,7 @@ class _TopSection extends StatelessWidget {
       // Thêm padding top an toàn cho notch/status bar.
       padding: EdgeInsets.fromLTRB(20, MediaQuery.of(context).padding.top + 20, 20, 20),
       decoration: const BoxDecoration(
-          color: Color(0xFFEDE2CC), // Cream color for the top section
+          color: Color(0xFFEDE2CC), // Cream color
           borderRadius: BorderRadius.only(
             bottomLeft: Radius.circular(30),
             bottomRight: Radius.circular(30),
@@ -196,18 +213,17 @@ class _CustomAppBar extends StatelessWidget {
     return Row(
       children: [
         Container(
-          decoration: ShapeDecoration(
+          decoration: const ShapeDecoration(
             shape: OvalBorder(
               side: BorderSide(
                 width: 2,
                 strokeAlign: BorderSide.strokeAlignCenter,
-                color: const Color(0xFFF7F3E8),
+                color: Color(0xFFF7F3E8),
               ),
             ),
           ),
           child: const CircleAvatar(
-            // Cần đảm bảo asset này tồn tại
-            // Thay thế bằng NetworkImage nếu cần
+            // LƯU Ý: Đảm bảo asset này tồn tại trong pubspec.yaml
             backgroundImage: AssetImage('assets/images/avatar.jpg'),
             radius: 18,
           ),
@@ -219,9 +235,9 @@ class _CustomAppBar extends StatelessWidget {
               fontFamily: 'Poppins', fontSize: 16, fontWeight: FontWeight.w600),
         ),
         const Spacer(),
-        // Announcement button (new) - opens GroupMatchingAnnouncementScreen
         GestureDetector(
           onTap: () {
+            // LƯU Ý: Đảm bảo GroupMatchingAnnouncementScreen được import đúng
             Navigator.of(context).push(MaterialPageRoute(
               builder: (_) => GroupMatchingAnnouncementScreen(
                 groupName: '1 tháng 2 lần',
@@ -251,7 +267,7 @@ class _CustomAppBar extends StatelessWidget {
               color: Color(0xFFF7F3E8),
               shape: OvalBorder(),
             ),
-            child: const Icon(Icons.settings, size: 20, color: Color(0xFF3E3322),),
+            child: const Icon(Icons.settings, size: 20, color: Color(0xFF3E3322)),
           ),
         ),
       ],
@@ -270,7 +286,6 @@ class _SelectionButton extends StatelessWidget {
   Widget build(BuildContext context) {
     const accentColor = Color(0xFFA15C20);
 
-    // Detect if the hint contains a date (e.g. "dd/MM" or a date range with '-').
     final isDateHint = RegExp(r'\d{2}/\d{2}').hasMatch(hint);
     final isDefaultHint = hint == 'destination'.tr() || hint == 'travel_time'.tr();
 
@@ -284,8 +299,6 @@ class _SelectionButton extends StatelessWidget {
       child: InkWell(
         borderRadius: BorderRadius.circular(10),
         onTap: () {
-          // debug print to confirm tap
-          // ignore: avoid_print
           print('SelectionButton tapped: $hint');
           onTap();
         },
@@ -313,7 +326,7 @@ class _SelectionButton extends StatelessWidget {
   }
 }
 
-// --- Recommended Section (Không thay đổi) ---
+// --- Recommended Section ---
 class _RecommendedCard extends StatelessWidget {
   final Destination destination;
   final void Function(Destination)? onTap;
@@ -321,7 +334,6 @@ class _RecommendedCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // removed rating percent display from the card
     return GestureDetector(
       onTap: () {
         if (onTap != null) onTap!(destination);
@@ -377,7 +389,6 @@ class _RecommendedCard extends StatelessWidget {
                       ),
                     ),
                   ),
-                  // rating pill removed per request
                 ],
               ),
             );
@@ -388,7 +399,7 @@ class _RecommendedCard extends StatelessWidget {
   }
 }
 
-// --- Calendar Overlay (Không thay đổi) ---
+// --- Calendar Overlay ---
 class _CalendarOverlay extends StatelessWidget {
   final DateTime focusedDay;
   final DateTime? rangeStart;

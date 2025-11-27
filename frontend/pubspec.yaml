@@ -78,6 +78,16 @@ flutter:
 
   assets:
     - assets/images/
+    - assets/images/dia_diem/danang/
+    - assets/images/dia_diem/dalat/
+    - assets/images/dia_diem/hanoi/
+    - assets/images/dia_diem/hoian/
+    - assets/images/dia_diem/hue/
+    - assets/images/dia_diem/nhatrang/
+    - assets/images/dia_diem/phuquoc/
+    - assets/images/dia_diem/saigon/
+    - assets/images/dia_diem/sapa/
+    - assets/images/dia_diem/halong/
     - assets/images/group_creating/
     - assets/translations/
     - assets/images/travel_plan.png
