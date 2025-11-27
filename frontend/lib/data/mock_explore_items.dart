@@ -96,7 +96,7 @@ final List<DestinationExploreItem> mockExploreItems = [
   DestinationExploreItem(
     id: 'danang_10',
     cityId: 'danang',
-    name: 'Asia Park',
+    name: 'Asia Park (Sun World Đà Nẵng Wonders)',
     subtitleVi: 'Công viên giải trí',
     subtitleEn: 'Amusement Park',
     location: 'Đà Nẵng',
@@ -168,7 +168,7 @@ final List<DestinationExploreItem> mockExploreItems = [
   DestinationExploreItem(
     id: 'dalat_7',
     cityId: 'dalat',
-    name: 'Đường hầm Đất Sét',
+    name: 'Đường hầm Đất Sét (Làng Đất Sét)',
     subtitleVi: 'Kiến trúc độc đáo',
     subtitleEn: 'Unique Architecture',
     location: 'Đà Lạt, Lâm Đồng',
@@ -230,7 +230,7 @@ final List<DestinationExploreItem> mockExploreItems = [
   DestinationExploreItem(
     id: 'nhatrang_3',
     cityId: 'nhatrang',
-    name: 'VinWonders Nha Trang',
+    name: 'VinWonders Nha Trang (Hòn Tre)',
     subtitleVi: 'Khu vui chơi lớn',
     subtitleEn: 'Large Amusement Park',
     location: 'Nha Trang, Khánh Hòa',
@@ -250,7 +250,7 @@ final List<DestinationExploreItem> mockExploreItems = [
   DestinationExploreItem(
     id: 'nhatrang_5',
     cityId: 'nhatrang',
-    name: 'Bãi Dài',
+    name: 'Bãi Dài (Cam Ranh)',
     subtitleVi: 'Bãi biển hoang sơ',
     subtitleEn: 'Pristine Beach',
     location: 'Nha Trang, Khánh Hòa',
@@ -300,7 +300,7 @@ final List<DestinationExploreItem> mockExploreItems = [
   DestinationExploreItem(
     id: 'nhatrang_10',
     cityId: 'nhatrang',
-    name: 'Nhà thờ Núi Nha Trang',
+    name: 'Nhà thờ Núi (Nhà thờ Chánh tòa Nha Trang)',
     subtitleVi: 'Kiến trúc Pháp cổ',
     subtitleEn: 'Ancient French Architecture',
     location: 'Nha Trang, Khánh Hòa',
@@ -308,7 +308,6 @@ final List<DestinationExploreItem> mockExploreItems = [
     rating: 4.8,
   ),
 
-  // Phú Quốc
   // Phú Quốc
   DestinationExploreItem(
     id: 'phuquoc_1',
@@ -333,7 +332,7 @@ final List<DestinationExploreItem> mockExploreItems = [
   DestinationExploreItem(
     id: 'phuquoc_3',
     cityId: 'phuquoc',
-    name: 'Sunset Town',
+    name: 'Sunset Town (Thị trấn Hoàng Hôn)',
     subtitleVi: 'Thị trấn hoàng hôn',
     subtitleEn: 'Sunset Town',
     location: 'Phú Quốc, Kiên Giang',
@@ -363,7 +362,7 @@ final List<DestinationExploreItem> mockExploreItems = [
   DestinationExploreItem(
     id: 'phuquoc_6',
     cityId: 'phuquoc',
-    name: 'Grand World',
+    name: 'Grand World (Phú Quốc United Center)',
     subtitleVi: 'Khu du lịch phức hợp',
     subtitleEn: 'Complex Resort',
     location: 'Phú Quốc, Kiên Giang',
@@ -415,7 +414,7 @@ final List<DestinationExploreItem> mockExploreItems = [
   DestinationExploreItem(
     id: 'hanoi_1',
     cityId: 'hanoi',
-    name: 'Hồ Hoàn Kiếm',
+    name: 'Hồ Hoàn Kiếm (Hồ Gươm)',
     subtitleVi: 'Trái tim thủ đô',
     subtitleEn: 'Heart of the Capital',
     location: 'Hà Nội',
@@ -445,7 +444,7 @@ final List<DestinationExploreItem> mockExploreItems = [
   DestinationExploreItem(
     id: 'hanoi_4',
     cityId: 'hanoi',
-    name: 'Lăng Bác',
+    name: 'Lăng Bác (Lăng Chủ tịch Hồ Chí Minh)',
     subtitleVi: 'Biểu tượng quốc gia',
     subtitleEn: 'National Symbol',
     location: 'Hà Nội',
@@ -651,7 +650,7 @@ final List<DestinationExploreItem> mockExploreItems = [
   DestinationExploreItem(
     id: 'hue_4',
     cityId: 'hue',
-    name: 'Cầu Trường Tiền',
+    name: 'Cầu Trường Tiền (Tràng Tiền)',
     subtitleVi: 'Cầu nổi tiếng',
     subtitleEn: 'Famous Bridge',
     location: 'Huế, Thừa Thiên Huế',
@@ -721,8 +720,8 @@ final List<DestinationExploreItem> mockExploreItems = [
 
   // TP. Hồ Chí Minh (Sài Gòn)
   DestinationExploreItem(
-    id: 'saigon_1',
-    cityId: 'saigon',
+    id: 'hochiminh_1',
+    cityId: 'hochiminh',
     name: 'Nhà thờ Đức Bà',
     subtitleVi: 'Kiến trúc Pháp cổ',
     subtitleEn: 'Ancient French Architecture',
@@ -731,9 +730,9 @@ final List<DestinationExploreItem> mockExploreItems = [
     rating: 4.9,
   ),
   DestinationExploreItem(
-    id: 'saigon_2',
-    cityId: 'saigon',
-    name: 'Dinh Độc Lập',
+    id: 'hochiminh_2',
+    cityId: 'hochiminh',
+    name: 'Dinh Độc Lập (Hội trường Thống nhất)',
     subtitleVi: 'Di tích lịch sử',
     subtitleEn: 'Historical Relic',
     location: 'TP. Hồ Chí Minh',
@@ -741,8 +740,8 @@ final List<DestinationExploreItem> mockExploreItems = [
     rating: 4.8,
   ),
   DestinationExploreItem(
-    id: 'saigon_3',
-    cityId: 'saigon',
+    id: 'hochiminh_3',
+    cityId: 'hochiminh',
     name: 'Bưu điện Trung tâm',
     subtitleVi: 'Kiến trúc cổ',
     subtitleEn: 'Ancient Architecture',
@@ -751,8 +750,8 @@ final List<DestinationExploreItem> mockExploreItems = [
     rating: 4.8,
   ),
   DestinationExploreItem(
-    id: 'saigon_4',
-    cityId: 'saigon',
+    id: 'hochiminh_4',
+    cityId: 'hochiminh',
     name: 'Chợ Bến Thành',
     subtitleVi: 'Trung tâm mua sắm',
     subtitleEn: 'Shopping Center',
@@ -761,8 +760,8 @@ final List<DestinationExploreItem> mockExploreItems = [
     rating: 4.7,
   ),
   DestinationExploreItem(
-    id: 'saigon_5',
-    cityId: 'saigon',
+    id: 'hochiminh_5',
+    cityId: 'hochiminh',
     name: 'Phố đi bộ Nguyễn Huệ',
     subtitleVi: 'Không gian hiện đại',
     subtitleEn: 'Modern Space',
@@ -771,8 +770,8 @@ final List<DestinationExploreItem> mockExploreItems = [
     rating: 4.7,
   ),
   DestinationExploreItem(
-    id: 'saigon_6',
-    cityId: 'saigon',
+    id: 'hochiminh_6',
+    cityId: 'hochiminh',
     name: 'Landmark 81',
     subtitleVi: 'Tòa nhà cao nhất Việt Nam',
     subtitleEn: 'Tallest Building in Vietnam',
@@ -781,8 +780,8 @@ final List<DestinationExploreItem> mockExploreItems = [
     rating: 4.8,
   ),
   DestinationExploreItem(
-    id: 'saigon_7',
-    cityId: 'saigon',
+    id: 'hochiminh_7',
+    cityId: 'hochiminh',
     name: 'Bảo tàng Chứng tích Chiến tranh',
     subtitleVi: 'Bảo tàng lịch sử',
     subtitleEn: 'History Museum',
@@ -791,8 +790,8 @@ final List<DestinationExploreItem> mockExploreItems = [
     rating: 4.7,
   ),
   DestinationExploreItem(
-    id: 'saigon_8',
-    cityId: 'saigon',
+    id: 'hochiminh_8',
+    cityId: 'hochiminh',
     name: 'Bitexco Tower Skydeck',
     subtitleVi: 'Tòa nhà biểu tượng',
     subtitleEn: 'Iconic Building',
@@ -801,8 +800,8 @@ final List<DestinationExploreItem> mockExploreItems = [
     rating: 4.8,
   ),
   DestinationExploreItem(
-    id: 'saigon_9',
-    cityId: 'saigon',
+    id: 'hochiminh_9',
+    cityId: 'hochiminh',
     name: 'Khu phố Tây Bùi Viện',
     subtitleVi: 'Khu phố sôi động',
     subtitleEn: 'Vibrant Street',
@@ -811,8 +810,8 @@ final List<DestinationExploreItem> mockExploreItems = [
     rating: 4.7,
   ),
   DestinationExploreItem(
-    id: 'saigon_10',
-    cityId: 'saigon',
+    id: 'hochiminh_10',
+    cityId: 'hochiminh',
     name: 'Công viên Tao Đàn',
     subtitleVi: 'Không gian xanh',
     subtitleEn: 'Green Space',
@@ -1020,7 +1019,7 @@ final List<DestinationExploreItem> mockExploreItems = [
   DestinationExploreItem(
     id: 'halong_10',
     cityId: 'halong',
-    name: 'Chợ đêm Hạ Long',
+    name: 'Chợ đêm Hạ Long (Chợ đêm Bãi Cháy)',
     subtitleVi: 'Trung tâm mua sắm',
     subtitleEn: 'Shopping Center',
     location: 'Hạ Long, Quảng Ninh',

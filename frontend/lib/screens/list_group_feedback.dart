@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
 import '../../models/feedback_models.dart';
 import '../../services/feedback_service.dart';
+import '../../services/auth_service.dart';
 import 'feedback_screen.dart';
+// import 'login_screen.dart'; // Import màn hình login nếu cần chuyển hướng
 
 class ListGroupFeedbackScreen extends StatefulWidget {
   const ListGroupFeedbackScreen({super.key});
@@ -13,23 +15,67 @@ class ListGroupFeedbackScreen extends StatefulWidget {
 }
 
 class _ListGroupFeedbackScreenState extends State<ListGroupFeedbackScreen> {
-  // Giả lập token (Lưu ý: Token này phải còn hạn sử dụng)
-  final String _fakeToken = "eyJhbGciOiJIUzI1NiIsImtpZCI6IjQ4Ukk2RTJWbEpFQkJMN3ciLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL21ldXFudHZhd2FrZHpudGV3c2NwLnN1cGFiYXNlLmNvL2F1dGgvdjEiLCJzdWIiOiJiYWZiYWQ1MS0xYzg3LTQ1MDYtOWJmMC1kYzgyZGU4ZTAzNjUiLCJhdWQiOiJhdXRoZW50aWNhdGVkIiwiZXhwIjoxNzY0NTE3MDA4LCJpYXQiOjE3NjQxNTcwMDgsImVtYWlsIjoia2hvYUB0ZXN0LmNvbSIsInBob25lIjoiIiwiYXBwX21ldGFkYXRhIjp7InByb3ZpZGVyIjoiZW1haWwiLCJwcm92aWRlcnMiOlsiZW1haWwiXX0sInVzZXJfbWV0YWRhdGEiOnsiZW1haWwiOiJraG9hQHRlc3QuY29tIiwiZW1haWxfdmVyaWZpZWQiOnRydWUsInBob25lX3ZlcmlmaWVkIjpmYWxzZSwic3ViIjoiYmFmYmFkNTEtMWM4Ny00NTA2LTliZjAtZGM4MmRlOGUwMzY1In0sInJvbGUiOiJhdXRoZW50aWNhdGVkIiwiYWFsIjoiYWFsMSIsImFtciI6W3sibWV0aG9kIjoicGFzc3dvcmQiLCJ0aW1lc3RhbXAiOjE3NjQxNTcwMDh9XSwic2Vzc2lvbl9pZCI6Ijc3NmU4NTFiLTNjZjEtNDljYi04ZjZhLWVjZjBhZTdkMmNkOSIsImlzX2Fub255bW91cyI6ZmFsc2V9.mXmfiEvBEjz5P2nguOsSInkNx62KykpMW7DeobPGOrE";
-
   final FeedbackService _service = FeedbackService();
 
-  late Future<List<PendingReviewGroup>> _pendingGroupsFuture;
+  Future<List<PendingReviewGroup>>? _pendingGroupsFuture;
+  String? _accessToken;
+  bool _isCheckingToken = true; // Biến để hiện loading lúc đang check token
 
   @override
   void initState() {
     super.initState();
-    _refreshData();
+    _initData();
+  }
+
+  // Hàm khởi tạo dữ liệu: Lấy Token -> Gọi API
+  Future<void> _initData() async {
+    // 1. Lấy token hợp lệ từ AuthService (Nó đã tự xử lý refresh token nếu cần)
+    final token = await AuthService.getValidAccessToken();
+
+    if (token != null && token.isNotEmpty) {
+      if (mounted) {
+        setState(() {
+          _accessToken = token;
+          _isCheckingToken = false;
+          // 2. Có token rồi thì mới gọi API lấy danh sách
+          _pendingGroupsFuture = _service.getPendingReviews(token);
+        });
+      }
+    } else {
+      // 3. Nếu không lấy được token (Hết hạn quá lâu hoặc chưa login)
+      if (mounted) {
+        setState(() {
+          _isCheckingToken = false;
+        });
+        _showLoginRequiredDialog();
+      }
+    }
+  }
+
+  void _showLoginRequiredDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        title: Text("Yêu cầu đăng nhập".tr()),
+        content: Text("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.".tr()),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(ctx); // Đóng dialog
+              Navigator.pop(context); // Quay lại màn hình trước
+              // Hoặc: Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => LoginScreen()));
+            },
+            child: Text("OK".tr()),
+          )
+        ],
+      ),
+    );
   }
 
   void _refreshData() {
-    setState(() {
-      _pendingGroupsFuture = _service.getPendingReviews(_fakeToken);
-    });
+    // Gọi lại quy trình lấy token để đảm bảo token vẫn còn hạn
+    _initData();
   }
 
   @override
@@ -60,7 +106,11 @@ class _ListGroupFeedbackScreenState extends State<ListGroupFeedbackScreen> {
 
           // 2. Nội dung list
           SafeArea(
-            child: FutureBuilder<List<PendingReviewGroup>>(
+            child: _isCheckingToken
+                ? const Center(child: CircularProgressIndicator(color: Colors.white)) // Đang check token
+                : _accessToken == null
+                ? Center(child: Text("Vui lòng đăng nhập".tr(), style: const TextStyle(color: Colors.white)))
+                : FutureBuilder<List<PendingReviewGroup>>(
               future: _pendingGroupsFuture,
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
@@ -72,9 +122,12 @@ class _ListGroupFeedbackScreenState extends State<ListGroupFeedbackScreen> {
                       children: [
                         const Icon(Icons.error_outline, color: Colors.white, size: 48),
                         const SizedBox(height: 16),
-                        Text('Lỗi tải dữ liệu: ${snapshot.error}'.tr(), style: const TextStyle(color: Colors.white), textAlign: TextAlign.center),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                          child: Text('Lỗi tải dữ liệu: ${snapshot.error}'.tr(), style: const TextStyle(color: Colors.white), textAlign: TextAlign.center),
+                        ),
                         const SizedBox(height: 8),
-                        TextButton(onPressed: _refreshData, child: Text('Thử lại'.tr())),
+                        TextButton(onPressed: _refreshData, child: Text('Thử lại'.tr(), style: const TextStyle(color: Colors.orangeAccent))),
                       ],
                     ),
                   );
@@ -120,13 +173,15 @@ class _ListGroupFeedbackScreenState extends State<ListGroupFeedbackScreen> {
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: () async {
-          // === QUAN TRỌNG: Truyền token sang màn hình Feedback ===
+          if (_accessToken == null) return;
+
+          // Chuyển sang màn hình FeedbackScreen với token thật
           final result = await Navigator.push(
             context,
             MaterialPageRoute(
               builder: (context) => FeedbackScreen(
                 groupData: group,
-                accessToken: _fakeToken, // <--- Thêm dòng này
+                accessToken: _accessToken!, // Truyền token thật vào đây
               ),
             ),
           );
