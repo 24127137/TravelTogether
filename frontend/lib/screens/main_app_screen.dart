@@ -412,6 +412,9 @@ class _MainAppScreenState extends State<MainAppScreen> {
         HomePage(
           onDestinationTap: _openDestinationDetail,
           onSettingsTap: _openSettings,
+          onTabChangeRequest: (index) {
+            _onItemTapped(index); // Gọi hàm chuyển tab của MainAppScreen
+          },
         ),
         NotificationScreen(),
         MessagesScreen(accessToken: widget.accessToken),

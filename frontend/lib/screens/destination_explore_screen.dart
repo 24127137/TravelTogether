@@ -6,6 +6,7 @@ import '../widgets/enter_bar.dart';
 import '../services/recommendation_service.dart';
 import '../services/user_service.dart';
 import 'destination_search_screen.dart';
+import 'before_group_screen.dart';
 
 class DestinationExploreScreen extends StatefulWidget {
   final String cityId;
@@ -39,6 +40,10 @@ class _DestinationExploreScreenState extends State<DestinationExploreScreen> {
   List<DestinationExploreItem> _displayItems = [];
   Map<String, int> _compatibilityScores = {};
   bool _isLoading = true;
+  bool _hasLoadedOnce = false;
+
+  // THÊM: Key để quản lý trạng thái của nút EnterButton
+  Key _enterButtonKey = UniqueKey();
 
   String _normalizeName(String name) {
     return name.toLowerCase().trim().replaceAll(RegExp(r'\s+'), ' ');
@@ -53,102 +58,63 @@ class _DestinationExploreScreenState extends State<DestinationExploreScreen> {
     _loadRecommendations();
   }
 
+  // ... (Giữ nguyên các hàm _restoreCityIfNeeded, _loadRecommendations, _getScore, _toggleFavorite) ...
   Future<void> _restoreCityIfNeeded() async {
     if (widget.restoreCityRawName != null) {
-      print("🔙 [Explore] User back -> Đang khôi phục thành phố về: ${widget.restoreCityRawName}");
       await _userService.updatePreferredCityRaw(widget.restoreCityRawName!);
     }
   }
 
   Future<void> _loadRecommendations() async {
+    if (_hasLoadedOnce && _compatibilityScores.isNotEmpty) {
+      return;
+    }
     try {
-      print("🤖 [Explore] Đang gọi AI Recommendation cho city: ${widget.cityId}");
-
       final recommendations = await _recommendService.getMyRecommendations();
-
-      // Reset map
       _compatibilityScores.clear();
-
-      print("--- 🔍 BẮT ĐẦU DEBUG SO KHỚP TÊN ---");
-      // 1. Lưu điểm từ AI vào Map với Key đã chuẩn hóa
       for (var rec in recommendations) {
         String safeName = _normalizeName(rec.locationName);
         _compatibilityScores[safeName] = rec.score;
-        // In ra để kiểm tra tên từ Backend
-        // print("   AI trả về: '$safeName' (${rec.score}%)");
       }
-
-      // 2. Kiểm tra xem Local Item có khớp không
-      for (var item in _displayItems) {
-        String safeLocalName = _normalizeName(item.name);
-        if (!_compatibilityScores.containsKey(safeLocalName)) {
-          print("⚠️ CẢNH BÁO: Không tìm thấy điểm cho: '${item.name}'");
-          print("   -> Tên chuẩn hóa local: '$safeLocalName'");
-          print("   -> Hãy kiểm tra xem Backend có trả về tên này không?");
-        }
-      }
-      print("--- 🏁 KẾT THÚC DEBUG ---");
-
-      // 3. Sort lại
       List<DestinationExploreItem> sortedItems = List.from(_displayItems);
       sortedItems.sort((a, b) {
         int scoreA = _getScore(a.name);
         int scoreB = _getScore(b.name);
-        // Ưu tiên điểm cao lên đầu
         return scoreB.compareTo(scoreA);
       });
-
+      _hasLoadedOnce = true;
       if (mounted) setState(() { _displayItems = sortedItems; _isLoading = false; });
     } catch (e) {
       if (mounted) setState(() => _isLoading = false);
     }
   }
 
-  // Cập nhật hàm lấy điểm dùng chung hàm chuẩn hóa
   int _getScore(String locationName) {
     String key = _normalizeName(locationName);
     return _compatibilityScores[key] ?? 0;
   }
 
-  // int _getScore(String locationName) {
-  //   return _compatibilityScores[locationName.toLowerCase().trim()] ?? 0;
-  // }
-
-  // --- ĐÃ SỬA: Mở lại hàm toggleFavorite để xử lý sự kiện nhấn tim ---
   void _toggleFavorite(DestinationExploreItem item) async {
-    // 1. Cập nhật UI ngay lập tức
     setState(() {
       item.isFavorite = !item.isFavorite;
     });
-
-    // 2. Gọi API lưu xuống DB ngầm
-    bool success = await _userService.toggleItineraryItem(item.name, item.isFavorite);
-
-    if (!success) {
-      print("⚠️ Lỗi lưu Itinerary, nhưng UI đã update.");
-    }
+    await _userService.toggleItineraryItem(item.name, item.isFavorite);
   }
 
-// Tìm hàm _handleOpenSearch và sửa lại như sau:
+  // ... (Giữ nguyên _handleOpenSearch, _handleBack) ...
   void _handleOpenSearch() async {
     await Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => DestinationSearchScreen(
           cityId: widget.cityId,
-          // SỬA: Truyền dữ liệu điểm số đang có sang trang kia
           preloadedScores: _compatibilityScores,
         ),
       ),
     );
-
-    print("🔄 Quay lại từ Search -> Refresh giao diện");
     if (mounted) {
       setState(() {
-        _displayItems = mockExploreItems
-            .where((item) => item.cityId == widget.cityId)
-            .toList();
-
+        _displayItems = mockExploreItems.where((item) => item.cityId == widget.cityId).toList();
         _displayItems.sort((a, b) {
           int scoreA = _getScore(a.name);
           int scoreB = _getScore(b.name);
@@ -160,18 +126,74 @@ class _DestinationExploreScreenState extends State<DestinationExploreScreen> {
 
   void _handleBack() {
     _restoreCityIfNeeded();
-    if (widget.onBack != null) {
-      widget.onBack!();
-    } else {
-      Navigator.of(context).pop();
-    }
+    if (widget.onBack != null) widget.onBack!();
+    else Navigator.of(context).pop();
   }
 
-  void _handleEnter() {
-    print("[Explore] User continue -> Giữ nguyên city mới.");
-    if (widget.onBeforeGroup != null) {
-      widget.onBeforeGroup!();
+  bool _validateSelection() {
+    bool hasSelectedPlace = _displayItems.any((item) => item.isFavorite);
+
+    if (!hasSelectedPlace) {
+      // Hiện thông báo lỗi
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Vui lòng chọn ít nhất một địa điểm!".tr()),
+          backgroundColor: Colors.redAccent,
+          duration: const Duration(seconds: 2),
+        ),
+      );
+      return false; // Báo cho nút biết là thất bại -> Nút sẽ tự thu về
     }
+
+    return true; // Thành công -> Nút sẽ biến thành màu xanh
+  }
+
+  // --- SỬA LOGIC NÚT TIẾP TỤC TẠI ĐÂY ---
+  void _handleEnter() async {
+    // 1. VALIDATION: Kiểm tra xem user đã chọn địa điểm nào chưa (đã thả tim chưa)
+    bool hasSelectedPlace = _displayItems.any((item) => item.isFavorite);
+
+    // if (!hasSelectedPlace) {
+    //   // Nếu chưa chọn -> Hiện thông báo và KHÔNG chuyển trang
+    //   ScaffoldMessenger.of(context).showSnackBar(
+    //     SnackBar(
+    //       content: Text("Vui lòng chọn ít nhất một địa điểm để tiếp tục!".tr()),
+    //       backgroundColor: Colors.redAccent,
+    //       behavior: SnackBarBehavior.floating,
+    //       duration: const Duration(seconds: 2),
+    //     ),
+    //   );
+    //   return; // Dừng lại tại đây
+    // }
+
+    // 2. Chuyển trang
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => BeforeGroup(
+          onBack: () {
+            Navigator.pop(context);
+          },
+          onCreateGroup: (destinationName) {
+            // Logic tạo nhóm
+          },
+          onJoinGroup: () {
+            // Logic gia nhập
+          },
+        ),
+      ),
+    );
+
+    // 3. RESET TRẠNG THÁI NÚT KHI QUAY LẠI
+    // Khi lệnh await xong (tức là user quay lại Explore), ta thay đổi Key
+    // Điều này ép Flutter hủy nút cũ và vẽ lại nút mới tinh -> Reset mọi hiệu ứng loading/success cũ
+    if (mounted) {
+      setState(() {
+        _enterButtonKey = UniqueKey();
+      });
+    }
+
+    print("🔙 Đã quay lại Explore Screen. Nút Enter đã được reset.");
   }
 
   @override
@@ -185,43 +207,27 @@ class _DestinationExploreScreenState extends State<DestinationExploreScreen> {
       child: Scaffold(
         extendBodyBehindAppBar: true,
         extendBody: true,
+        // ... (AppBar giữ nguyên) ...
         appBar: AppBar(
           backgroundColor: Colors.transparent,
           elevation: 0,
           leading: Container(
             margin: const EdgeInsets.all(8),
-            decoration: const BoxDecoration(
-              color: Colors.white,
-              shape: BoxShape.circle,
-            ),
-            child: IconButton(
-              icon: const Icon(Icons.arrow_back, color: Colors.black),
-              onPressed: _handleBack,
-            ),
+            decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
+            child: IconButton(icon: const Icon(Icons.arrow_back, color: Colors.black), onPressed: _handleBack),
           ),
           actions: const [
-            Padding(
-              padding: EdgeInsets.only(right: 16),
-              child: CircleAvatar(
-                backgroundImage: AssetImage('assets/images/avatar.jpg'),
-                radius: 18,
-              ),
-            ),
+            Padding(padding: EdgeInsets.only(right: 16), child: CircleAvatar(backgroundImage: AssetImage('assets/images/avatar.jpg'), radius: 18)),
           ],
         ),
         body: Stack(
           fit: StackFit.expand,
           children: [
-            Container(
-              decoration: const BoxDecoration(
-                image: DecorationImage(
-                  image: AssetImage('assets/images/landmarks.png'),
-                  fit: BoxFit.cover,
-                ),
-              ),
-            ),
+            // ... (Background & List giữ nguyên) ...
+            Container(decoration: const BoxDecoration(image: DecorationImage(image: AssetImage('assets/images/landmarks.png'), fit: BoxFit.cover))),
             LayoutBuilder(
               builder: (context, constraints) {
+                // ... (Layout giữ nguyên) ...
                 final screenHeight = constraints.maxHeight;
                 final scaleFactor = (screenHeight / 800).clamp(0.7, 1.0);
                 final topPadding = 100.0 * scaleFactor;
@@ -236,11 +242,9 @@ class _DestinationExploreScreenState extends State<DestinationExploreScreen> {
                     children: [
                       SizedBox(height: topPadding),
                       GestureDetector(
-                        // ĐÃ SỬA: Gọi đúng hàm _handleOpenSearch
                         onTap: _handleOpenSearch,
                         child: Container(
-                          width: double.infinity,
-                          height: searchBarHeight,
+                          width: double.infinity, height: searchBarHeight,
                           decoration: BoxDecoration(color: const Color(0xFFEDE2CC), border: Border.all(color: const Color(0xFFB64B12), width: 2), borderRadius: BorderRadius.circular(21)),
                           alignment: Alignment.centerLeft,
                           padding: EdgeInsets.symmetric(horizontal: 24 * scaleFactor),
@@ -263,13 +267,7 @@ class _DestinationExploreScreenState extends State<DestinationExploreScreen> {
                           separatorBuilder: (_, __) => SizedBox(width: 30 * scaleFactor),
                           itemBuilder: (context, index) {
                             final item = _displayItems[index];
-
-                            // ĐÃ SỬA: Truyền đúng tham số (item object) thay vì truyền lẻ tẻ
-                            return _buildPlaceCard(
-                              item,           // Tham số 1: Object Item
-                              cardWidth,      // Tham số 2: Width
-                              scaleFactor,    // Tham số 3: Scale
-                            );
+                            return _buildPlaceCard(item, cardWidth, scaleFactor);
                           },
                         ),
                       ),
@@ -279,10 +277,15 @@ class _DestinationExploreScreenState extends State<DestinationExploreScreen> {
                 );
               },
             ),
+
+            // --- CẬP NHẬT NÚT ENTER ---
             Positioned(
               left: 0, right: 0, bottom: kBottomNavigationBarHeight + 35,
               child: Center(
                 child: EnterButton(
+                  // Thêm Key vào đây để Flutter biết khi nào cần vẽ lại mới
+                  key: _enterButtonKey,
+                  onValidation: _validateSelection,
                   onConfirm: _handleEnter,
                 ),
               ),
@@ -293,12 +296,12 @@ class _DestinationExploreScreenState extends State<DestinationExploreScreen> {
     );
   }
 
-  // Widget _buildPlaceCard đã khớp với logic gọi ở trên
+  // Widget _buildPlaceCard giữ nguyên
   Widget _buildPlaceCard(DestinationExploreItem item, double cardWidth, double scaleFactor) {
+    // ... code giữ nguyên ...
     final score = _getScore(item.name);
-
     return GestureDetector(
-      onTap: () => _toggleFavorite(item), // ĐÃ SỬA: Hàm _toggleFavorite đã được mở lại
+      onTap: () => _toggleFavorite(item),
       child: Container(
         width: cardWidth,
         height: 180 * scaleFactor,
@@ -315,7 +318,6 @@ class _DestinationExploreScreenState extends State<DestinationExploreScreen> {
                   child: Row(mainAxisSize: MainAxisSize.min, children: [Icon(Icons.auto_awesome, color: Colors.yellow, size: 14 * scaleFactor), SizedBox(width: 4 * scaleFactor), Text('$score% Hợp', style: TextStyle(color: Colors.white, fontSize: 14 * scaleFactor, fontWeight: FontWeight.bold, fontFamily: 'Roboto'))]),
                 ),
               ),
-            // Nút Tim
             Positioned(
               right: 16 * scaleFactor, top: 16 * scaleFactor,
               child: GestureDetector(
