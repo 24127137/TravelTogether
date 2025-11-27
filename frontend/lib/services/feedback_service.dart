@@ -1,11 +1,11 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../models/feedback_models.dart'; // Import model vào đây
+import '../config/api_config.dart'; // Use centralized API config
 
 class FeedbackService {
-  // TODO: Thay đổi URL này thành địa chỉ server thật của bạn
-  // Ví dụ: "http://192.168.1.10:8000/feedbacks" hoặc domain thật
-  final String baseUrl = "http://192.168.1.4:8000/feedbacks";
+  // Use the feedback base URL from ApiConfig instead of a hardcoded string
+  final String baseUrl = ApiConfig.feedbackBaseUrl;
 
   /// Lấy danh sách các nhóm đã hết hạn nhưng chưa đánh giá xong
   Future<List<PendingReviewGroup>> getPendingReviews(String token) async {
