@@ -51,11 +51,20 @@ async def group_suggest_service(session: Session, current_user: Any) -> List[Sug
     results = []
     for group in valid_candidates:
         score = ai_scores_map.get(group.id, 0.0)
+        
+        # [TÍNH TOÁN SỐ LƯỢNG MEMBER]
+        # group.members là list JSON, dùng len() để đếm
+        current_count = len(group.members or []) 
+        
         results.append(SuggestionOutput(
             group_id=group.id, 
             name=group.name, 
             score=score,
-            group_image_url=getattr(group, "group_image_url", None) 
+            group_image_url=getattr(group, "group_image_url", None),
+            
+            # [GÁN GIÁ TRỊ VÀO ĐÂY]
+            member_count=current_count,
+            max_members=group.max_members
         ))
 
     results.sort(key=lambda x: x.score, reverse=True)
@@ -67,5 +76,6 @@ async def get_public_group_plan(session: Session, group_id: int) -> GroupPlanOut
     return GroupPlanOutput(
         group_id=group.id, group_name=group.name, preferred_city=group.preferred_city,
         travel_dates=group.travel_dates, itinerary=group.itinerary,
-        group_image_url=getattr(group, "group_image_url", None)
+        group_image_url=getattr(group, "group_image_url", None),
+        interests=group.interests or [] 
     )

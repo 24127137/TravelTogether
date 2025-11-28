@@ -48,6 +48,7 @@ class GroupPlanOutput(BaseModel):
     travel_dates: Optional[Any] = None
     itinerary: Optional[Dict[str, str]] = None 
     group_image_url: Optional[str] = None # <-- Thêm
+    interests: Optional[List[str]] = None
     class Config:
         from_attributes = True
 
@@ -57,7 +58,8 @@ class SuggestionOutput(BaseModel):
     name: str
     score: float
     group_image_url: Optional[str] = None # <-- Thêm
-
+    member_count: int # Số thành viên hiện tại (ví dụ: 3)
+    max_members: int  # Số tối đa (ví dụ: 5)
 class GroupMemberPublic(BaseModel):
     profile_uuid: str
     role: str             

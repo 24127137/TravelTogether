@@ -25,7 +25,7 @@ class ProfilePublic(BaseModel):
     birthday: Optional[date] = None
     description: Optional[str] = None
     avatar_url: Optional[str] = None
-
+    emergency_contact: Optional[EmailStr] = None
     class Config:
         from_attributes = True 
 
@@ -50,7 +50,7 @@ class ProfileUpdate(BaseModel):
     birthday: Optional[date] = None
     description: Optional[str] = None
     avatar_url: Optional[str] = None
-
+    emergency_contact: Optional[EmailStr] = None
     @field_validator("gender", mode='before')
     @classmethod
     def normalize_gender(cls, v: Optional[str]):
