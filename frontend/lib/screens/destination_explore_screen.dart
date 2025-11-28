@@ -65,7 +65,6 @@ class _DestinationExploreScreenState extends State<DestinationExploreScreen> {
 
     // 3. Gọi load dữ liệu
     _loadAllData();
-    _loadUserAvatar();
   }
 
   Future<void> _loadAllData() async {
@@ -132,26 +131,6 @@ class _DestinationExploreScreenState extends State<DestinationExploreScreen> {
     } catch (e) {
       print("⚠️ Lỗi load data: $e");
       if (mounted) setState(() => _isLoading = false);
-    }
-  }
-
-  Future<void> _loadUserAvatar() async {
-    // 1. Thử lấy từ Cache trước cho nhanh
-    // (Giả sử HomePage đã lưu vào SharedPreferences key 'user_avatar')
-    // Nếu bạn muốn dùng chung cache thì import SharedPreferences
-    // final prefs = await SharedPreferences.getInstance();
-    // setState(() { _userAvatar = prefs.getString('user_avatar'); });
-
-    // 2. Gọi API lấy mới nhất (để chắc chắn)
-    try {
-      final profile = await _userService.getUserProfile();
-      if (profile != null && mounted) {
-        setState(() {
-          _userAvatar = profile['avatar_url'];
-        });
-      }
-    } catch (e) {
-      print("Lỗi load avatar: $e");
     }
   }
 
