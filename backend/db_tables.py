@@ -1,7 +1,8 @@
 from sqlmodel import SQLModel, Field, Column, ForeignKey
 from typing import List, Optional, Any, Dict
-from datetime import datetime, date
-from sqlalchemy.dialects.postgresql import TEXT, UUID, JSONB, DATERANGE, ARRAY
+# Đã gộp dòng import datetime gọn gàng
+from datetime import datetime, date, time 
+from sqlalchemy.dialects.postgresql import TEXT, UUID, JSONB, DATERANGE, ARRAY, TIME
 
 # ====================================================================
 # BẢNG (SQLModel): "Profiles" (KHÔNG THAY ĐỔI)
@@ -23,7 +24,7 @@ class Profiles(SQLModel, table=True):
     birthday: Optional[date] = Field(default=None)
     description: Optional[str] = Field(default=None, sa_column=Column(TEXT))
     avatar_url: Optional[str] = Field(default=None, sa_column=Column(TEXT))
-
+    emergency_contact: Optional[str] = Field(default=None, sa_column=Column(TEXT))
 # ====================================================================
 # BẢNG (SQLModel): "Destination" (KHÔNG THAY ĐỔI)
 # ====================================================================
@@ -34,7 +35,7 @@ class Destination(SQLModel, table=True):
     description: str
 
 # ====================================================================
-# BẢNG (SQLModel): "TravelGroups" (ĐÃ BỔ SUNG CỘT THIẾU)
+# BẢNG (SQLModel): "TravelGroups" (KHÔNG THAY ĐỔI)
 # ====================================================================
 class TravelGroup(SQLModel, table=True):
     __tablename__ = "travel_groups"
@@ -51,10 +52,7 @@ class TravelGroup(SQLModel, table=True):
     created_at: Optional[datetime] = Field(default=None, sa_column_kwargs={"default": "NOW()"})
     
     itinerary: Optional[Dict[str, Any]] = Field(default=None, sa_column=Column(JSONB))
-    
-    # === CỘT QUAN TRỌNG BẠN VỪA THIẾU ===
     group_image_url: Optional[str] = Field(default=None, sa_column=Column(TEXT))
-    # ====================================
 
 # ====================================================================
 # BẢNG (SQLModel): "GroupMessages" (KHÔNG THAY ĐỔI)
@@ -69,39 +67,48 @@ class GroupMessages(SQLModel, table=True):
     image_url: Optional[str] = Field(default=None, sa_column=Column(TEXT))
     created_at: Optional[datetime] = Field(default=None, sa_column_kwargs={"default": "NOW()"})
 
+# ====================================================================
+# BẢNG MỚI (UPDATE V2): "UserSecurity"
+# ====================================================================
 class UserSecurity(SQLModel, table=True):
     __tablename__ = "user_security"
     
     id: Optional[int] = Field(default=None, primary_key=True)
     
-    # Liên kết với Profiles.auth_user_id
+    # Liên kết với Profiles
     user_id: str = Field(sa_column=Column(UUID(as_uuid=False), ForeignKey("profiles.auth_user_id", ondelete="CASCADE")))
     
     safe_pin_hash: Optional[str] = Field(default=None, sa_column=Column(TEXT))
     danger_pin_hash: Optional[str] = Field(default=None, sa_column=Column(TEXT))
     
-    last_confirmation_ts: Optional[str] = Field(default=None, sa_column=Column(TEXT)) # Lưu timestamp dạng chuỗi
+    # Thay đổi: Datetime
+    last_confirmation_ts: Optional[datetime] = Field(default=None, sa_column_kwargs={"default": None})
     
-    default_confirmation_time: Optional[int] = Field(default=5) # Mặc định (ví dụ 5 phút)
+    # Thay đổi: Kiểu TIME (Lưu giờ phút giây)
+    default_confirmation_time: Optional[time] = Field(default=None, sa_column=Column(TIME)) 
+    
     wrong_attempt_count: int = Field(default=0)
     
-    status: Optional[str] = Field(default="active", sa_column=Column(TEXT))
+    # Enum: "safe", "danger", "waiting", "overdue"
+    status: str = Field(default="safe", sa_column=Column(TEXT))
     
     created_at: Optional[datetime] = Field(default=None, sa_column_kwargs={"default": "NOW()"})
     updated_at: Optional[datetime] = Field(default=None, sa_column_kwargs={"default": "NOW()"})
 
 # ====================================================================
-# BẢNG MỚI: "SecurityLocations"
+# BẢNG MỚI (UPDATE V2): "SecurityLocations"
 # ====================================================================
 class SecurityLocations(SQLModel, table=True):
     __tablename__ = "security_locations"
     
     id: Optional[int] = Field(default=None, primary_key=True)
     
-    # Liên kết với Profiles.auth_user_id
     user_id: str = Field(sa_column=Column(UUID(as_uuid=False), ForeignKey("profiles.auth_user_id", ondelete="CASCADE")))
     
-    location: Optional[str] = Field(default=None, sa_column=Column(TEXT)) # Có thể lưu toạ độ dạng "lat,long" hoặc JSON string
+    # Thay đổi: Lưu JSON tọa độ
+    location: Optional[Dict[str, Any]] = Field(default=None, sa_column=Column(JSONB))
+    
+    # Enum: "danger_pin", "timeout", "wrong_pin"
     reason: Optional[str] = Field(default=None, sa_column=Column(TEXT))
     
     timestamp: Optional[datetime] = Field(default=None, sa_column_kwargs={"default": "NOW()"})
