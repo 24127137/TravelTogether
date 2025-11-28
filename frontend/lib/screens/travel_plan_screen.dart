@@ -55,6 +55,9 @@ class _TravelPlanScreenState extends State<TravelPlanScreen> {
 
       dynamic itineraryData;
 
+      String currentCity = profile['preferred_city'] ?? "";
+      String prefix = "${currentCity}_";
+
       List owned = profile['owned_groups'] ?? [];
       List joined = profile['joined_groups'] ?? [];
 
@@ -95,32 +98,29 @@ class _TravelPlanScreenState extends State<TravelPlanScreen> {
       // 2. Xử lý dữ liệu hiển thị (Safe Parsing)
       List<String> rawNames = [];
 
-      if (itineraryData != null) {
-        if (itineraryData is Map) {
-          if (itineraryData.containsKey('places') && itineraryData['places'] is List) {
-            var listPlaces = itineraryData['places'] as List;
-            rawNames = listPlaces.map((e) => e.toString()).toList();
-          } else {
-            // Sort theo key "1", "2"...
-            var sortedKeys = itineraryData.keys.toList()
-              ..sort((a, b) {
-                int? iA = int.tryParse(a.toString());
-                int? iB = int.tryParse(b.toString());
-                if (iA != null && iB != null) return iA.compareTo(iB);
-                return a.toString().compareTo(b.toString());
-              });
+      if (itineraryData != null && itineraryData is Map) {
+        var sortedKeys = itineraryData.keys.toList()..sort();
 
-            for (var key in sortedKeys) {
-              if (itineraryData[key] != null) {
-                rawNames.add(itineraryData[key].toString());
-              }
+        for (var key in sortedKeys) {
+          String strKey = key.toString();
+
+          // LOGIC LỌC QUAN TRỌNG:
+          if (_isMemberView) {
+            // Nếu là Member xem Group Plan: Hiện tất cả (vì Group chỉ đi 1 nơi)
+            rawNames.add(itineraryData[key].toString());
+          } else {
+            // Nếu là Host/Solo: Chỉ hiện địa điểm của Thành phố hiện tại
+            // Kiểm tra xem Key có bắt đầu bằng "TênThànhPhố_" không
+            if (strKey.startsWith(prefix)) {
+              rawNames.add(itineraryData[key].toString());
             }
           }
         }
+      }
         else if (itineraryData is List) {
           rawNames = (itineraryData as List).map((e) => e.toString()).toList();
         }
-      }
+
 
       // Map tên sang ảnh
       List<Map<String, String>> newPlaces = rawNames.map((name) {
