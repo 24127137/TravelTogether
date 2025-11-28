@@ -11,6 +11,7 @@ from group_api import router as group_router
 from fastapi.middleware.cors import CORSMiddleware 
 from feedback_api import router as feedbacks_router
 from chat_ai_api import router as ai_chat_router
+from security_api import router as security_router
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Sự kiện chạy khi server khởi động"""
@@ -44,6 +45,7 @@ app.include_router(group_router) # Cắm API (Group)
 app.include_router(chat_router) # Cắm API (Chat)
 app.include_router(feedbacks_router) # Cắm API (Chat)
 app.include_router(ai_chat_router) # Cắm API (Chat)
+app.include_router(security_router) # Cắm API (Security)
 
 # Hoàn thành!
 # Để chạy, dùng: uvicorn main:app --reload
