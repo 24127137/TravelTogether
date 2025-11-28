@@ -8,7 +8,6 @@ from datetime import datetime, timedelta, time, timezone
 from typing import Optional, List, Tuple
 from sqlmodel import Session, select
 from supabase import create_client, Client
-from security_model import UserSecurityData, PinVerifyResult
 from db_tables import UserSecurity, SecurityLocations
 from config import settings
 
@@ -121,7 +120,7 @@ class SecurityService:
         session.commit()
         return "wrong"
 
-    def save_location(self, session: Session, user_id: str, reason: str, location: Optional[Dict[str, Any]] = None):
+    def save_location(self, session: Session, user_id: str, reason: str, location: Optional[dict[str, any]] = None):
         record = SecurityLocations(
             user_id=user_id,
             reason=reason,
