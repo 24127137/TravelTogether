@@ -58,6 +58,7 @@ class PersonalSection extends StatelessWidget {
                         ],
                         const Color(0xFFCD7F32),
                         isTop: true,
+                        textOffset: const Offset(0, -15),
                         onTap: () {
                           onTravelPlanTap?.call();
                         },
@@ -78,6 +79,7 @@ class PersonalSection extends StatelessWidget {
                         ],
                         const Color(0xFFCD7F32),
                         isTop: false,
+                        textOffset: const Offset(0, 30),
                         onTap: () {
                           onGroupStateTap?.call();
                         },
@@ -101,6 +103,7 @@ class PersonalSection extends StatelessWidget {
       Color borderColor, {
         required bool isTop,
         required VoidCallback onTap,
+        Offset textOffset = const Offset(0, 0),
       }) {
     return InkWell(
       onTap: onTap,
@@ -143,32 +146,40 @@ class PersonalSection extends StatelessWidget {
                   isTop: isTop,
                 ),
               ),
+
+              // --- PHẦN CHỮ (TEXT) ---
               Center(
                 child: Padding(
                   padding: EdgeInsets.only(
                     top: isTop ? 20 : 35,
                     bottom: isTop ? 35 : 20,
                   ),
-                  child: Text(
-                    text,
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontFamily: 'AlumniSans',
-                      fontSize: 32,
-                      fontWeight: FontWeight.w900,
-                      fontStyle: FontStyle.italic,
-                      color: const Color(0xFF2C2416),
-                      shadows: [
-                        Shadow(
-                          color: Colors.white.withOpacity(0.5),
-                          offset: const Offset(1, 1),
-                          blurRadius: 2,
-                        ),
-                      ],
+                  // SỬA: Dùng tham số textOffset được truyền vào
+                  child: Transform.translate(
+                    offset: textOffset,
+                    child: Text(
+                      text,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontFamily: 'AlumniSans',
+                        fontSize: 60,
+                        fontWeight: FontWeight.w900,
+                        fontStyle: FontStyle.italic,
+                        color: const Color(0xFF2C2416),
+                        shadows: [
+                          Shadow(
+                            color: Colors.white.withValues(alpha: 0.5), // Sửa lại withValues nếu dùng bản mới, hoặc withOpacity(0.5)
+                            offset: const Offset(1, 1),
+                            blurRadius: 2,
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),
               ),
+
+              // --- PHẦN ICON ---
               Positioned(
                 right: isTop ? 16 : null,
                 left: isTop ? null : 16,

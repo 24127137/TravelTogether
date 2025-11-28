@@ -14,11 +14,17 @@ import '../screens/notification_screen.dart'; // === THÊM MỚI: Import màn h�
 /// Hỗ trợ cả Android và iOS
 class NotificationService {
   static final NotificationService _instance = NotificationService._internal();
+  final ValueNotifier<bool> showBadgeNotifier = ValueNotifier(false);
   factory NotificationService() => _instance;
   NotificationService._internal();
 
   final FlutterLocalNotificationsPlugin _notifications = FlutterLocalNotificationsPlugin();
   bool _initialized = false;
+
+  // === THÊM MỚI: Hàm xóa chấm đỏ (gọi khi user vào màn hình thông báo) ===
+  void clearBadge() {
+    showBadgeNotifier.value = false;
+  }
 
   /// Khởi tạo notification service
   /// Phải gọi hàm này trước khi sử dụng
@@ -244,6 +250,8 @@ class NotificationService {
     required int unreadCount,
     String? groupId, // === THÊM MỚI: ID của nhóm để navigate chính xác ===
   }) async {
+    // === THÊM MỚI: Bật chấm đỏ lên khi có tin nhắn ===
+    showBadgeNotifier.value = true;
     // Tạo payload JSON để lưu thêm thông tin
     final payloadData = {
       'type': 'message',
@@ -268,6 +276,7 @@ class NotificationService {
     required String groupName,
     String? groupId, // === THÊM MỚI: ID của nhóm ===
   }) async {
+    showBadgeNotifier.value = true;
     // Tạo payload JSON
     final payloadData = {
       'type': 'group_request',
