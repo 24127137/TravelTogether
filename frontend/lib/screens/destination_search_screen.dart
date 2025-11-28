@@ -31,6 +31,7 @@ class _DestinationSearchScreenState extends State<DestinationSearchScreen> {
   @override
   void initState() {
     super.initState();
+    _syncFavorites();
     // LOGIC MỚI:
     // Nếu màn hình trước đã truyền điểm qua -> Dùng luôn
     if (widget.preloadedScores != null && widget.preloadedScores!.isNotEmpty) {
@@ -39,6 +40,22 @@ class _DestinationSearchScreenState extends State<DestinationSearchScreen> {
       // Chỉ gọi API nếu không có dữ liệu truyền qua (Fallback)
       _loadCompatibilityScores();
     }
+  }
+
+  Future<void> _syncFavorites() async {
+    // Lấy danh sách đã lưu
+    final savedNames = await _userService.getSavedItineraryNames();
+
+    // Cập nhật mockExploreItems (vì Search dùng chung nguồn dữ liệu)
+    for (var item in mockExploreItems) {
+      if (item.cityId == widget.cityId) {
+        String itemNormal = item.name.trim().toLowerCase();
+        bool isSaved = savedNames.any((s) => s.trim().toLowerCase() == itemNormal);
+        item.isFavorite = isSaved;
+      }
+    }
+
+    if (mounted) setState(() {});
   }
 
   Future<void> _loadCompatibilityScores() async {

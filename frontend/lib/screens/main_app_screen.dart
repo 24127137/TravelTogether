@@ -7,9 +7,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'home_page.dart';
 import 'messages_screen.dart';
 import '../widgets/custom_bottom_nav_bar.dart';
-import '../widgets/notification_permission_dialog.dart'; // === THÊM MỚI ===
-import '../services/background_notification_service.dart'; // === THÊM MỚI: Background WebSocket ===
-import '../services/notification_service.dart'; // === THÊM MỚI: Notification Service ===
+import '../widgets/notification_permission_dialog.dart';
+import '../services/background_notification_service.dart';
+import '../services/notification_service.dart'; // Import service để xử lý badge
 import '../models/destination.dart';
 import 'destination_detail_screen.dart';
 import 'destination_explore_screen.dart';
@@ -56,13 +56,10 @@ class _MainAppScreenState extends State<MainAppScreen> {
   void initState() {
     super.initState();
     _selectedIndex = widget.initialIndex;
-    // === THÊM MỚI: Khởi động background notification service ===
     _startBackgroundNotificationService();
-    // === THÊM MỚI: Xin quyền thông báo sau khi UI load xong ===
     _requestNotificationPermission();
   }
 
-  /// Khởi động WebSocket listener ở background
   Future<void> _startBackgroundNotificationService() async {
     try {
       await BackgroundNotificationService().start();
@@ -72,22 +69,15 @@ class _MainAppScreenState extends State<MainAppScreen> {
     }
   }
 
-  /// Xin quyền thông báo lần đầu
   Future<void> _requestNotificationPermission() async {
-    // Delay một chút để UI load xong
     await Future.delayed(const Duration(milliseconds: 1000));
 
     if (!mounted) return;
 
-    // === SỬA MỚI: Kiểm tra permission thực tế thay vì chỉ dựa vào flag ===
-    // Điều này đảm bảo dialog hiện lại nếu permission bị revoke (test)
     final hasPermission = await NotificationService().checkPermission();
 
     if (!hasPermission) {
-      // Chưa có permission → hiển thị dialog giải thích
       final granted = await NotificationPermissionDialog.show(context);
-
-      // Lưu trạng thái để không hỏi lại (trừ khi user revoke)
       if (granted) {
         final prefs = await SharedPreferences.getInstance();
         await prefs.setBool('notification_permission_asked', true);
@@ -98,6 +88,14 @@ class _MainAppScreenState extends State<MainAppScreen> {
   }
 
   void _onItemTapped(int index) {
+    // === THÊM MỚI LOGIC BADGE ===
+    // Nếu người dùng chọn tab Notification (index == 1)
+    // Gọi lệnh xóa badge ngay lập tức để UI cập nhật (mất chấm đỏ)
+    if (index == 1) {
+      NotificationService().clearBadge();
+    }
+    // ============================
+
     setState(() {
       _selectedIndex = index;
       _showDetail = false;
@@ -181,7 +179,7 @@ class _MainAppScreenState extends State<MainAppScreen> {
       _showGroupState = false;
       _showTravelPlan = false;
       _showJoinGroup = false;
-      _selectedIndex = 0; // Quay về Home tab
+      _selectedIndex = 0;
     });
   }
 
@@ -262,13 +260,10 @@ class _MainAppScreenState extends State<MainAppScreen> {
     }
   }
 
-  // Xử lý nút back của điện thoại
   Future<bool> _handleBackButton() async {
-    // Nếu đang ở màn hình phụ (Settings, Detail, Explore, BeforeGroup, GroupCreating, Profile, JoinGroup, GroupState, TravelPlan)
     if (_showSettings || _showDetail || _showExplore || _showBeforeGroup ||
         _showGroupCreating || _showProfile || _showGroupState || _showTravelPlan || _showJoinGroup) {
 
-      // Nếu đang ở JoinGroup, quay về BeforeGroup
       if (_showJoinGroup) {
         setState(() {
           _showJoinGroup = false;
@@ -277,7 +272,6 @@ class _MainAppScreenState extends State<MainAppScreen> {
         return false;
       }
 
-      // Nếu đang ở GroupState, quay về tab Personal (tab 3)
       if (_showGroupState) {
         setState(() {
           _showGroupState = false;
@@ -286,7 +280,6 @@ class _MainAppScreenState extends State<MainAppScreen> {
         return false;
       }
 
-      // Nếu đang ở TravelPlan, quay về tab Personal (tab 3)
       if (_showTravelPlan) {
         setState(() {
           _showTravelPlan = false;
@@ -295,32 +288,27 @@ class _MainAppScreenState extends State<MainAppScreen> {
         return false;
       }
 
-      // Nếu đang ở Profile, quay về Settings
       if (_showProfile) {
         _openSettings();
         return false;
       }
 
-      // Nếu đang ở GroupCreating, quay về BeforeGroup
       if (_showGroupCreating) {
         _openBeforeGroup();
         return false;
       }
 
-      // Các trường hợp khác, đóng tất cả
       _closeAllScreens();
-      return false; // Không thoát app
+      return false;
     }
 
-    // Nếu đang ở tab khác ngoài Home (tab 0)
     if (_selectedIndex != 0) {
       setState(() {
-        _selectedIndex = 0; // Quay về tab Home
+        _selectedIndex = 0;
       });
-      return false; // Không thoát app
+      return false;
     }
 
-    // Nếu đang ở tab Home → Hiển thị dialog xác nhận thoát
     final shouldExit = await showDialog<bool>(
       context: context,
       builder: (context) =>
@@ -340,7 +328,7 @@ class _MainAppScreenState extends State<MainAppScreen> {
           ),
     );
 
-    return shouldExit ?? false; // Chỉ thoát khi user chọn "Thoát"
+    return shouldExit ?? false;
   }
 
   @override
@@ -403,7 +391,7 @@ class _MainAppScreenState extends State<MainAppScreen> {
         cityId: _selectedDestination!.cityId,
         currentIndex: _selectedIndex,
         onTabChange: _onItemTapped,
-        onBack: _backToDestinationDetail, // Sửa: quay về Detail thay vì Home
+        onBack: _backToDestinationDetail,
         onBeforeGroup: _openBeforeGroup,
         onSearchPlace: _openDestinationSearchScreen,
       );
@@ -413,7 +401,7 @@ class _MainAppScreenState extends State<MainAppScreen> {
           onDestinationTap: _openDestinationDetail,
           onSettingsTap: _openSettings,
           onTabChangeRequest: (index) {
-            _onItemTapped(index); // Gọi hàm chuyển tab của MainAppScreen
+            _onItemTapped(index);
           },
         ),
         NotificationScreen(),
@@ -440,7 +428,6 @@ class _MainAppScreenState extends State<MainAppScreen> {
         }
       },
       child: Scaffold(
-        // Don't resize when keyboard opens so bottom nav stays fixed; keyboard overlays content
         resizeToAvoidBottomInset: false,
         extendBody: true,
         body: Stack(
@@ -450,6 +437,8 @@ class _MainAppScreenState extends State<MainAppScreen> {
               bottom: 0,
               left: 0,
               right: 0,
+              // Vì CustomBottomNavBar đã được sửa ở bước trước để lắng nghe Service,
+              // ở đây ta chỉ cần truyền tham số như bình thường.
               child: CustomBottomNavBar(
                 currentIndex: _selectedIndex,
                 onTap: _onItemTapped,
