@@ -10,6 +10,10 @@ import '../screens/chatbox_screen.dart'; // === THÊM MỚI: Import màn hình c
 import '../screens/ai_chatbot_screen.dart'; // === THÊM MỚI: Import màn hình AI chat ===
 import '../screens/notification_screen.dart'; // === THÊM MỚI: Import màn hình notification ===
 
+// === IMPORT để access isInChatScreen ===
+// Sử dụng: _ChatboxScreenState.isInChatScreen (không thể access vì private)
+// Giải pháp: Tạo getter public trong ChatboxScreen
+
 /// Service quản lý Local Notifications
 /// Hỗ trợ cả Android và iOS
 class NotificationService {
@@ -244,6 +248,12 @@ class NotificationService {
     required int unreadCount,
     String? groupId, // === THÊM MỚI: ID của nhóm để navigate chính xác ===
   }) async {
+    // === THÊM MỚI: Không hiển thị thông báo nếu đang ở trong màn hình chat ===
+    if (ChatboxScreen.isCurrentlyInChatScreen) {
+      debugPrint('🔕 User is in chat screen, skipping notification');
+      return;
+    }
+
     // Tạo payload JSON để lưu thêm thông tin
     final payloadData = {
       'type': 'message',
