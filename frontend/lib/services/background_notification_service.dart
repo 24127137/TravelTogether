@@ -5,6 +5,7 @@ import 'dart:convert';
 import 'dart:async';
 import '../config/api_config.dart';
 import '../services/notification_service.dart';
+import '../screens/chatbox_screen.dart'; // === THÊM MỚI: Import để check isInChatScreen ===
 
 /// Service lắng nghe WebSocket để nhận thông báo real-time
 /// Chạy ở background ngay cả khi không mở app
@@ -146,6 +147,12 @@ class BackgroundNotificationService {
       debugPrint('   Sending notification:');
       debugPrint('   - Title: $groupName');
       debugPrint('   - Body: $notificationBody');
+
+      // === THÊM MỚI: Kiểm tra xem user có đang ở trong chat screen không ===
+      if (ChatboxScreen.isCurrentlyInChatScreen) {
+        debugPrint('   🔕 User is in chat screen, skipping notification');
+        return;
+      }
 
       await NotificationService().showNotification(
         id: 1, // ID cố định cho message notifications

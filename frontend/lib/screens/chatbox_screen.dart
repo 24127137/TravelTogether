@@ -16,11 +16,16 @@ import 'host_member_screen.dart';
 class ChatboxScreen extends StatefulWidget {
   const ChatboxScreen({Key? key}) : super(key: key);
 
+  // === THÊM MỚI: Getter public để notification service có thể check ===
+  static bool get isCurrentlyInChatScreen => _ChatboxScreenState.isInChatScreen;
+
   @override
   _ChatboxScreenState createState() => _ChatboxScreenState();
 }
 
-class _ChatboxScreenState extends State<ChatboxScreen> {
+class _ChatboxScreenState extends State<ChatboxScreen> with WidgetsBindingObserver {
+  static bool isInChatScreen = false; // === THÊM MỚI: Track xem có đang ở trong chat screen không ===
+
   final TextEditingController _controller = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   final FocusNode _focusNode = FocusNode();
@@ -41,6 +46,9 @@ class _ChatboxScreenState extends State<ChatboxScreen> {
   @override
   void initState() {
     super.initState();
+    isInChatScreen = true; // === THÊM MỚI: Đánh dấu đang ở trong chat screen ===
+    WidgetsBinding.instance.addObserver(this); // === THÊM MỚI: Lắng nghe lifecycle ===
+
     _loadAccessToken();
     _focusNode.addListener(() {
       if (_focusNode.hasFocus) {
@@ -95,6 +103,9 @@ class _ChatboxScreenState extends State<ChatboxScreen> {
 
   @override
   void dispose() {
+    isInChatScreen = false; // === THÊM MỚI: Đánh dấu đã rời khỏi chat screen ===
+    WidgetsBinding.instance.removeObserver(this); // === THÊM MỚI: Xóa lifecycle observer ===
+
     // === THÊM MỚI: Lưu last_seen_message_id khi rời khỏi màn hình ===
     _saveLastSeenMessage();
 
@@ -282,6 +293,35 @@ class _ChatboxScreenState extends State<ChatboxScreen> {
 
   String _getVietnameseMonth(int month) {
     return 'THG $month';
+  }
+
+  // === THÊM MỚI: Kiểm tra có nên hiển thị avatar không (Message Grouping) ===
+  bool _shouldShowAvatar(int index) {
+    if (index >= _messages.length) return false;
+
+    final currentMsg = _messages[index];
+
+    // Tin nhắn của mình không hiển thị avatar
+    if (_isSenderMe(currentMsg.sender)) return false;
+
+    // Tin nhắn cuối cùng luôn hiển thị avatar
+    if (index == _messages.length - 1) return true;
+
+    // Kiểm tra tin nhắn tiếp theo
+    final nextMsg = _messages[index + 1];
+
+    // Nếu người gửi khác nhau, hiển thị avatar
+    if (currentMsg.sender != nextMsg.sender) return true;
+
+    // Nếu cùng người gửi, kiểm tra khoảng thời gian
+    if (currentMsg.createdAt != null && nextMsg.createdAt != null) {
+      final timeDiff = nextMsg.createdAt!.difference(currentMsg.createdAt!);
+      // Nếu cách nhau > 2 phút, hiển thị avatar
+      if (timeDiff.inMinutes >= 2) return true;
+    }
+
+    // Không hiển thị avatar (gộp với tin nhắn tiếp theo)
+    return false;
   }
 
   // === THÊM MỚI: Load profile của mình để lấy avatar ===
@@ -967,6 +1007,7 @@ class _ChatboxScreenState extends State<ChatboxScreen> {
                                 itemBuilder: (context, index) {
                                   final m = _messages[index];
                                   final dateSeparator = _getDateSeparator(index);
+                                  final shouldShowAvatar = _shouldShowAvatar(index); // === THÊM MỚI: Message grouping ===
 
                                   // Ensure we have a GlobalKey for this index
                                   _messageKeys[index] = _messageKeys[index] ?? GlobalKey();
@@ -1030,6 +1071,7 @@ class _ChatboxScreenState extends State<ChatboxScreen> {
                                             message: m,
                                             senderAvatarUrl: m.senderAvatarUrl,
                                             currentUserId: _currentUserId,
+                                            shouldShowAvatar: shouldShowAvatar, // === THÊM MỚI: Truyền thông tin grouping ===
                                           ),
                                         ),
                                       ),
@@ -1081,13 +1123,16 @@ class _ChatboxScreenState extends State<ChatboxScreen> {
                               child: TextField(
                                 controller: _controller,
                                 focusNode: _focusNode,
+                                maxLines: null, // === SỬA: Cho phép nhiều dòng ===
+                                minLines: 1, // === SỬA: Bắt đầu với 1 dòng ===
+                                keyboardType: TextInputType.multiline, // === SỬA: Keyboard hỗ trợ multiline ===
+                                textInputAction: TextInputAction.newline, // === SỬA: Enter để xuống dòng ===
                                 decoration: InputDecoration(
                                   contentPadding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
                                   hintText: 'enter_message'.tr(),
                                   hintStyle: const TextStyle(color: Colors.black38),
                                   border: InputBorder.none,
                                 ),
-                                onSubmitted: (_) => _sendMessage(),
                               ),
                             ),
                           ),
@@ -1106,9 +1151,11 @@ class _ChatboxScreenState extends State<ChatboxScreen> {
                   ),
                 ],
               ),
-              // === THÊM MỚI: Nút "Go to latest message" ===
+              // === THÊM MỚI: Nút "Go to latest message" - Positioned ở giữa màn hình, bên phải ===
               if (_showScrollToBottomButton)
-                Center(
+                Positioned(
+                  right: 16, // === Căn bên phải ===
+                  bottom: 100, // === Cách đáy 100px để tránh input bar ===
                   child: Material(
                     color: const Color(0xFFB99668),
                     elevation: 6,
@@ -1135,8 +1182,8 @@ class _ChatboxScreenState extends State<ChatboxScreen> {
                               }
                             },
                     ),
-                 ),
-               ),
+                  ),
+                ),
              ],
            ),
      );
@@ -1147,12 +1194,14 @@ class _MessageBubble extends StatelessWidget {
   final Message message;
   final String? senderAvatarUrl; // === THÊM MỚI: Avatar của người gửi ===
   final String? currentUserId; // === THÊM MỚI: current user id để so sánh chính xác ===
+  final bool shouldShowAvatar; // === THÊM MỚI: Có nên hiển thị avatar không (message grouping) ===
 
   const _MessageBubble({
     Key? key,
     required this.message,
     this.senderAvatarUrl,
     this.currentUserId,
+    this.shouldShowAvatar = true, // === THÊM MỚI: Mặc định hiển thị avatar ===
   }) : super(key: key);
 
   @override
@@ -1164,32 +1213,40 @@ class _MessageBubble extends StatelessWidget {
     final bubbleColor = isUser ? const Color(0xFF8A724C) : const Color(0xFFB99668);
     final textColor = isUser ? Colors.white : Colors.white;
 
-    // === DEBUG: Kiểm tra avatar và isSeen hiển thị ===
-    final showAvatar = !isUser; // avatar if message not from current user
-    print('🖼️ MessageBubble - isUser: $isUser, isSeen: ${message.isSeen}, sender: ${message.sender}, content: "${message.message}"');
+    // === SỬA: Chỉ hiển thị avatar nếu shouldShowAvatar = true ===
+    final showAvatar = !isUser && shouldShowAvatar;
+    print('🖼️ MessageBubble - isUser: $isUser, isSeen: ${message.isSeen}, shouldShowAvatar: $shouldShowAvatar, sender: ${message.sender}, content: "${message.message}"');
     print('🖼️ Should show BOLD: ${!isUser && !message.isSeen}');
     print('🖼️ Should show avatar: $showAvatar, avatarUrl: $senderAvatarUrl');
 
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6.0),
+      padding: EdgeInsets.only(
+        top: 2.0, // === SỬA: Giảm padding top để gộp tin nhắn gần nhau hơn ===
+        bottom: shouldShowAvatar ? 6.0 : 2.0, // === SỬA: Padding bottom lớn hơn nếu có avatar (kết thúc nhóm) ===
+      ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.end,
         mainAxisAlignment: isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
         children: [
-          // === SỬA MỚI: Chỉ hiện avatar cho người khác (không phải mình) ===
-          if (showAvatar) ...[
-            Padding(
-              padding: const EdgeInsets.only(right: 8.0),
-              child: CircleAvatar(
-                radius: 20,
-                backgroundColor: const Color(0xFFD9CBB3),
-                backgroundImage: senderAvatarUrl != null && senderAvatarUrl!.isNotEmpty
-                    ? NetworkImage(senderAvatarUrl!)
-                    : null,
-                child: senderAvatarUrl == null || senderAvatarUrl!.isEmpty
-                    ? const Icon(Icons.person, size: 24, color: Colors.white)
-                    : null,
-              ),
+          // === SỬA MỚI: Hiển thị avatar hoặc khoảng trống để canh chỉnh ===
+          if (!isUser) ...[
+            SizedBox(
+              width: 48, // === Chiều rộng cố định cho vùng avatar ===
+              child: showAvatar
+                  ? Padding(
+                      padding: const EdgeInsets.only(right: 8.0),
+                      child: CircleAvatar(
+                        radius: 20,
+                        backgroundColor: const Color(0xFFD9CBB3),
+                        backgroundImage: senderAvatarUrl != null && senderAvatarUrl!.isNotEmpty
+                            ? NetworkImage(senderAvatarUrl!)
+                            : null,
+                        child: senderAvatarUrl == null || senderAvatarUrl!.isEmpty
+                            ? const Icon(Icons.person, size: 24, color: Colors.white)
+                            : null,
+                      ),
+                    )
+                  : const SizedBox(), // === Khoảng trống để canh chỉnh ===
             ),
           ],
           Flexible(
