@@ -68,3 +68,40 @@ class GroupMessages(SQLModel, table=True):
     content: Optional[str] = Field(default=None, sa_column=Column(TEXT))
     image_url: Optional[str] = Field(default=None, sa_column=Column(TEXT))
     created_at: Optional[datetime] = Field(default=None, sa_column_kwargs={"default": "NOW()"})
+
+class UserSecurity(SQLModel, table=True):
+    __tablename__ = "user_security"
+    
+    id: Optional[int] = Field(default=None, primary_key=True)
+    
+    # Liên kết với Profiles.auth_user_id
+    user_id: str = Field(sa_column=Column(UUID(as_uuid=False), ForeignKey("profiles.auth_user_id", ondelete="CASCADE")))
+    
+    safe_pin_hash: Optional[str] = Field(default=None, sa_column=Column(TEXT))
+    danger_pin_hash: Optional[str] = Field(default=None, sa_column=Column(TEXT))
+    
+    last_confirmation_ts: Optional[str] = Field(default=None, sa_column=Column(TEXT)) # Lưu timestamp dạng chuỗi
+    
+    default_confirmation_time: Optional[int] = Field(default=5) # Mặc định (ví dụ 5 phút)
+    wrong_attempt_count: int = Field(default=0)
+    
+    status: Optional[str] = Field(default="active", sa_column=Column(TEXT))
+    
+    created_at: Optional[datetime] = Field(default=None, sa_column_kwargs={"default": "NOW()"})
+    updated_at: Optional[datetime] = Field(default=None, sa_column_kwargs={"default": "NOW()"})
+
+# ====================================================================
+# BẢNG MỚI: "SecurityLocations"
+# ====================================================================
+class SecurityLocations(SQLModel, table=True):
+    __tablename__ = "security_locations"
+    
+    id: Optional[int] = Field(default=None, primary_key=True)
+    
+    # Liên kết với Profiles.auth_user_id
+    user_id: str = Field(sa_column=Column(UUID(as_uuid=False), ForeignKey("profiles.auth_user_id", ondelete="CASCADE")))
+    
+    location: Optional[str] = Field(default=None, sa_column=Column(TEXT)) # Có thể lưu toạ độ dạng "lat,long" hoặc JSON string
+    reason: Optional[str] = Field(default=None, sa_column=Column(TEXT))
+    
+    timestamp: Optional[datetime] = Field(default=None, sa_column_kwargs={"default": "NOW()"})
