@@ -10,6 +10,10 @@ import '../screens/chatbox_screen.dart'; // === THÊM MỚI: Import màn hình c
 import '../screens/ai_chatbot_screen.dart'; // === THÊM MỚI: Import màn hình AI chat ===
 import '../screens/notification_screen.dart'; // === THÊM MỚI: Import màn hình notification ===
 
+// === IMPORT để access isInChatScreen ===
+// Sử dụng: _ChatboxScreenState.isInChatScreen (không thể access vì private)
+// Giải pháp: Tạo getter public trong ChatboxScreen
+
 /// Service quản lý Local Notifications
 /// Hỗ trợ cả Android và iOS
 class NotificationService {
