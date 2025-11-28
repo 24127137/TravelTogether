@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 /backend/__pycache__
 /backend/.vscode
 /backend/.venv
@@ -49,3 +50,8 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+=======
+*.env
+__pycahe__/
+frontend/
+>>>>>>> core
