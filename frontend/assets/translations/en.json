@@ -68,7 +68,7 @@
   "personal": "Personal",
   "status": "Status",
   "account": "Account",
-  "hello_user": "Hello, Toan",
+  "hello_user": "Hello, {}",
   "logout_confirm": "Are you sure you want to logout?",
   "yes": "Yes",
   "no": "No",
