@@ -1,16 +1,25 @@
 # tasks.py
 from apscheduler.schedulers.background import BackgroundScheduler
-from sqlmodel import Session, create_engine
+from sqlmodel import Session, create_engine, select
 from config import settings
 from security_service import SecurityService
+from email_service import EmailService  # Import service mới
+from db_tables import UserSecurity, Profiles # Cần import Profiles để lấy email
+from datetime import datetime, timezone, timedelta
+import asyncio
 
-# 1. Tạo Engine riêng cho Scheduler (để tạo Session thủ công)
-# Lưu ý: Engine này nên dùng chung connection string với app chính
-engine = create_engine(settings.DATABASE_URL) 
+engine = create_engine(settings.DATABASE_URL)
 
 # Khởi tạo Service
 service = SecurityService()
 
+# Vì gửi mail là hàm async (bất đồng bộ), mà APScheduler chạy sync,
+# ta cần hàm wrapper này để chạy async trong sync context.
+def run_async(coro):
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    loop.run_until_complete(coro)
+    loop.close()
 # 2. Định nghĩa Job (Công việc cụ thể)
 def job_check_overdue_users():
     """
@@ -21,11 +30,44 @@ def job_check_overdue_users():
     try:
         # Tự tạo session context (vì không có Depends của FastAPI ở đây)
         with Session(engine) as session:
-            count = service.scan_overdue_users(session)
-            if count == 0:
-                print("[Job] Không tìm thấy user nào quá hạn.")
+            # 1. Logic quét user cũ (Copy logic từ scan_overdue_users nhưng sửa một chút để lấy email)
+            limit_time = datetime.now(timezone.utc) - timedelta(hours=36)
+            
+            # Query Join để lấy cả thông tin Security lẫn Email của User
+            statement = select(UserSecurity, Profiles.emergency_contact, Profiles.fullname)\
+                .join(Profiles, UserSecurity.user_id == Profiles.auth_user_id)\
+                .where(
+                    UserSecurity.last_confirmation_ts < limit_time,
+                    UserSecurity.status != "overdue"
+                )
+            
+            results = session.exec(statement).all()
+            count = 0
+            for sec, email, full_name in results:
+                # Update DB
+                sec.status = "overdue"
+                sec.updated_at = datetime.now(timezone.utc)
+                service.save_location(session, sec.user_id, reason="timeout", location=None)
+                
+                # GỬI EMAIL (Chạy bất đồng bộ)
+                if email:
+                    print(f"Found overdue: {email}. Sending email...")
+                    run_async(EmailService.send_security_alert(
+                        email_to=[email], # Hoặc email người thân
+                        user_name=full_name or "Người dùng",
+                        alert_type="overdue"
+                    ))
+
+                count += 1
+            
+            if count > 0:
+                session.commit()
+                print(f"[Job] Đã update và gửi mail cho {count} user.")
+            else:
+                print("[Job] Không có user nào quá hạn.")
+
     except Exception as e:
-        print(f"[Job Error] Lỗi khi chạy quét user: {e}")
+        print(f"[Job Error] {e}")
     print("--- [Job End] ---")
 
 # 3. Khởi tạo Scheduler
