@@ -181,6 +181,47 @@ class UserService {
     }
   }
 
+  // Hàm này trả về danh sách tên địa điểm đã lưu: ["Cầu Rồng", "Bà Nà Hills"]
+  Future<List<String>> getSavedItineraryNames() async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('access_token');
+    if (token == null) return [];
+
+    try {
+      final url = Uri.parse('$baseUrl/users/me');
+      final response = await http.get(
+        url,
+        headers: {'Authorization': 'Bearer $token'},
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(utf8.decode(response.bodyBytes));
+        var profileData = data['profile'] ?? data;
+        var rawItinerary = profileData['itinerary'];
+
+        List<String> savedNames = [];
+
+        // Logic giải mã (giống hàm toggle): Lấy tất cả Value trong Map ra
+        if (rawItinerary != null) {
+          if (rawItinerary is Map) {
+            // Backend trả về {"Đà Nẵng_1": "Cầu Rồng", "Hà Nội_1": "Hồ Gươm"}
+            // Ta chỉ cần lấy phần Value ("Cầu Rồng", "Hồ Gươm")
+            for (var val in rawItinerary.values) {
+              savedNames.add(val.toString());
+            }
+          } else if (rawItinerary is List) {
+            // Fallback trường hợp cũ
+            savedNames = List<String>.from(rawItinerary.map((e) => e.toString()));
+          }
+        }
+        return savedNames;
+      }
+    } catch (e) {
+      print('❌ Lỗi lấy itinerary: $e');
+    }
+    return [];
+  }
+
   // ... (Hàm getUserProfile giữ nguyên) ...
   Future<Map<String, dynamic>?> getUserProfile() async {
     final prefs = await SharedPreferences.getInstance();
