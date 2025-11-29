@@ -36,7 +36,7 @@ async def get_profile_by_uuid_service(session: Session, auth_user_id: str) -> Pr
     return public_profile
 
 # ====================================================================
-# LOGIC GĐ 5: Cập nhật Profile (ĐÃ FIX LỖI TRANSACTION)
+# LOGIC GĐ 5: Cập nhật Profile (Đã tích hợp Logic Xóa Itinerary)
 # ====================================================================
 async def update_profile_service(
     session: Session, 
@@ -46,11 +46,12 @@ async def update_profile_service(
     """
     Cập nhật Profile với cơ chế 'Giao dịch bù trừ' (Manual Rollback).
     Nếu DB lỗi -> Hoàn tác Supabase.
+    Logic nghiệp vụ: Nếu đổi Thành phố -> Xóa Lịch trình cũ.
     """
     if not supabase:
         raise Exception("Supabase client (user_service) chưa được khởi tạo.")
         
-    print(f"Đang cập nhật (GĐ 8.1) cho Auth UUID: {auth_user_id}")
+    print(f"Đang cập nhật (Full Logic) cho Auth UUID: {auth_user_id}")
 
     # BƯỚC 0: LẤY DỮ LIỆU CŨ (ĐỂ PHÒNG HỜ ROLLBACK)
     statement = select(Profiles).where(Profiles.auth_user_id == auth_user_id)
@@ -90,7 +91,18 @@ async def update_profile_service(
 
     try:
         if profile_updates:
+            # === [LOGIC MỚI: XÓA ITINERARY NẾU ĐỔI CITY] ===
+            new_city = profile_updates.get("preferred_city")
+            
+            # Nếu có city mới VÀ city mới khác city cũ -> Xóa lịch trình cũ
+            if new_city and new_city != db_profile.preferred_city:
+                print(f"User đổi thành phố sang {new_city} -> Xóa itinerary cũ.")
+                db_profile.itinerary = None
+            # ==============================================
+
             print(f"2. Đang cập nhật Profile DB: {profile_updates.keys()}")
+            
+            # Cập nhật dynamic các trường còn lại (bao gồm cả emergency_contact)
             for key, value in profile_updates.items():
                 setattr(db_profile, key, value)
             

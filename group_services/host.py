@@ -138,4 +138,17 @@ async def dissolve_group_service(session: Session, current_user: Any) -> Dict:
 
 async def get_pending_requests(session: Session, current_user: Any) -> List[Dict]:
     group = await get_host_group_info(session, current_user)
-    return group.pending_requests or []
+    raw_requests = group.pending_requests or []
+    if not raw_requests:
+        return []
+    pending_uuids = [req.get("profile_uuid") for req in raw_requests]
+    profiles = session.exec(
+        select(Profiles).where(Profiles.auth_user_id.in_(pending_uuids))
+    ).all()
+    avatar_map = {p.auth_user_id: p.avatar_url for p in profiles}
+    enriched_requests = []
+    for req in raw_requests:
+        req_copy = req.copy()
+        req_copy["avatar_url"] = avatar_map.get(req.get("profile_uuid"))
+        enriched_requests.append(req_copy)
+    return enriched_requests
