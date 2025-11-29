@@ -46,4 +46,4 @@ app.include_router(feedbacks_router) # Cắm API (Chat)
 app.include_router(ai_chat_router) # Cắm API (Chat)
 
 # Hoàn thành!
-# Để chạy, dùng: uvicorn main:app --reload
+# Để chạy, dùng: uvicorn main:app --reloaddd

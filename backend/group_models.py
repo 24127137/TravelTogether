@@ -76,3 +76,5 @@ class GroupDetailPublic(BaseModel):
     max_members: int
     group_image_url: Optional[str] = None # <-- Thêm
     members: List[GroupMemberPublic]
+
+    """demo """
