@@ -23,17 +23,18 @@ async def get_profile_by_uuid_service(session: Session, auth_user_id: str) -> Pr
     Tìm profile trong bảng 'profiles' bằng 'auth_user_id'.
     """
     print(f"Đang tìm profile cho Auth UUID: {auth_user_id}")
-    
+
     statement = select(Profiles).where(Profiles.auth_user_id == auth_user_id)
     db_profile = session.exec(statement).first()
-    
+
     if not db_profile:
         print("LỖI: Không tìm thấy profile khớp với UUID.")
         raise Exception("Profile not found for this user")
-        
+
     public_profile = ProfilePublic.model_validate(db_profile)
-    
+
     return public_profile
+
 
 # ====================================================================
 # LOGIC GĐ 5: Cập nhật Profile (ĐÃ FIX LỖI TRANSACTION)

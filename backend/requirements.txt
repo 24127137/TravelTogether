@@ -6,3 +6,5 @@ google-generativeai
 psycopg2-binary
 pydantic-settings
 pydantic[email]
+apscheduler
+fastapi_mail

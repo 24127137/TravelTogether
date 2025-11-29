@@ -11,13 +11,26 @@ from group_api import router as group_router
 from fastapi.middleware.cors import CORSMiddleware 
 from feedback_api import router as feedbacks_router
 from chat_ai_api import router as ai_chat_router
+from security_api import router as security_router
+
+from tasks import scheduler
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Sự kiện chạy khi server khởi động"""
     print("Server đang khởi động (Phiên bản 11.0 - UUID Toàn diện)...")
+    try:
+        scheduler.start()
+        print("✅ Scheduler đã khởi động: Đang theo dõi User Overdue (mỗi 30p).")
+    except Exception as e:
+        print(f"⚠️ LỖI SCHEDULER: Không thể khởi động: {e}")
     print("Đã sẵn sàng kết nối database...")
     yield
     print("Server đang tắt...")
+    try:
+        scheduler.shutdown()
+        print("🛑 Scheduler đã tắt.")
+    except Exception as e:
+        print(f"⚠️ Lỗi khi tắt Scheduler: {e}")
 
 # 1. Tạo app
 app = FastAPI(
@@ -44,6 +57,7 @@ app.include_router(group_router) # Cắm API (Group)
 app.include_router(chat_router) # Cắm API (Chat)
 app.include_router(feedbacks_router) # Cắm API (Chat)
 app.include_router(ai_chat_router) # Cắm API (Chat)
+app.include_router(security_router) # Cắm API (Security)
 
 # Hoàn thành!
 # Để chạy, dùng: uvicorn main:app --reloaddd
