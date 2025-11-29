@@ -44,22 +44,6 @@ def get_chat_service(db: Session = Depends(get_session)) -> ChatService:
     """Dependency injection untuk ChatService"""
     return ChatService(db)
 
-@router.post("/new_session", response_model=NewSessionResponse)
-async def create_ai_session(payload: NewSessionRequest):
-    """
-    ✅ FIXED: Tạo session chat AI mới HOẶC restore session cũ theo user_id.
-    - Nếu user_id đã có session → trả về session cũ
-    - Nếu chưa có → tạo mới
-    """
-    try:
-        result = chat_service.create_or_restore_session(user_id=payload.user_id)
-        return NewSessionResponse(
-            session_id=result["session_id"],
-            is_restored=result["is_restored"]
-        )
-    except Exception as e:
-        logging.error(f"Lỗi tạo session: {e}")
-        raise HTTPException(status_code=500, detail="Lỗi server khi tạo session")
 
 @router.post("/send", response_model=SendMessageResponse)
 async def send_message(
@@ -93,19 +77,6 @@ async def send_message(
         logging.exception("Error at send_message endpoint")
         raise HTTPException(status_code=500, detail=f"Lỗi nội bộ: {str(e)}")
 
-@router.get("/history/{session_id}", response_model=GetHistoryResponse)
-async def get_chat_history(session_id: str):
-    """
-    Lấy lịch sử chat của một session.
-    """
-    try:
-        history = chat_service._get_history_from_db(session_id)
-        if history is None:
-            raise HTTPException(status_code=404, detail="Session không tồn tại")
-        return GetHistoryResponse(session_id=session_id, history=history)
-    except Exception as e:
-        logging.error(f"Lỗi lấy history: {e}")
-        raise HTTPException(status_code=500, detail="Lỗi server khi lấy lịch sử")
 
 @router.get("/chat-history", response_model=ChatHistoryResponse)
 async def get_chat_history(
@@ -125,30 +96,6 @@ async def get_chat_history(
     except Exception as e:
         logging.error(f"Error getting chat history: {e}")
         raise HTTPException(status_code=500, detail="Lỗi server khi lấy lịch sử")
-
-@router.get("/sessions/{user_id}", response_model=UserSessionsResponse)
-async def get_user_sessions(user_id: str):
-    """
-    Lấy tất cả sessions của một user.
-    """
-    try:
-        sessions = chat_service._get_all_sessions_by_user(user_id)
-        return UserSessionsResponse(sessions=sessions)
-    except Exception as e:
-        logging.error(f"Lỗi lấy sessions: {e}")
-        raise HTTPException(status_code=500, detail="Lỗi server khi lấy sessions")
-
-@router.delete("/session/{session_id}")
-async def delete_session(session_id: str):
-    """
-    Xóa một session.
-    """
-    try:
-        chat_service._delete_session_from_db(session_id)
-        return {"message": "Session đã bị xóa"}
-    except Exception as e:
-        logging.error(f"Lỗi xóa session: {e}")
-        raise HTTPException(status_code=500, detail="Lỗi server khi xóa session")
 
 @router.delete("/clear-chat")
 async def clear_chat(
