@@ -1,28 +1,16 @@
 import 'package:flutter/material.dart';
-<<<<<<< HEAD
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../widgets/out_group_dialog.dart';
 import '../config/api_config.dart';
 import '../services/auth_service.dart';
-=======
-import '../widgets/out_group_dialog.dart';
->>>>>>> 3ee7efe (done all groupapis)
 
 class MemberScreenHost extends StatefulWidget {
   final String groupName;
   final int currentMembers;
   final int maxMembers;
   final List<Member> members;
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
-  final List<PendingRequest> pendingRequests;
->>>>>>> 3ee7efe (done all groupapis)
-=======
-  final List<PendingRequest> pendingRequests;
->>>>>>> 274291d (update)
 
   const MemberScreenHost({
     super.key,
@@ -30,14 +18,6 @@ class MemberScreenHost extends StatefulWidget {
     required this.currentMembers,
     required this.maxMembers,
     required this.members,
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
-    required this.pendingRequests,
->>>>>>> 3ee7efe (done all groupapis)
-=======
-    required this.pendingRequests,
->>>>>>> 274291d (update)
   });
 
   @override
@@ -49,24 +29,15 @@ class _MemberScreenHostState extends State<MemberScreenHost> {
   String _searchQuery = '';
   final Set<String> _selectedRequests = <String>{};
   late List<Member> _filteredMembers;
-<<<<<<< HEAD
-<<<<<<< HEAD
   List<PendingRequest> _pendingRequests = [];
   List<PendingRequest> _filteredRequests = [];
   bool _isLoadingRequests = false;
   String? _accessToken;
-=======
-  late List<PendingRequest> _filteredRequests;
->>>>>>> 3ee7efe (done all groupapis)
-=======
-  late List<PendingRequest> _filteredRequests;
->>>>>>> 274291d (update)
 
   @override
   void initState() {
     super.initState();
     _updateFilteredLists();
-<<<<<<< HEAD
     _loadAccessToken();
   }
 
@@ -138,15 +109,11 @@ class _MemberScreenHostState extends State<MemberScreenHost> {
         );
       }
     }
-=======
->>>>>>> 3ee7efe (done all groupapis)
   }
 
   void _updateFilteredLists() {
     _filteredMembers = widget.members
         .where((member) =>
-<<<<<<< HEAD
-<<<<<<< HEAD
             member.name.toLowerCase().contains(_searchQuery.toLowerCase()) ||
             member.email.toLowerCase().contains(_searchQuery.toLowerCase()))
         .toList();
@@ -155,24 +122,6 @@ class _MemberScreenHostState extends State<MemberScreenHost> {
         .where((request) =>
             request.name.toLowerCase().contains(_searchQuery.toLowerCase()) ||
             request.email.toLowerCase().contains(_searchQuery.toLowerCase()))
-=======
-    member.name.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-        member.email.toLowerCase().contains(_searchQuery.toLowerCase()))
-        .toList();
-
-    _filteredRequests = widget.pendingRequests
-        .where((request) =>
-        request.name.toLowerCase().contains(_searchQuery.toLowerCase()))
->>>>>>> 3ee7efe (done all groupapis)
-=======
-    member.name.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-        member.email.toLowerCase().contains(_searchQuery.toLowerCase()))
-        .toList();
-
-    _filteredRequests = widget.pendingRequests
-        .where((request) =>
-        request.name.toLowerCase().contains(_searchQuery.toLowerCase()))
->>>>>>> 274291d (update)
         .toList();
   }
 
@@ -193,8 +142,6 @@ class _MemberScreenHostState extends State<MemberScreenHost> {
     });
   }
 
-<<<<<<< HEAD
-<<<<<<< HEAD
   Future<void> _approveSelectedRequests() async {
     if (_selectedRequests.isEmpty) return;
 
@@ -264,35 +211,11 @@ class _MemberScreenHostState extends State<MemberScreenHost> {
         _pendingRequests.removeWhere(
           (request) => approvedRequests.any((approved) => approved.id == request.id),
         );
-=======
-  void _approveSelectedRequests() {
-    if (_selectedRequests.isEmpty) return;
 
-    setState(() {
-      // Thêm các requests được chọn vào danh sách members
-      final approvedRequests = widget.pendingRequests
-          .where((request) => _selectedRequests.contains(request.id))
-          .toList();
-
-      for (var request in approvedRequests) {
-        widget.members.add(Member(
-          id: request.id,
-          name: request.name,
-          email: "${request.name.toLowerCase().replaceAll(' ', '.')}@example.com",
-          avatarUrl: "https://randomuser.me/api/portraits/men/${widget.members.length + 1}.jpg",
-        ));
-      }
-
-      // Xóa khỏi pending requests
-      widget.pendingRequests.removeWhere(
-            (request) => _selectedRequests.contains(request.id),
-      );
->>>>>>> 274291d (update)
-
-      _selectedRequests.clear();
-      _updateFilteredLists();
-    });
-  }
+        _selectedRequests.clear();
+        _updateFilteredLists();
+      });
+    }
 
     if (mounted) {
       if (failCount == 0) {
@@ -409,34 +332,6 @@ class _MemberScreenHostState extends State<MemberScreenHost> {
         );
       }
     }
-=======
-  void _approveSelectedRequests() {
-    if (_selectedRequests.isEmpty) return;
-
-    setState(() {
-      // Thêm các requests được chọn vào danh sách members
-      final approvedRequests = widget.pendingRequests
-          .where((request) => _selectedRequests.contains(request.id))
-          .toList();
-
-      for (var request in approvedRequests) {
-        widget.members.add(Member(
-          id: request.id,
-          name: request.name,
-          email: "${request.name.toLowerCase().replaceAll(' ', '.')}@example.com",
-          avatarUrl: "https://randomuser.me/api/portraits/men/${widget.members.length + 1}.jpg",
-        ));
-      }
-
-      // Xóa khỏi pending requests
-      widget.pendingRequests.removeWhere(
-            (request) => _selectedRequests.contains(request.id),
-      );
-
-      _selectedRequests.clear();
-      _updateFilteredLists();
-    });
->>>>>>> 3ee7efe (done all groupapis)
   }
 
   @override
@@ -452,41 +347,10 @@ class _MemberScreenHostState extends State<MemberScreenHost> {
         child: SafeArea(
           child: Column(
             children: [
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
-              // Header
->>>>>>> 274291d (update)
               _buildHeader(),
-
-              // Member count
               _buildMemberCount(),
-
-              // Tab buttons
               _buildTabButtons(),
-
-              // Search bar
               _buildSearchBar(),
-<<<<<<< HEAD
-=======
-              // Header
-              _buildHeader(),
-
-              // Member count
-              _buildMemberCount(),
-
-              // Tab buttons
-              _buildTabButtons(),
-
-              // Search bar
-              _buildSearchBar(),
-
-              // Content list
->>>>>>> 3ee7efe (done all groupapis)
-=======
-
-              // Content list
->>>>>>> 274291d (update)
               Expanded(
                 child: _showMembers ? _buildMembersList() : _buildPendingList(),
               ),
@@ -502,14 +366,6 @@ class _MemberScreenHostState extends State<MemberScreenHost> {
       padding: const EdgeInsets.symmetric(horizontal: 26, vertical: 20),
       child: Row(
         children: [
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
-          // Back button
->>>>>>> 3ee7efe (done all groupapis)
-=======
-          // Back button
->>>>>>> 274291d (update)
           GestureDetector(
             onTap: () => Navigator.pop(context),
             child: Container(
@@ -522,16 +378,6 @@ class _MemberScreenHostState extends State<MemberScreenHost> {
               child: const Icon(Icons.arrow_back_ios_new, size: 18),
             ),
           ),
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
-
-          // Group name
->>>>>>> 3ee7efe (done all groupapis)
-=======
-
-          // Group name
->>>>>>> 274291d (update)
           Expanded(
             child: Center(
               child: Text(
@@ -546,8 +392,6 @@ class _MemberScreenHostState extends State<MemberScreenHost> {
               ),
             ),
           ),
-<<<<<<< HEAD
-<<<<<<< HEAD
           GestureDetector(
             onTap: () {
               if (_showMembers) {
@@ -571,25 +415,6 @@ class _MemberScreenHostState extends State<MemberScreenHost> {
                   _approveSelectedRequests();
                 }
               }
-=======
-
-          // Exit/Approve button
-          GestureDetector(
-            onTap: () {
-=======
-
-          // Exit/Approve button
-          GestureDetector(
-            onTap: () {
->>>>>>> 274291d (update)
-              OutGroupDialog.show(
-                context,
-                isHost: true,
-              );
-<<<<<<< HEAD
->>>>>>> 3ee7efe (done all groupapis)
-=======
->>>>>>> 274291d (update)
             },
             child: Container(
               width: 44,
@@ -598,18 +423,8 @@ class _MemberScreenHostState extends State<MemberScreenHost> {
                 color: _showMembers
                     ? const Color(0xFFF6F6F8)
                     : (_selectedRequests.isNotEmpty
-<<<<<<< HEAD
-<<<<<<< HEAD
                         ? const Color(0xFF4CAF50)
                         : const Color(0xFFF6F6F8)),
-=======
-                    ? const Color(0xFF4CAF50)
-                    : const Color(0xFFF6F6F8)),
->>>>>>> 3ee7efe (done all groupapis)
-=======
-                    ? const Color(0xFF4CAF50)
-                    : const Color(0xFFF6F6F8)),
->>>>>>> 274291d (update)
                 shape: const CircleBorder(),
               ),
               child: Icon(
@@ -650,14 +465,6 @@ class _MemberScreenHostState extends State<MemberScreenHost> {
       padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
       child: Row(
         children: [
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
-          // Members tab
->>>>>>> 3ee7efe (done all groupapis)
-=======
-          // Members tab
->>>>>>> 274291d (update)
           Expanded(
             child: GestureDetector(
               onTap: () => setState(() => _showMembers = true),
@@ -684,21 +491,7 @@ class _MemberScreenHostState extends State<MemberScreenHost> {
               ),
             ),
           ),
-<<<<<<< HEAD
-<<<<<<< HEAD
           const SizedBox(width: 6),
-=======
-
-          const SizedBox(width: 6),
-
-          // Pending tab
->>>>>>> 3ee7efe (done all groupapis)
-=======
-
-          const SizedBox(width: 6),
-
-          // Pending tab
->>>>>>> 274291d (update)
           Expanded(
             child: GestureDetector(
               onTap: () => setState(() => _showMembers = false),
@@ -748,10 +541,7 @@ class _MemberScreenHostState extends State<MemberScreenHost> {
             prefixIcon: Icon(Icons.search, color: Color(0xFFB99668)),
             border: InputBorder.none,
             contentPadding: EdgeInsets.symmetric(horizontal: 20, vertical: 15),
-<<<<<<< HEAD
             hintText: 'Tìm kiếm...',
-=======
->>>>>>> 3ee7efe (done all groupapis)
           ),
         ),
       ),
@@ -767,8 +557,6 @@ class _MemberScreenHostState extends State<MemberScreenHost> {
         return Dismissible(
           key: Key(member.id),
           direction: DismissDirection.endToStart,
-<<<<<<< HEAD
-<<<<<<< HEAD
           confirmDismiss: (direction) async {
             // Hiển thị dialog xác nhận
             final confirmed = await showDialog<bool>(
@@ -796,18 +584,6 @@ class _MemberScreenHostState extends State<MemberScreenHost> {
               await _kickMember(member);
             }
             return false;
-=======
-=======
->>>>>>> 274291d (update)
-          onDismissed: (direction) {
-            setState(() {
-              widget.members.remove(member);
-              _updateFilteredLists();
-            });
-<<<<<<< HEAD
->>>>>>> 3ee7efe (done all groupapis)
-=======
->>>>>>> 274291d (update)
           },
           background: Container(
             alignment: Alignment.centerRight,
@@ -834,8 +610,6 @@ class _MemberScreenHostState extends State<MemberScreenHost> {
       ),
       child: Row(
         children: [
-<<<<<<< HEAD
-<<<<<<< HEAD
           CircleAvatar(
             radius: 30,
             backgroundImage: member.avatarUrl != null && member.avatarUrl!.isNotEmpty
@@ -845,31 +619,8 @@ class _MemberScreenHostState extends State<MemberScreenHost> {
             child: member.avatarUrl == null || member.avatarUrl!.isEmpty
                 ? const Icon(Icons.person, size: 30, color: Colors.white)
                 : null,
-=======
-          // Avatar
-          CircleAvatar(
-            radius: 30,
-            backgroundImage: NetworkImage(member.avatarUrl),
->>>>>>> 274291d (update)
           ),
-
           const SizedBox(width: 16),
-<<<<<<< HEAD
-=======
-          // Avatar
-          CircleAvatar(
-            radius: 30,
-            backgroundImage: NetworkImage(member.avatarUrl),
-          ),
-
-          const SizedBox(width: 16),
-
-          // Member info
->>>>>>> 3ee7efe (done all groupapis)
-=======
-
-          // Member info
->>>>>>> 274291d (update)
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -905,7 +656,6 @@ class _MemberScreenHostState extends State<MemberScreenHost> {
   }
 
   Widget _buildPendingList() {
-<<<<<<< HEAD
     if (_isLoadingRequests) {
       return const Center(
         child: CircularProgressIndicator(color: Color(0xFFB99668)),
@@ -925,8 +675,6 @@ class _MemberScreenHostState extends State<MemberScreenHost> {
       );
     }
 
-=======
->>>>>>> 3ee7efe (done all groupapis)
     return ListView.builder(
       padding: const EdgeInsets.symmetric(horizontal: 15),
       itemCount: _filteredRequests.length,
@@ -935,24 +683,9 @@ class _MemberScreenHostState extends State<MemberScreenHost> {
         return Dismissible(
           key: Key(request.id),
           direction: DismissDirection.endToStart,
-<<<<<<< HEAD
-<<<<<<< HEAD
           confirmDismiss: (direction) async {
             await _rejectRequest(request.id);
             return true;
-=======
-=======
->>>>>>> 274291d (update)
-          onDismissed: (direction) {
-            setState(() {
-              widget.pendingRequests.remove(request);
-              _selectedRequests.remove(request.id);
-              _updateFilteredLists();
-            });
-<<<<<<< HEAD
->>>>>>> 3ee7efe (done all groupapis)
-=======
->>>>>>> 274291d (update)
           },
           background: Container(
             alignment: Alignment.centerRight,
@@ -981,14 +714,6 @@ class _MemberScreenHostState extends State<MemberScreenHost> {
       ),
       child: Row(
         children: [
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
-          // Avatar
->>>>>>> 3ee7efe (done all groupapis)
-=======
-          // Avatar
->>>>>>> 274291d (update)
           CircleAvatar(
             radius: 25,
             backgroundColor: const Color(0xFFDCC9A7),
@@ -998,28 +723,12 @@ class _MemberScreenHostState extends State<MemberScreenHost> {
               color: Color(0xFF666666),
             ),
           ),
-<<<<<<< HEAD
-<<<<<<< HEAD
           const SizedBox(width: 16),
-=======
-
-          const SizedBox(width: 16),
-
-          // Request info
->>>>>>> 3ee7efe (done all groupapis)
-=======
-
-          const SizedBox(width: 16),
-
-          // Request info
->>>>>>> 274291d (update)
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisAlignment: MainAxisAlignment.start,
               children: [
-<<<<<<< HEAD
-<<<<<<< HEAD
                 Text(
                   request.name,
                   style: const TextStyle(
@@ -1050,127 +759,11 @@ class _MemberScreenHostState extends State<MemberScreenHost> {
                     fontFamily: 'DM Sans',
                     fontWeight: FontWeight.w400,
                   ),
-=======
-                // Tên và rating
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        request.name,
-                        style: const TextStyle(
-                          color: Color(0xFF222222),
-                          fontSize: 18,
-                          fontFamily: 'DM Sans',
-                          fontWeight: FontWeight.w500,
-                        ),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    // Rating
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(Icons.star, color: Colors.amber, size: 14),
-                        const SizedBox(width: 2),
-                        Text(
-                          request.rating.toString(),
-                          style: const TextStyle(
-                            color: Color(0xFF666666),
-                            fontSize: 12,
-                            fontFamily: 'DM Sans',
-                            fontWeight: FontWeight.w400,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-=======
-                // Tên và rating
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        request.name,
-                        style: const TextStyle(
-                          color: Color(0xFF222222),
-                          fontSize: 18,
-                          fontFamily: 'DM Sans',
-                          fontWeight: FontWeight.w500,
-                        ),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    // Rating
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(Icons.star, color: Colors.amber, size: 14),
-                        const SizedBox(width: 2),
-                        Text(
-                          request.rating.toString(),
-                          style: const TextStyle(
-                            color: Color(0xFF666666),
-                            fontSize: 12,
-                            fontFamily: 'DM Sans',
-                            fontWeight: FontWeight.w400,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
->>>>>>> 274291d (update)
-                const SizedBox(height: 8),
-                // Keywords
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 4,
-                  children: request.keywords.take(3).map((keyword) =>
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        decoration: ShapeDecoration(
-                          color: const Color(0xFFDCC9A7),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                        child: Text(
-                          keyword,
-                          style: const TextStyle(
-                            color: Color(0xFF222222),
-                            fontSize: 12,
-                            fontFamily: 'DM Sans',
-                            fontWeight: FontWeight.w400,
-                          ),
-                        ),
-                      ),
-                  ).toList(),
-<<<<<<< HEAD
->>>>>>> 3ee7efe (done all groupapis)
-=======
->>>>>>> 274291d (update)
                 ),
               ],
             ),
           ),
-<<<<<<< HEAD
-<<<<<<< HEAD
           const SizedBox(width: 16),
-=======
-
-          const SizedBox(width: 16),
-
-          // Selection checkbox
->>>>>>> 3ee7efe (done all groupapis)
-=======
-
-          const SizedBox(width: 16),
-
-          // Selection checkbox
->>>>>>> 274291d (update)
           GestureDetector(
             onTap: () => _toggleSelection(request.id),
             child: Container(
@@ -1195,13 +788,10 @@ class _MemberScreenHostState extends State<MemberScreenHost> {
       ),
     );
   }
-<<<<<<< HEAD
 
   String _formatDateTime(DateTime dateTime) {
     return '${dateTime.day}/${dateTime.month}/${dateTime.year} ${dateTime.hour}:${dateTime.minute.toString().padLeft(2, '0')}';
   }
-=======
->>>>>>> 3ee7efe (done all groupapis)
 }
 
 // Data models
@@ -1209,61 +799,30 @@ class Member {
   final String id;
   final String name;
   final String email;
-<<<<<<< HEAD
-<<<<<<< HEAD
   final String? avatarUrl;
-=======
-  final String avatarUrl;
->>>>>>> 3ee7efe (done all groupapis)
-=======
-  final String avatarUrl;
->>>>>>> 274291d (update)
 
   Member({
     required this.id,
     required this.name,
     required this.email,
-<<<<<<< HEAD
-<<<<<<< HEAD
     this.avatarUrl,
-=======
-    required this.avatarUrl,
->>>>>>> 3ee7efe (done all groupapis)
-=======
-    required this.avatarUrl,
->>>>>>> 274291d (update)
   });
 }
 
 class PendingRequest {
   final String id;
   final String name;
-<<<<<<< HEAD
   final String email;
   final DateTime requestedAt;
-=======
->>>>>>> 3ee7efe (done all groupapis)
   final double rating;
   final List<String> keywords;
 
   PendingRequest({
     required this.id,
     required this.name,
-<<<<<<< HEAD
-<<<<<<< HEAD
     required this.email,
     required this.requestedAt,
     this.rating = 0.0,
     this.keywords = const [],
-=======
-    required this.rating,
-    required this.keywords,
->>>>>>> 274291d (update)
   });
 }
-=======
-    required this.rating,
-    required this.keywords,
-  });
-}
->>>>>>> 3ee7efe (done all groupapis)

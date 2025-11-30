@@ -5,14 +5,20 @@ import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 <<<<<<< HEAD
+<<<<<<< HEAD
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+=======
+import 'package:http/http.dart' as http; // THÊM MỚI
+import 'dart:convert'; // THÊM MỚI
+>>>>>>> 274291d (update)
 import 'home_page.dart';
 import 'messages_screen.dart';
 import '../widgets/custom_bottom_nav_bar.dart';
 import '../widgets/notification_permission_dialog.dart';
 import '../services/background_notification_service.dart';
 import '../services/notification_service.dart'; // Import service để xử lý badge
+<<<<<<< HEAD
 import '../services/auth_service.dart'; // === THÊM MỚI: Import auth service ===
 import '../config/api_config.dart'; // === THÊM MỚI: Import API config ===
 =======
@@ -23,6 +29,10 @@ import '../widgets/notification_permission_dialog.dart'; // === THÊM MỚI ===
 import '../services/background_notification_service.dart'; // === THÊM MỚI: Background WebSocket ===
 import '../services/notification_service.dart'; // === THÊM MỚI: Notification Service ===
 >>>>>>> 3ee7efe (done all groupapis)
+=======
+import '../services/auth_service.dart'; // THÊM MỚI: Import auth service
+import '../config/api_config.dart'; // THÊM MỚI: Import API config
+>>>>>>> 274291d (update)
 import '../models/destination.dart';
 import 'destination_detail_screen.dart';
 import 'destination_explore_screen.dart';
@@ -76,6 +86,9 @@ class _MainAppScreenState extends State<MainAppScreen> {
     super.initState();
     _selectedIndex = widget.initialIndex;
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> 274291d (update)
     _startBackgroundNotificationService();
     _requestNotificationPermission();
     _preloadProfileData(); // === THÊM MỚI: Pre-load data ngay khi app start ===
@@ -99,12 +112,18 @@ class _MainAppScreenState extends State<MainAppScreen> {
       if (response.statusCode == 200) {
         _cachedProfileData = jsonDecode(utf8.decode(response.bodyBytes));
         debugPrint('✅ Profile data pre-loaded successfully');
+<<<<<<< HEAD
+=======
+      } else {
+        debugPrint('⚠️ Error pre-loading profile data: Status ${response.statusCode}');
+>>>>>>> 274291d (update)
       }
     } catch (e) {
       debugPrint('⚠️ Error pre-loading profile data: $e');
     }
   }
 
+<<<<<<< HEAD
 =======
     // === THÊM MỚI: Khởi động background notification service ===
     _startBackgroundNotificationService();
@@ -114,6 +133,8 @@ class _MainAppScreenState extends State<MainAppScreen> {
 
   /// Khởi động WebSocket listener ở background
 >>>>>>> 3ee7efe (done all groupapis)
+=======
+>>>>>>> 274291d (update)
   Future<void> _startBackgroundNotificationService() async {
     try {
       await BackgroundNotificationService().start();
@@ -124,21 +145,29 @@ class _MainAppScreenState extends State<MainAppScreen> {
   }
 
 <<<<<<< HEAD
+<<<<<<< HEAD
   Future<void> _requestNotificationPermission() async {
 =======
   /// Xin quyền thông báo lần đầu
   Future<void> _requestNotificationPermission() async {
     // Delay một chút để UI load xong
 >>>>>>> 3ee7efe (done all groupapis)
+=======
+  Future<void> _requestNotificationPermission() async {
+>>>>>>> 274291d (update)
     await Future.delayed(const Duration(milliseconds: 1000));
 
     if (!mounted) return;
 
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> 274291d (update)
     final hasPermission = await NotificationService().checkPermission();
 
     if (!hasPermission) {
       final granted = await NotificationPermissionDialog.show(context);
+<<<<<<< HEAD
 =======
     // === SỬA MỚI: Kiểm tra permission thực tế thay vì chỉ dựa vào flag ===
     // Điều này đảm bảo dialog hiện lại nếu permission bị revoke (test)
@@ -150,6 +179,8 @@ class _MainAppScreenState extends State<MainAppScreen> {
 
       // Lưu trạng thái để không hỏi lại (trừ khi user revoke)
 >>>>>>> 3ee7efe (done all groupapis)
+=======
+>>>>>>> 274291d (update)
       if (granted) {
         final prefs = await SharedPreferences.getInstance();
         await prefs.setBool('notification_permission_asked', true);
@@ -240,12 +271,20 @@ class _MainAppScreenState extends State<MainAppScreen> {
     });
   }
 
+<<<<<<< HEAD
 
   // === SỬA MỚI: Pre-load data THỰC SỰ trước khi mở Settings ===
   Future<void> _openSettings() async {
     // Hiện loading ngay lập tức
     setState(() => _isPreLoading = true);
 
+=======
+  // === SỬA MỚI: Pre-load data THỰC SỰ trước khi mở Settings ===
+  Future<void> _openSettings() async {
+    // Hiện loading ngay lập tức
+    setState(() => _isPreLoading = true);
+
+>>>>>>> 274291d (update)
     // Load data nếu chưa có cache hoặc cache cũ
     if (_cachedProfileData == null) {
       await _preloadProfileData();
@@ -509,7 +548,10 @@ class _MainAppScreenState extends State<MainAppScreen> {
     } else if (_showProfile) {
       mainContent = ProfilePage(
         onBack: _onProfileBack, // === SỬA: Dùng callback đặc biệt để refresh cache ===
+<<<<<<< HEAD
         cachedData: _cachedProfileData, // === THÊM MỚI: Truyền cached data ===
+=======
+>>>>>>> 274291d (update)
       );
     } else if (_showSettings) {
       mainContent = SettingsScreen(
@@ -550,10 +592,14 @@ class _MainAppScreenState extends State<MainAppScreen> {
           onSettingsTap: _openSettings,
           onTabChangeRequest: (index) {
 <<<<<<< HEAD
+<<<<<<< HEAD
             _onItemTapped(index);
 =======
             _onItemTapped(index); // Gọi hàm chuyển tab của MainAppScreen
 >>>>>>> 3ee7efe (done all groupapis)
+=======
+            _onItemTapped(index);
+>>>>>>> 274291d (update)
           },
         ),
         NotificationScreen(),

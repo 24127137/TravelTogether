@@ -1,15 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
 <<<<<<< HEAD
+<<<<<<< HEAD
 import '../services/user_service.dart';
 import '../services/group_service.dart';
 import '../services/auth_service.dart';
 =======
+=======
+>>>>>>> 274291d (update)
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../services/auth_service.dart';
 import '../config/api_config.dart';
+<<<<<<< HEAD
 >>>>>>> 3ee7efe (done all groupapis)
+=======
+>>>>>>> 274291d (update)
 
 class GroupStateScreen extends StatefulWidget {
   final VoidCallback? onBack;
@@ -28,6 +34,7 @@ class _GroupStateScreenState extends State<GroupStateScreen> {
   final GroupService _groupService = GroupService();
 
 <<<<<<< HEAD
+<<<<<<< HEAD
   List<GroupApplication> _applications = [];
 =======
   List<GroupApplication> applications = [];
@@ -38,10 +45,17 @@ class _GroupStateScreenState extends State<GroupStateScreen> {
 
   final TextEditingController _searchController = TextEditingController();
   bool _isLoading = true;
+=======
+  List<GroupApplication> applications = [];
+  List<GroupApplication> _filteredApplications = [];
+  bool _isLoading = true;
+  String? _errorMessage;
+>>>>>>> 274291d (update)
 
   @override
   void initState() {
     super.initState();
+<<<<<<< HEAD
 <<<<<<< HEAD
     _loadData();
   }
@@ -111,6 +125,11 @@ class _GroupStateScreenState extends State<GroupStateScreen> {
     _fetchPendingRequests();
   }
 
+=======
+    _fetchPendingRequests();
+  }
+
+>>>>>>> 274291d (update)
   Future<void> _fetchPendingRequests() async {
     setState(() {
       _isLoading = true;
@@ -136,6 +155,7 @@ class _GroupStateScreenState extends State<GroupStateScreen> {
 
         if (pendingRequests != null) {
           List<GroupApplication> tempApplications = [];
+<<<<<<< HEAD
           
           for (var i = 0; i < pendingRequests.length; i++) {
             final item = pendingRequests[i];
@@ -145,6 +165,17 @@ class _GroupStateScreenState extends State<GroupStateScreen> {
             final requestId = item['id']?.toString() ?? '';
             final groupId = item['group_id']?.toString() ?? '';
             
+=======
+
+          for (var i = 0; i < pendingRequests.length; i++) {
+            final item = pendingRequests[i];
+
+            print('📦 Pending request item $i: $item');
+
+            final requestId = item['id']?.toString() ?? '';
+            final groupId = item['group_id']?.toString() ?? '';
+
+>>>>>>> 274291d (update)
             String uniqueId;
             if (groupId.isNotEmpty) {
               uniqueId = groupId;
@@ -153,6 +184,7 @@ class _GroupStateScreenState extends State<GroupStateScreen> {
             } else {
               uniqueId = 'request_$i';
             }
+<<<<<<< HEAD
             
             print('📦 Using ID: $uniqueId (request_id: "$requestId", group_id: "$groupId")');
             
@@ -162,6 +194,17 @@ class _GroupStateScreenState extends State<GroupStateScreen> {
               groupName: item['group_name']?.toString() ?? 
                         item['groupName']?.toString() ?? 
                         'Unknown Group',
+=======
+
+            print('📦 Using ID: $uniqueId (request_id: "$requestId", group_id: "$groupId")');
+
+            tempApplications.add(GroupApplication(
+              id: uniqueId,
+              groupId: groupId.isNotEmpty ? groupId : null,
+              groupName: item['group_name']?.toString() ??
+                  item['groupName']?.toString() ??
+                  'Unknown Group',
+>>>>>>> 274291d (update)
               avatar: 'https://placehold.co/60x60',
               status: _parseStatus(item['status']),
             ));
@@ -203,11 +246,19 @@ class _GroupStateScreenState extends State<GroupStateScreen> {
 
       try {
         final groupUrl = Uri.parse('${ApiConfig.baseUrl}/groups/${app.groupId}/public-plan');
+<<<<<<< HEAD
         
         print('🔍 Fetching group image for: ${app.groupName}');
         print('🔍 Group ID: ${app.groupId}');
         print('🔍 Full URL: $groupUrl');
         
+=======
+
+        print('🔍 Fetching group image for: ${app.groupName}');
+        print('🔍 Group ID: ${app.groupId}');
+        print('🔍 Full URL: $groupUrl');
+
+>>>>>>> 274291d (update)
         final response = await http.get(
           groupUrl,
           headers: {
@@ -217,6 +268,7 @@ class _GroupStateScreenState extends State<GroupStateScreen> {
         );
 
         print('🔍 Response status: ${response.statusCode}');
+<<<<<<< HEAD
         
         if (response.statusCode == 200) {
           final groupData = json.decode(utf8.decode(response.bodyBytes));
@@ -224,6 +276,15 @@ class _GroupStateScreenState extends State<GroupStateScreen> {
           
           final groupImageUrl = groupData['group_image_url']?.toString();
           
+=======
+
+        if (response.statusCode == 200) {
+          final groupData = json.decode(utf8.decode(response.bodyBytes));
+          print('🔍 Response data: $groupData');
+
+          final groupImageUrl = groupData['group_image_url']?.toString();
+
+>>>>>>> 274291d (update)
           if (groupImageUrl != null && groupImageUrl.isNotEmpty) {
             app.avatar = groupImageUrl;
             print('✅ Loaded image for ${app.groupName}: $groupImageUrl');
@@ -245,7 +306,11 @@ class _GroupStateScreenState extends State<GroupStateScreen> {
 
   ApplicationStatus _parseStatus(dynamic status) {
     if (status == null) return ApplicationStatus.pending;
+<<<<<<< HEAD
     
+=======
+
+>>>>>>> 274291d (update)
     final statusStr = status.toString().toLowerCase();
     switch (statusStr) {
       case 'accepted':
@@ -267,12 +332,20 @@ class _GroupStateScreenState extends State<GroupStateScreen> {
     print('🗑️ Current applications IDs: ${applications.map((a) => '"${a.id}"').toList()}');
 
     final deletedAppIndex = applications.indexWhere((app) => app.id == id);
+<<<<<<< HEAD
     
+=======
+
+>>>>>>> 274291d (update)
     if (deletedAppIndex == -1) {
       print('❌ Application with ID "$id" not found!');
       return;
     }
+<<<<<<< HEAD
     
+=======
+
+>>>>>>> 274291d (update)
     final deletedApp = applications[deletedAppIndex];
 
     if (deletedApp.groupId == null || deletedApp.groupId!.isEmpty) {
@@ -288,7 +361,11 @@ class _GroupStateScreenState extends State<GroupStateScreen> {
       }
       return;
     }
+<<<<<<< HEAD
     
+=======
+
+>>>>>>> 274291d (update)
     print('🗑️ Found item to delete: ${deletedApp.groupName}');
     print('🗑️ Group ID: ${deletedApp.groupId}');
     print('🗑️ At index: $deletedAppIndex');
@@ -297,7 +374,11 @@ class _GroupStateScreenState extends State<GroupStateScreen> {
       applications.removeWhere((app) => app.id == id);
       _filteredApplications.removeWhere((app) => app.id == id);
     });
+<<<<<<< HEAD
     
+=======
+
+>>>>>>> 274291d (update)
     print('🔄 UI updated - applications count: ${applications.length}');
 
     try {
@@ -326,7 +407,11 @@ class _GroupStateScreenState extends State<GroupStateScreen> {
 
       if (response.statusCode == 200) {
         print('✅ Successfully cancelled request');
+<<<<<<< HEAD
         
+=======
+
+>>>>>>> 274291d (update)
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -344,7 +429,11 @@ class _GroupStateScreenState extends State<GroupStateScreen> {
           applications.insert(deletedAppIndex, deletedApp);
           _filteredApplications = List.from(applications);
         });
+<<<<<<< HEAD
         
+=======
+
+>>>>>>> 274291d (update)
         print('🔄 Rollback - applications count: ${applications.length}');
 
         if (mounted) {
@@ -364,7 +453,11 @@ class _GroupStateScreenState extends State<GroupStateScreen> {
         applications.insert(deletedAppIndex, deletedApp);
         _filteredApplications = List.from(applications);
       });
+<<<<<<< HEAD
       
+=======
+
+>>>>>>> 274291d (update)
       print('🔄 Rollback after error - applications count: ${applications.length}');
 
       if (mounted) {
@@ -376,7 +469,10 @@ class _GroupStateScreenState extends State<GroupStateScreen> {
           ),
         );
       }
+<<<<<<< HEAD
 >>>>>>> 3ee7efe (done all groupapis)
+=======
+>>>>>>> 274291d (update)
     }
   }
 
@@ -441,6 +537,23 @@ class _GroupStateScreenState extends State<GroupStateScreen> {
                         child: const Icon(Icons.refresh, color: Colors.black),
                       ),
                     ),
+<<<<<<< HEAD
+=======
+                    const Spacer(),
+                    // Nút refresh
+                    GestureDetector(
+                      onTap: _fetchPendingRequests,
+                      child: Container(
+                        width: 44,
+                        height: 44,
+                        decoration: const BoxDecoration(
+                          color: Color(0xFFF6F6F8),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.refresh, color: Colors.black),
+                      ),
+                    ),
+>>>>>>> 274291d (update)
                   ],
                 ),
               ),
@@ -504,6 +617,7 @@ class _GroupStateScreenState extends State<GroupStateScreen> {
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: _isLoading
+<<<<<<< HEAD
 <<<<<<< HEAD
                         ? const Center(child: CircularProgressIndicator(color: Color(0xFFB99668)))
                         : _filteredApplications.isEmpty
@@ -582,6 +696,68 @@ class _GroupStateScreenState extends State<GroupStateScreen> {
                                     },
                                   ),
 >>>>>>> 3ee7efe (done all groupapis)
+=======
+                        ? const Center(
+                      child: CircularProgressIndicator(
+                        color: Color(0xFFB99668),
+                      ),
+                    )
+                        : _errorMessage != null
+                        ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.error_outline,
+                            size: 48,
+                            color: Colors.red[300],
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            _errorMessage!,
+                            style: TextStyle(
+                              fontSize: 16,
+                              color: Colors.red[600],
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: 16),
+                          ElevatedButton(
+                            onPressed: _fetchPendingRequests,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFFB99668),
+                            ),
+                            child: Text('retry'.tr()),
+                          ),
+                        ],
+                      ),
+                    )
+                        : _filteredApplications.isEmpty
+                        ? Center(
+                      child: Text(
+                        'no_requests'.tr(),
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: Colors.grey[600],
+                        ),
+                      ),
+                    )
+                        : ListView.separated(
+                      padding: const EdgeInsets.all(16),
+                      itemCount: _filteredApplications.length,
+                      separatorBuilder: (context, index) =>
+                      const SizedBox(height: 12),
+                      itemBuilder: (context, index) {
+                        final app = _filteredApplications[index];
+                        return ApplicationCard(
+                          application: app,
+                          onDelete: () async {
+                            await _deleteApplication(app.id);
+                          },
+                        );
+                      },
+                    ),
+>>>>>>> 274291d (update)
                   ),
                 ),
               ),
@@ -665,12 +841,18 @@ class _ApplicationCardState extends State<ApplicationCard> {
         );
       },
 <<<<<<< HEAD
+<<<<<<< HEAD
       onDismissed: (direction) => widget.onDelete(),
 =======
       onDismissed: (direction) async {
         await onDelete();
       },
 >>>>>>> 3ee7efe (done all groupapis)
+=======
+      onDismissed: (direction) async {
+        await onDelete();
+      },
+>>>>>>> 274291d (update)
       background: Container(
         decoration: BoxDecoration(color: Colors.red, borderRadius: BorderRadius.circular(5)),
         alignment: Alignment.centerRight,
@@ -703,10 +885,17 @@ class _ApplicationCardState extends State<ApplicationCard> {
               ),
               child: application.avatar == 'https://placehold.co/60x60'
                   ? const Icon(
+<<<<<<< HEAD
                       Icons.group,
                       size: 30,
                       color: Colors.white,
                     )
+=======
+                Icons.group,
+                size: 30,
+                color: Colors.white,
+              )
+>>>>>>> 274291d (update)
                   : null,
             ),
             const SizedBox(width: 16),
@@ -739,9 +928,12 @@ class _ApplicationCardState extends State<ApplicationCard> {
 }
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 // Models
 enum ApplicationStatus { pending, accepted, rejected }
 =======
+=======
+>>>>>>> 274291d (update)
 enum ApplicationStatus {
   pending,
   accepted,
@@ -751,6 +943,7 @@ enum ApplicationStatus {
 
 class GroupApplication {
   final String id;
+<<<<<<< HEAD
   final String? groupId; 
   final String groupName;
 <<<<<<< HEAD
@@ -758,6 +951,11 @@ class GroupApplication {
 =======
   String avatar; 
 >>>>>>> 3ee7efe (done all groupapis)
+=======
+  final String? groupId;
+  final String groupName;
+  String avatar;
+>>>>>>> 274291d (update)
   final ApplicationStatus status;
 
   GroupApplication({

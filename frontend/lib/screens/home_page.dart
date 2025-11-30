@@ -14,7 +14,16 @@ class HomePage extends StatefulWidget {
   final void Function(Destination)? onDestinationTap;
   final VoidCallback? onSettingsTap;
   final void Function(int index)? onTabChangeRequest;
+<<<<<<< HEAD
   const HomePage({Key? key, this.onDestinationTap, this.onSettingsTap, this.onTabChangeRequest,}) : super(key: key);
+=======
+  const HomePage({
+    Key? key,
+    this.onDestinationTap,
+    this.onSettingsTap,
+    this.onTabChangeRequest,
+  }) : super(key: key);
+>>>>>>> 274291d (update)
 
   @override
   _HomePageState createState() => _HomePageState();
@@ -29,6 +38,7 @@ class _HomePageState extends State<HomePage> {
   final UserService _userService = UserService(); // Init Service
 
 <<<<<<< HEAD
+<<<<<<< HEAD
   String _userName = 'User'; // Mặc định
   String? _userAvatar;
 
@@ -41,10 +51,16 @@ class _HomePageState extends State<HomePage> {
   void initState() {
     super.initState();
 >>>>>>> 3ee7efe (done all groupapis)
+=======
+  @override
+  void initState() {
+    super.initState();
+>>>>>>> 274291d (update)
     // Tự động kiểm tra xem có cần popup thông báo vào nhóm không
     _checkNewGroupAcceptance();
   }
 
+<<<<<<< HEAD
 <<<<<<< HEAD
   Future<void> _loadUserInfo() async {
     final prefs = await SharedPreferences.getInstance();
@@ -102,6 +118,8 @@ class _HomePageState extends State<HomePage> {
 
 =======
 >>>>>>> 3ee7efe (done all groupapis)
+=======
+>>>>>>> 274291d (update)
   // --- LOGIC AUTO POPUP ---
   Future<void> _checkNewGroupAcceptance() async {
     // 1. Kiểm tra token
@@ -145,11 +163,20 @@ class _HomePageState extends State<HomePage> {
   }
 
   // --- LOGIC NÚT LOA (THỦ CÔNG) ---
+<<<<<<< HEAD
   // --- LOGIC NÚT LOA (ĐÃ ĐIỀN ĐỦ THAM SỐ) ---
   void _handleAnnouncementTap() async {
     final token = await AuthService.getValidAccessToken();
     if (token == null) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Vui lòng đăng nhập'.tr())));
+=======
+  void _handleAnnouncementTap() async {
+    final token = await AuthService.getValidAccessToken();
+    if (token == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Vui lòng đăng nhập'.tr())),
+      );
+>>>>>>> 274291d (update)
       return;
     }
 
@@ -189,7 +216,10 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
+<<<<<<< HEAD
   // ... (Các hàm lịch và duration giữ nguyên)
+=======
+>>>>>>> 274291d (update)
   String get _durationText {
     if (_rangeStart == null) return 'travel_time'.tr();
     final format = DateFormat('dd/MM');
@@ -260,6 +290,7 @@ class _HomePageState extends State<HomePage> {
                     // Truyền hàm xử lý nút Loa xuống dưới
                     onAnnouncementTap: _handleAnnouncementTap,
 <<<<<<< HEAD
+<<<<<<< HEAD
                     userName: _userName,
                     avatarUrl: _userAvatar,
                   ),
@@ -299,6 +330,10 @@ class _HomePageState extends State<HomePage> {
 =======
                   ),
                   Expanded(
+=======
+                  ),
+                  Expanded(
+>>>>>>> 274291d (update)
                     child: ListView(
                       padding: EdgeInsets.zero,
                       children: [
@@ -326,7 +361,10 @@ class _HomePageState extends State<HomePage> {
                           ),
                         ),
                       ],
+<<<<<<< HEAD
 >>>>>>> 3ee7efe (done all groupapis)
+=======
+>>>>>>> 274291d (update)
                     ),
                   ),
                 ],
@@ -355,12 +393,16 @@ class _TopSection extends StatelessWidget {
   final VoidCallback onDurationTap;
   final VoidCallback? onSettingsTap;
 <<<<<<< HEAD
+<<<<<<< HEAD
   final VoidCallback onAnnouncementTap;
   final String userName;
   final String? avatarUrl;
 =======
   final VoidCallback onAnnouncementTap; // Callback mới
 >>>>>>> 3ee7efe (done all groupapis)
+=======
+  final VoidCallback onAnnouncementTap; // Callback mới
+>>>>>>> 274291d (update)
 
   const _TopSection({
     required this.durationText,
@@ -369,10 +411,13 @@ class _TopSection extends StatelessWidget {
     this.onSettingsTap,
     required this.onAnnouncementTap, // Required
 <<<<<<< HEAD
+<<<<<<< HEAD
     required this.userName,
     this.avatarUrl,
 =======
 >>>>>>> 3ee7efe (done all groupapis)
+=======
+>>>>>>> 274291d (update)
   });
 
   @override
@@ -391,10 +436,13 @@ class _TopSection extends StatelessWidget {
             onSettingsTap: onSettingsTap,
             onAnnouncementTap: onAnnouncementTap, // Truyền tiếp
 <<<<<<< HEAD
+<<<<<<< HEAD
             userName: userName,
             avatarUrl: avatarUrl,
 =======
 >>>>>>> 3ee7efe (done all groupapis)
+=======
+>>>>>>> 274291d (update)
           ),
           const SizedBox(height: 24),
           _SelectionButton(
@@ -418,19 +466,25 @@ class _CustomAppBar extends StatelessWidget {
   final VoidCallback? onSettingsTap;
   final VoidCallback onAnnouncementTap; // Callback mới
 <<<<<<< HEAD
+<<<<<<< HEAD
   final String userName;      // Thêm
   final String? avatarUrl;
 =======
 >>>>>>> 3ee7efe (done all groupapis)
+=======
+>>>>>>> 274291d (update)
 
   const _CustomAppBar({
     this.onSettingsTap,
     required this.onAnnouncementTap,
 <<<<<<< HEAD
+<<<<<<< HEAD
     required this.userName,   // Thêm
     this.avatarUrl,
 =======
 >>>>>>> 3ee7efe (done all groupapis)
+=======
+>>>>>>> 274291d (update)
   });
 
   @override
