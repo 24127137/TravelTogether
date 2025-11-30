@@ -138,6 +138,9 @@ async def dissolve_group_service(session: Session, current_user: Any) -> Dict:
 
 async def get_pending_requests(session: Session, current_user: Any) -> List[Dict]:
     group = await get_host_group_info(session, current_user)
+<<<<<<< HEAD
+    return group.pending_requests or []
+=======
     raw_requests = group.pending_requests or []
     if not raw_requests:
         return []
