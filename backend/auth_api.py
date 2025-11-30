@@ -1,116 +1,133 @@
-from fastapi import APIRouter, HTTPException, Depends, Response
-from typing import List, Dict
+from fastapi import APIRouter, HTTPException, Depends, Request
 from auth_models import (
     SignInInput, SignInResponse, 
     RefreshInput, RefreshResponse, 
-    UserInfo, ProfileCreate
+    SignOutResponse, ProfileCreate,
+    UserInfo # Đã import đầy đủ
 )
-from db_tables import Profiles # Import Bảng
+from db_tables import Profiles, TokenSecurity
 import auth_service 
 import traceback
 from database import get_session
-from sqlmodel import Session
+from sqlmodel import Session, select
+from auth_guard import api_key_scheme, get_user_id_from_token
 
-# Tạo một "router" mới CHỈ DÀNH CHO XÁC THỰC
-router = APIRouter(
-    prefix="/auth", 
-    tags=["GĐ 8 - Authentication"] 
-)
+router = APIRouter(prefix="/auth", tags=["GĐ 8 - Authentication"])
 
 # ====================================================================
-# API (GĐ 8): /auth/signup
+# API SIGN UP
 # ====================================================================
-@router.post("/signup", response_model=Profiles, tags=["GĐ 8 - Authentication"])
+@router.post("/signup", response_model=Profiles)
 async def create_profile_endpoint(
     profile_data: ProfileCreate, 
     session: Session = Depends(get_session)
 ):
-    """
-    (Đã di chuyển GĐ 8)
-    Tạo một profile người dùng mới (Đăng ký Trực tiếp).
-    """
     try:
-        new_profile = await auth_service.create_profile_service(session, profile_data)
-        return new_profile
-        
+        return await auth_service.create_profile_service(session, profile_data)
     except Exception as e:
         error_str = str(e)
-        if "duplicate key" in error_str or "already registered" in error_str or "UNIQUE constraint" in error_str:
-             raise HTTPException(
-                status_code=400, 
-                detail=f"Lỗi: Email '{profile_data.email}' đã tồn tại."
-            )
+        if "duplicate key" in error_str:
+             raise HTTPException(status_code=400, detail="Email đã tồn tại.")
         if "Password should be at least" in error_str:
-            raise HTTPException(
-                status_code=400,
-                detail="Lỗi: Mật khẩu quá yếu. (Supabase yêu cầu ít nhất 6 ký tự)."
-            )
-        print(f"LỖI MÁY CHỦ NỘI BỘ (SIGNUP): {e}")
-        traceback.print_exc()
-        raise HTTPException(status_code=500, detail=f"Lỗi máy chủ nội bộ: {e}")
+            raise HTTPException(status_code=400, detail="Mật khẩu quá yếu.")
+        raise HTTPException(status_code=500, detail=str(e))
 
 # ====================================================================
-# API (GĐ 4.7): /auth/signin
+# API SIGN IN (Single Session)
 # ====================================================================
-@router.post("/signin/", response_model=SignInResponse)
+@router.post("/signin", response_model=SignInResponse)
 async def sign_in_endpoint(
     signin_data: SignInInput,
+    request: Request,
+    session: Session = Depends(get_session)
 ):
-    """
-    Xác thực email và password của người dùng.
-    Trả về JSON chứa tokens.
-    """
     try:
-        service_response = await auth_service.sign_in_service(signin_data)
+        # 1. Login Supabase
+        res = await auth_service.sign_in_service(signin_data)
         
-        print("Đăng nhập thành công, trả về JSON chứa tokens...")
-        
-        return SignInResponse(
-            message="Đăng nhập thành công!",
-            access_token=service_response.session.access_token,
-            refresh_token=service_response.session.refresh_token,
-            user=UserInfo(
-                id=str(service_response.user.id),
-                email=service_response.user.email
-            )
+        # 2. Lưu Session (Ghi đè session cũ nếu có)
+        await auth_service.save_active_session(
+            session=session,
+            user_id=str(res.user.id),
+            access_token=res.session.access_token,
+            ip=request.client.host,
+            user_agent=request.headers.get("user-agent", "")
         )
-            
+
+        # 3. Return (Fix lỗi UserInfo)
+        return SignInResponse(
+            message="Đăng nhập thành công",
+            access_token=res.session.access_token,
+            refresh_token=res.session.refresh_token,
+            user=UserInfo(id=str(res.user.id), email=res.user.email)
+        )
     except Exception as e:
         error_str = str(e)
         if "Invalid login credentials" in error_str:
-            raise HTTPException(
-                status_code=401, 
-                detail="Thông tin email hoặc mật khẩu bị sai."
-            )
+            raise HTTPException(status_code=401, detail="Sai thông tin đăng nhập.")
         if "Email not confirmed" in error_str:
-            raise HTTPException(
-                status_code=401,
-                detail="Email chưa được xác nhận. Vui lòng kiểm tra hòm thư."
-            )
-        print(f"LỖI MÁY CHỦ NỘI BỘ (SIGNIN): {e}")
-        traceback.print_exc()
-        raise HTTPException(status_code=500, detail=f"Lỗi máy chủ nội bộ: {e}")
+            raise HTTPException(status_code=401, detail="Email chưa được xác nhận.")
+        raise HTTPException(status_code=500, detail=str(e))
 
 # ====================================================================
-# API (GĐ 5): /auth/refresh
+# API REFRESH (IP Protected)
 # ====================================================================
-@router.post("/refresh", response_model=RefreshResponse, tags=["GĐ 8 - Authentication"])
+@router.post("/refresh", response_model=RefreshResponse)
 async def refresh_token_endpoint(
-    refresh_data: RefreshInput
+    refresh_data: RefreshInput,
+    request: Request,
+    session: Session = Depends(get_session)
 ):
-    """
-    Xử lý "vé hết hạn".
-    """
     try:
+        # 1. Lấy token mới từ Supabase
         new_session = await auth_service.refresh_token_service(refresh_data)
+        user_id = str(new_session.user.id)
+        client_ip = request.client.host
+        
+        # 2. KIỂM TRA IP CỦA PHIÊN CŨ (Chống trộm Refresh Token)
+        active_record = session.exec(select(TokenSecurity).where(TokenSecurity.user_id == user_id)).first()
+        
+        if active_record:
+            # Nếu IP người refresh KHÁC IP gốc -> HACKER -> Xóa Session
+            if active_record.ip_address != client_ip:
+                session.delete(active_record)
+                session.commit()
+                print(f"SECURITY: Refresh Token stolen! IP gốc: {active_record.ip_address}, IP lạ: {client_ip}")
+                raise HTTPException(401, "Phát hiện IP lạ. Phiên đã bị hủy.")
+        
+        # 3. Cập nhật Token mới vào DB (Giữ nguyên IP cũ)
+        await auth_service.save_active_session(
+            session=session,
+            user_id=user_id,
+            access_token=new_session.access_token,
+            ip=client_ip, 
+            user_agent=request.headers.get("user-agent", "")
+        )
         
         return RefreshResponse(
             access_token=new_session.access_token,
             refresh_token=new_session.refresh_token
         )
-            
+    except HTTPException as he:
+        raise he
     except Exception as e:
-        raise HTTPException(
-            status_code=401, # 401 Unauthorized
-            detail=f"Refresh token không hợp lệ: {e}"
-        )
+        raise HTTPException(status_code=401, detail="Refresh token không hợp lệ")
+
+# ====================================================================
+# API SIGN OUT
+# ====================================================================
+@router.post("/signout", response_model=SignOutResponse)
+async def sign_out_endpoint(
+    token_str: str = Depends(api_key_scheme),
+    session: Session = Depends(get_session)
+):
+    if not token_str: raise HTTPException(401, "Thiếu token")
+    
+    real_token = token_str.split(" ")[1]
+    user_uuid = get_user_id_from_token(real_token)
+    
+    if user_uuid:
+        # Xóa khỏi DB -> Lần sau gọi API sẽ bị AuthGuard chặn
+        await auth_service.sign_out_service(session, user_uuid)
+
+    return {"message": "Đăng xuất thành công"}

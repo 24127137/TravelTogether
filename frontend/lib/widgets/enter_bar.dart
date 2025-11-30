@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 
 class EnterButton extends StatefulWidget {
   final VoidCallback onConfirm;
+  final bool Function()? onValidation;
 
   const EnterButton({
     super.key,
     required this.onConfirm,
+    this.onValidation,
   });
 
   @override
@@ -75,7 +77,18 @@ class _EnterButtonState extends State<EnterButton>
   }
 
   void _handlePressEnd() {
-    if (_isPressing) {
+    if (_isPressing && !_isConfirmed) {
+      // 1. Kiểm tra Validation (Nếu có)
+      if (widget.onValidation != null) {
+        bool isValid = widget.onValidation!();
+        if (!isValid) {
+          // Nếu KHÔNG hợp lệ -> Gọi Cancel để nút tự thu về ban đầu
+          _handlePressCancel();
+          return; // Dừng luôn, không chạy animation Success
+        }
+      }
+
+      // 2. Nếu hợp lệ (hoặc không có validation) -> Chạy logic Success cũ
       setState(() => _isConfirmed = true);
 
       Future.delayed(const Duration(milliseconds: 300), () {
@@ -85,11 +98,13 @@ class _EnterButtonState extends State<EnterButton>
   }
 
   void _handlePressCancel() {
-    setState(() {
-      _isPressing = false;
-      _isConfirmed = false;
-    });
-    _controller.reverse();
+    if (mounted) { // Thêm mounted check cho an toàn
+      setState(() {
+        _isPressing = false;
+        _isConfirmed = false;
+      });
+      _controller.reverse();
+    }
   }
 
   @override

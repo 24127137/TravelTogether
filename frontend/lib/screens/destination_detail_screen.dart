@@ -1,28 +1,39 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 import '../models/destination.dart';
 import '../data/mock_destinations.dart';
 import '../screens/destination_explore_screen.dart';
-import '../widgets/enter_bar.dart'; // Import thêm
+import '../widgets/enter_bar.dart';
+import '../config/api_config.dart';
+import '../services/auth_service.dart';
 
-class DestinationDetailScreen extends StatelessWidget {
+class DestinationDetailScreen extends StatefulWidget {
   final Destination? destination;
   final VoidCallback? onBack;
   final VoidCallback? onContinue;
   const DestinationDetailScreen({Key? key, this.destination, this.onBack, this.onContinue}) : super(key: key);
 
   @override
+  State<DestinationDetailScreen> createState() => _DestinationDetailScreenState();
+}
+
+class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
+  bool _isLoading = false;
+
+  @override
   Widget build(BuildContext context) {
-    final dest = destination ?? mockDestinations.firstWhere((d) => d.name == 'Đà Lạt');
+    final dest = widget.destination ?? mockDestinations.firstWhere((d) => d.name == 'Đà Lạt');
     final size = MediaQuery.of(context).size;
     final double imageHeight = size.height * 0.55;
 
     return PopScope(
-      canPop: onBack == null,
+      canPop: widget.onBack == null,
       onPopInvokedWithResult: (didPop, result) {
-        if (!didPop && onBack != null) {
-          onBack!();
+        if (!didPop && widget.onBack != null) {
+          widget.onBack!();
         }
       },
       child: Scaffold(
@@ -79,7 +90,7 @@ class DestinationDetailScreen extends StatelessWidget {
                   backgroundColor: Colors.white,
                   child: IconButton(
                     icon: const Icon(Icons.arrow_back, color: Colors.black),
-                    onPressed: onBack ?? () => Navigator.of(context).pop(),
+                    onPressed: widget.onBack ?? () => Navigator.of(context).pop(),
                   ),
                 ),
               ),
@@ -154,18 +165,15 @@ class DestinationDetailScreen extends StatelessWidget {
                 right: 0,
                 bottom: kBottomNavigationBarHeight + 35, // ← Đặt ngay trên thanh bar
                 child: Center(
-                  child: EnterButton(
-                    onConfirm: onContinue ?? () {
-                      print('DestinationDetail: nút Tiếp tục bấm, cityId=${dest.cityId}');
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => DestinationExploreScreen(cityId: dest.cityId),
-                        ),
-                      );
-                    },
+                  child: Opacity(
+                    opacity: _isLoading ? 0.5 : 1.0,
+                    child: IgnorePointer(
+                      ignoring: _isLoading,
+                      child: EnterButton(
+                        onConfirm: () => _handleSelectDestination(dest),
+                      ),
+                    ),
                   ),
-
                 ),
               ),
 
@@ -175,5 +183,127 @@ class DestinationDetailScreen extends StatelessWidget {
       ),
       ),
     );
+  }
+
+  void _handleSelectDestination(Destination dest) async {
+    setState(() => _isLoading = true);
+
+    try {
+      final token = await AuthService.getValidAccessToken();
+      if (token == null) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('session_expired'.tr())),
+          );
+        }
+        setState(() => _isLoading = false);
+        return;
+      }
+
+      final userData = await _fetchUserProfile(token);
+      if (userData == null) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('cannot_fetch_profile'.tr())),
+          );
+        }
+        setState(() => _isLoading = false);
+        return;
+      }
+
+      final success = await _updatePreferredCity(token, dest.name, userData);
+      
+      if (mounted) {
+        if (success) {
+          // Navigate to explore screen
+          if (widget.onContinue != null) {
+            widget.onContinue!();
+          } else {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => DestinationExploreScreen(cityId: dest.cityId),
+              ),
+            );
+          }
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('update_city_failed'.tr())),
+          );
+          setState(() => _isLoading = false);
+        }
+      }
+    } catch (e) {
+      debugPrint('Error selecting destination: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('cannot_connect_server'.tr())),
+        );
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  Future<Map<String, dynamic>?> _fetchUserProfile(String token) async {
+    try {
+      final url = ApiConfig.getUri(ApiConfig.userProfile);
+      final response = await http.get(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      debugPrint('Fetch profile status: ${response.statusCode}');
+      debugPrint('Fetch profile body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body) as Map<String, dynamic>;
+      } else if (response.statusCode == 401) {
+        await AuthService.clearTokens();
+      }
+      return null;
+    } catch (e) {
+      debugPrint('Error fetching profile: $e');
+      return null;
+    }
+  }
+
+  Future<bool> _updatePreferredCity(
+    String token,
+    String cityName,
+    Map<String, dynamic> userData,
+  ) async {
+    try {
+      final url = ApiConfig.getUri(ApiConfig.userProfile);
+
+      final body = {
+        'fullname': userData['fullname'] ?? '',
+        'email': userData['email'] ?? '',
+        'gender': userData['gender'] ?? '',
+        'birth_date': userData['birth_date'] ?? '',
+        'description': userData['description'] ?? '',
+        'interests': userData['interests'] ?? [],
+        'preferred_city': cityName,
+      };
+
+      final response = await http.patch(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode(body),
+      );
+
+      debugPrint('Update city status: ${response.statusCode}');
+      debugPrint('Update city body: ${response.body}');
+
+      return response.statusCode == 200 || response.statusCode == 204;
+    } catch (e) {
+      debugPrint('Error updating city: $e');
+      return false;
+    }
   }
 }

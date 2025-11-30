@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+import '../services/user_service.dart';
+import '../services/group_service.dart';
+import '../services/auth_service.dart';
+import '../data/mock_explore_items.dart';
 
 class TravelPlanScreen extends StatefulWidget {
   final VoidCallback? onBack;
@@ -10,9 +14,13 @@ class TravelPlanScreen extends StatefulWidget {
 }
 
 class _TravelPlanScreenState extends State<TravelPlanScreen> {
+  final UserService _userService = UserService();
+  final GroupService _groupService = GroupService();
+
   List<Map<String, String>> _places = [];
   bool _isLoading = true;
   String? _error;
+  bool _isMemberView = false;
 
   @override
   void initState() {
@@ -20,45 +28,120 @@ class _TravelPlanScreenState extends State<TravelPlanScreen> {
     _loadTravelPlanData();
   }
 
+  String _findImageUrl(String locationName) {
+    String cleanName = locationName.trim().toLowerCase();
+    try {
+      final item = mockExploreItems.firstWhere(
+            (element) {
+          String mockName = element.name.trim().toLowerCase();
+          return mockName.contains(cleanName) || cleanName.contains(mockName);
+        },
+      );
+      return item.imageUrl;
+    } catch (e) {
+      return "https://placehold.co/300x200/B64B12/FFFFFF?text=${Uri.encodeComponent(locationName)}";
+    }
+  }
+
   Future<void> _loadTravelPlanData() async {
     try {
-      setState(() {
-        _isLoading = true;
-        _error = null;
-      });
+      if (_places.isEmpty && mounted) setState(() { _isLoading = true; _error = null; });
 
-      // TODO: Thay thế bằng API call thực tế
-      // final response = await ApiService.getUserTravelPlan();
-      // final places = response.data.map((place) => {
-      //   'image': place.imageUrl,
-      //   'name': place.name,
-      // }).toList();
+      final token = await AuthService.getValidAccessToken();
+      if (token == null) throw Exception("Vui lòng đăng nhập");
 
-      // Mock data tạm thời - thay thế bằng API call thực
-      await Future.delayed(const Duration(seconds: 1)); // Simulate API call
-      final places = [
-        {"image": "https://placehold.co/300x200", "name": "Đỉnh Langbiang"},
-        {"image": "https://placehold.co/300x200", "name": "Hồ Xuân Hương"},
-        {"image": "https://placehold.co/300x200", "name": "Hồ Xuân Hương"},
-        {"image": "https://placehold.co/300x200", "name": "Hồ Xuân Hương"},
-        {"image": "https://placehold.co/300x200", "name": "Hồ Xuân Hương"},
-        {"image": "https://placehold.co/300x200", "name": "Hồ Xuân Hương"},
-        {"image": "https://placehold.co/300x200", "name": "Hồ Xuân Hương"},
-        {"image": "https://placehold.co/300x200", "name": "Hồ Xuân Hương"},
-        {"image": "https://placehold.co/300x200", "name": "Hồ Xuân Hương"},
-        {"image": "https://placehold.co/300x200", "name": "Hồ Xuân Hương"},
-        // Data sẽ được load từ API dựa trên nhóm user đang tham gia
-      ];
+      final profile = await _userService.getUserProfile();
+      if (profile == null) throw Exception("Không lấy được thông tin cá nhân");
 
-      setState(() {
-        _places = places;
-        _isLoading = false;
-      });
+      dynamic itineraryData;
+
+      List owned = profile['owned_groups'] ?? [];
+      List joined = profile['joined_groups'] ?? [];
+
+      if (owned.isNotEmpty) {
+        print("👤 User là HOST");
+        _isMemberView = false;
+        itineraryData = profile['itinerary'];
+      }
+      else if (joined.isNotEmpty) {
+        print("👥 User là MEMBER -> Dùng kế hoạch 'Lách luật'");
+        _isMemberView = true;
+
+        // --- SỬA ĐOẠN NÀY: LẤY ID NHÓM RỒI GỌI API PUBLIC ---
+        try {
+          // 1. Lấy Group ID từ thông tin profile
+          var firstGroup = joined[0]; // {"group_id": 123, "name": "..."}
+          int groupId = firstGroup['group_id'];
+
+          // 2. Gọi API Public (Cái API không bị lỗi 500)
+          final groupPlan = await _groupService.getGroupPlanById(token, groupId);
+
+          if (groupPlan != null) {
+            itineraryData = groupPlan['itinerary'];
+          }
+        } catch (e) {
+          print("⚠️ Lỗi lấy plan: $e");
+          // Fallback nếu không lấy được
+          itineraryData = profile['itinerary'];
+        }
+        // -----------------------------------------------------
+      }
+      else {
+        print("👤 User SOLO");
+        _isMemberView = false;
+        itineraryData = profile['itinerary'];
+      }
+
+      // 2. Xử lý dữ liệu hiển thị (Safe Parsing)
+      List<String> rawNames = [];
+
+      if (itineraryData != null) {
+        if (itineraryData is Map) {
+          if (itineraryData.containsKey('places') && itineraryData['places'] is List) {
+            var listPlaces = itineraryData['places'] as List;
+            rawNames = listPlaces.map((e) => e.toString()).toList();
+          } else {
+            // Sort theo key "1", "2"...
+            var sortedKeys = itineraryData.keys.toList()
+              ..sort((a, b) {
+                int? iA = int.tryParse(a.toString());
+                int? iB = int.tryParse(b.toString());
+                if (iA != null && iB != null) return iA.compareTo(iB);
+                return a.toString().compareTo(b.toString());
+              });
+
+            for (var key in sortedKeys) {
+              if (itineraryData[key] != null) {
+                rawNames.add(itineraryData[key].toString());
+              }
+            }
+          }
+        }
+        else if (itineraryData is List) {
+          rawNames = (itineraryData as List).map((e) => e.toString()).toList();
+        }
+      }
+
+      // Map tên sang ảnh
+      List<Map<String, String>> newPlaces = rawNames.map((name) {
+        String imagePath = _findImageUrl(name);
+        return {
+          "name": name,
+          "image": imagePath,
+          "isLocal": imagePath.startsWith('assets/') ? 'true' : 'false'
+        };
+      }).toList();
+
+      if (mounted) {
+        setState(() {
+          _places = newPlaces;
+          _isLoading = false;
+        });
+      }
+
     } catch (e) {
-      setState(() {
-        _error = 'Không thể tải dữ liệu: $e';
-        _isLoading = false;
-      });
+      print("❌ Lỗi load plan: $e");
+      if (mounted) setState(() { _error = 'Lỗi: $e'; _isLoading = false; });
     }
   }
 
@@ -70,16 +153,20 @@ class _TravelPlanScreenState extends State<TravelPlanScreen> {
       isLoading: _isLoading,
       error: _error,
       onRefresh: _loadTravelPlanData,
+      isMemberView: _isMemberView,
     );
   }
 }
 
+// ... (Phần _TravelPlanContent và _PlaceCard giữ nguyên như cũ) ...
+// Copy lại phần UI từ code trước của tôi để đảm bảo không thiếu sót
 class _TravelPlanContent extends StatelessWidget {
   final VoidCallback? onBack;
   final List<Map<String, String>> places;
   final bool isLoading;
   final String? error;
-  final VoidCallback? onRefresh;
+  final Future<void> Function()? onRefresh;
+  final bool isMemberView;
 
   const _TravelPlanContent({
     this.onBack,
@@ -87,14 +174,14 @@ class _TravelPlanContent extends StatelessWidget {
     required this.isLoading,
     this.error,
     this.onRefresh,
+    this.isMemberView = false,
   });
 
   @override
   Widget build(BuildContext context) {
-      return Scaffold(
+    return Scaffold(
       body: LayoutBuilder(
         builder: (context, constraints) {
-          // Responsive scaling dựa trên chiều cao màn hình
           final screenHeight = constraints.maxHeight;
           final scaleFactor = (screenHeight / 800).clamp(0.7, 1.0);
 
@@ -105,82 +192,74 @@ class _TravelPlanContent extends StatelessWidget {
           final backButtonSize = 44.0 * scaleFactor;
           final iconSize = 24.0 * scaleFactor;
 
-        return SafeArea(
-         child: Stack(
-           children: [
-             // Background
-             Positioned.fill(
-               child: Image.asset(
-                 'assets/images/travel_plan.png',
-                 fit: BoxFit.cover,
-                 errorBuilder: (_, __, ___) =>
-                     Container(color: const Color(0xFF12202F)),
-               ),
-             ),
+          return SafeArea(
+            child: Stack(
+              children: [
+                Positioned.fill(
+                  child: Image.asset(
+                    'assets/images/travel_plan.png',
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) =>
+                        Container(color: const Color(0xFF12202F)),
+                  ),
+                ),
 
-             // Content frame
-             Positioned(
-               top: topOffset, // dynamic top offset using SafeArea
-               left: horizontalPadding,
-               right: horizontalPadding,
-               bottom: bottomOffset,
-               child: Container(
-                 width: double.infinity,
-                 // height intentionally omitted so it stretches between top & bottom
-                 decoration: BoxDecoration(
-                   color: Colors.black.withValues(alpha: 0.40),
-                   border: Border.all(color: Colors.black, width: 2),
-                   borderRadius: BorderRadius.circular(20),
-                 ),
-                 child: Padding(
-                   padding: EdgeInsets.all(spacing),
-                  child: _buildContent(scaleFactor, spacing),
-                 ),
-               ),
-             ),
+                Positioned(
+                  top: topOffset,
+                  left: horizontalPadding,
+                  right: horizontalPadding,
+                  bottom: bottomOffset,
+                  child: Container(
+                    width: double.infinity,
+                    decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(0.40),
+                      border: Border.all(color: Colors.black, width: 2),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Padding(
+                      padding: EdgeInsets.all(spacing),
+                      child: _buildContent(scaleFactor, spacing),
+                    ),
+                  ),
+                ),
 
-             // Back button
-             Positioned(
-              top: 16 * scaleFactor,
-              left: 16 * scaleFactor,
-               child: GestureDetector(
-                 onTap: () {
-                   if (onBack != null) {
-                     onBack!();
-                   } else {
-                     Navigator.of(context).pop();
-                   }
-                 },
-                 child: Container(
-                  width: backButtonSize,
-                  height: backButtonSize,
-                   decoration: const BoxDecoration(
-                     color: Colors.white,
-                     shape: BoxShape.circle,
-                   ),
-                   child: Icon(
-                     Icons.arrow_back,
-                     color: Colors.black,
-                    size: iconSize,
-                   ),
-                 ),
-               ),
-             ),
-           ],
-         ),
-        );
+                Positioned(
+                  top: 16 * scaleFactor,
+                  left: 16 * scaleFactor,
+                  child: GestureDetector(
+                    onTap: () {
+                      if (onBack != null) {
+                        onBack!();
+                      } else {
+                        Navigator.of(context).pop();
+                      }
+                    },
+                    child: Container(
+                      width: backButtonSize,
+                      height: backButtonSize,
+                      decoration: const BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        Icons.arrow_back,
+                        color: Colors.black,
+                        size: iconSize,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          );
         },
       ),
-     );
-   }
+    );
+  }
 
   Widget _buildContent(double scaleFactor, double spacing) {
     if (isLoading) {
-      return const Center(
-        child: CircularProgressIndicator(
-          color: Colors.white,
-        ),
-      );
+      return const Center(child: CircularProgressIndicator(color: Colors.white));
     }
 
     if (error != null) {
@@ -188,136 +267,116 @@ class _TravelPlanContent extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-               Icons.error_outline,
-               color: Colors.white,
-              size: 64 * scaleFactor,
-             ),
+            Icon(Icons.error_outline, color: Colors.white, size: 64 * scaleFactor),
             SizedBox(height: 16 * scaleFactor),
-             Text(
-               error!,
-              style: TextStyle(
-                 color: Colors.white,
-                fontSize: 16 * scaleFactor,
-               ),
-               textAlign: TextAlign.center,
-             ),
+            Text(error!, style: TextStyle(color: Colors.white, fontSize: 16 * scaleFactor), textAlign: TextAlign.center),
             SizedBox(height: 16 * scaleFactor),
-             ElevatedButton(
-               onPressed: onRefresh,
-               child: Text('Thử lại', style: TextStyle(fontSize: 14 * scaleFactor)),
-             ),
-           ],
-         ),
-       );
-    }
-
-    if (places.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.explore_off,
-              color: Colors.white,
-              size: 64 * scaleFactor,
-            ),
-            SizedBox(height: 16 * scaleFactor),
-            Text(
-              'Chưa có kế hoạch du lịch nào',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 18 * scaleFactor,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            SizedBox(height: 8 * scaleFactor),
-            Text(
-              'Hãy tạo hoặc tham gia một nhóm để bắt đầu',
-              style: TextStyle(
-                color: Colors.white70,
-                fontSize: 14 * scaleFactor,
-              ),
-              textAlign: TextAlign.center,
+            ElevatedButton(
+                onPressed: () {
+                  if (onRefresh != null) onRefresh!();
+                },
+                child: Text('Thử lại', style: TextStyle(fontSize: 14 * scaleFactor))
             ),
           ],
         ),
       );
     }
 
+    if (places.isEmpty) {
+      return Center(
+        child: RefreshIndicator(
+          onRefresh: () async {
+            if (onRefresh != null) await onRefresh!();
+          },
+          child: ListView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            children: [
+              SizedBox(height: 100 * scaleFactor),
+              Icon(Icons.explore_off, color: Colors.white, size: 64 * scaleFactor),
+              SizedBox(height: 16 * scaleFactor),
+              Center(child: Text('Chưa có kế hoạch du lịch nào', style: TextStyle(color: Colors.white, fontSize: 18 * scaleFactor, fontWeight: FontWeight.w600))),
+              SizedBox(height: 8 * scaleFactor),
+              Center(child: Text('Hãy tạo hoặc tham gia một nhóm để bắt đầu', style: TextStyle(color: Colors.white70, fontSize: 14 * scaleFactor), textAlign: TextAlign.center)),
+            ],
+          ),
+        ),
+      );
+    }
+
     return RefreshIndicator(
-       onRefresh: () async {
-         if (onRefresh != null) onRefresh!();
-       },
-       child: GridView.builder(
-         physics: const AlwaysScrollableScrollPhysics(),
+      onRefresh: () async {
+        if (onRefresh != null) await onRefresh!();
+      },
+      child: GridView.builder(
+        physics: const AlwaysScrollableScrollPhysics(),
         gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-           crossAxisCount: 2,
+          crossAxisCount: 2,
           crossAxisSpacing: spacing,
           mainAxisSpacing: spacing,
-           childAspectRatio: 0.72,
-         ),
-         itemCount: places.length,
-         itemBuilder: (context, index) {
-           final place = places[index];
+          childAspectRatio: 0.72,
+        ),
+        itemCount: places.length,
+        itemBuilder: (context, index) {
+          final place = places[index];
           return _PlaceCard(place: place, scaleFactor: scaleFactor);
-         },
-       ),
-     );
-   }
- }
+        },
+      ),
+    );
+  }
+}
 
- class _PlaceCard extends StatelessWidget {
-   final Map<String, String> place;
+class _PlaceCard extends StatelessWidget {
+  final Map<String, String> place;
   final double scaleFactor;
 
   const _PlaceCard({required this.place, this.scaleFactor = 1.0});
 
-   @override
-   Widget build(BuildContext context) {
-     return Column(
-       children: [
-         AspectRatio(
-           aspectRatio: 1,
-           child: ClipRRect(
-             borderRadius: BorderRadius.circular(12),
-             child: Image.network(
-               place['image']!,
-               fit: BoxFit.cover,
-               width: double.infinity,
-               loadingBuilder: (context, child, loadingProgress) {
-                 if (loadingProgress == null) return child;
-                 return Container(
-                   color: Colors.grey[300],
-                   child: const Center(
-                     child: CircularProgressIndicator(strokeWidth: 2),
-                   ),
-                 );
-               },
-               errorBuilder: (_, __, ___) => Container(
-                 color: Colors.grey,
-                child: Icon(
-                   Icons.broken_image,
-                   color: Colors.white,
-                   size: 40 * scaleFactor,
-                 ),
-               ),
-             ),
-           ),
-         ),
+  @override
+  Widget build(BuildContext context) {
+    bool isLocal = place['isLocal'] == 'true';
+    String imagePath = place['image']!;
+
+    return Column(
+      children: [
+        AspectRatio(
+          aspectRatio: 1,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: isLocal
+                ? Image.asset(
+              imagePath,
+              fit: BoxFit.cover,
+              width: double.infinity,
+              errorBuilder: (_, __, ___) => _buildErrorImage(),
+            )
+                : Image.network(
+              imagePath,
+              fit: BoxFit.cover,
+              width: double.infinity,
+              loadingBuilder: (context, child, loadingProgress) {
+                if (loadingProgress == null) return child;
+                return Container(color: Colors.grey[300], child: const Center(child: CircularProgressIndicator(strokeWidth: 2)));
+              },
+              errorBuilder: (_, __, ___) => _buildErrorImage(),
+            ),
+          ),
+        ),
         SizedBox(height: 6 * scaleFactor),
-         Text(
-           place['name']!,
-           textAlign: TextAlign.center,
-           style: TextStyle(
-             color: Colors.white,
-            fontSize: 14 * scaleFactor,
-             fontWeight: FontWeight.w700,
-           ),
-           maxLines: 2,
-           overflow: TextOverflow.ellipsis,
-         ),
-       ],
-     );
-   }
- }
+        Text(
+          place['name']!,
+          textAlign: TextAlign.center,
+          style: TextStyle(color: Colors.white, fontSize: 14 * scaleFactor, fontWeight: FontWeight.w700),
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildErrorImage() {
+    return Container(
+      color: Colors.grey,
+      child: const Icon(Icons.broken_image, color: Colors.white, size: 40),
+    );
+  }
+}

@@ -281,5 +281,22 @@
   "security": "Security",
   "pin_code": "PIN Code",
   "password": "Password",
-  "emergency_pin": "Emergency PIN"
+  "emergency_pin": "Emergency PIN",
+  "logout_confirm_title": "Confirm Logout",
+  "logout_confirm_message": "Are you sure you want to logout from your account?",
+  "chat_title": "Group Chat",
+  "chat_error_no_token": "Not logged in. Please login first.",
+  "chat_error_load": "Error loading chat history",
+  "chat_error_send": "Error sending message",
+  "chat_no_group": "You haven't joined any group yet",
+  "ai_chat_title": "AI Travel Assistant",
+  "ai_chat_bot_name": "AI Chatbot",
+  "ai_chat_subtitle": "Chat with AI",
+  "ai_chat_welcome": "Hi! I'm your travel assistant.\nAsk me anything about travel!",
+  "ai_chat_input_hint": "Ask me about travel...",
+  "ai_chat_error_create_session": "Failed to create AI chat session",
+  "ai_chat_error_send": "Failed to send message to AI",
+  "ai_chat_clear_title": "Clear Chat History",
+  "ai_chat_clear_message": "Are you sure you want to clear all chat history with AI? This cannot be undone.",
+  "ai_chat_default_message": "Tap to start chatting with AI!"
 }

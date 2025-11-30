@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:table_calendar/table_calendar.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../config/api_config.dart';
 
 class CalendarCard extends StatelessWidget {
   final DateTime focusedDay;
@@ -68,7 +72,52 @@ class CalendarCard extends StatelessWidget {
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(25)),
               ),
-              onPressed: onClose,
+              onPressed: () async {
+                // When user confirms, update travel_dates on profile
+                if (rangeStart == null || rangeEnd == null) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('please_select_dates'.tr())),
+                  );
+                  return;
+                }
+
+                final String startStr = rangeStart!.toIso8601String().split('T')[0];
+                final String endStr = rangeEnd!.toIso8601String().split('T')[0];
+                // Use exclusive upper bound as the backend expects e.g. [2025-12-10,2025-12-17)
+                final String daterange = '[$startStr,$endStr)';
+
+                try {
+                  final prefs = await SharedPreferences.getInstance();
+                  final accessToken = prefs.getString('access_token');
+                  final url = ApiConfig.getUri(ApiConfig.userProfile);
+
+                  final resp = await http.patch(
+                    url,
+                    headers: {
+                      'Content-Type': 'application/json',
+                      if (accessToken != null) 'Authorization': 'Bearer $accessToken',
+                    },
+                    body: jsonEncode({'travel_dates': daterange}),
+                  );
+
+                  if (resp.statusCode == 200 || resp.statusCode == 204) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('dates_saved'.tr())),
+                    );
+                    // close the calendar overlay
+                    onClose();
+                  } else {
+                    final body = resp.body.isNotEmpty ? resp.body : resp.statusCode.toString();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('save_failed'.tr() + ': ' + body)),
+                    );
+                  }
+                } catch (e) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('save_failed'.tr() + ': $e')),
+                  );
+                }
+              },
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [

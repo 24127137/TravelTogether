@@ -3,9 +3,13 @@
 
 import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'home_page.dart';
 import 'messages_screen.dart';
 import '../widgets/custom_bottom_nav_bar.dart';
+import '../widgets/notification_permission_dialog.dart'; // === THÊM MỚI ===
+import '../services/background_notification_service.dart'; // === THÊM MỚI: Background WebSocket ===
+import '../services/notification_service.dart'; // === THÊM MỚI: Notification Service ===
 import '../models/destination.dart';
 import 'destination_detail_screen.dart';
 import 'destination_explore_screen.dart';
@@ -52,6 +56,45 @@ class _MainAppScreenState extends State<MainAppScreen> {
   void initState() {
     super.initState();
     _selectedIndex = widget.initialIndex;
+    // === THÊM MỚI: Khởi động background notification service ===
+    _startBackgroundNotificationService();
+    // === THÊM MỚI: Xin quyền thông báo sau khi UI load xong ===
+    _requestNotificationPermission();
+  }
+
+  /// Khởi động WebSocket listener ở background
+  Future<void> _startBackgroundNotificationService() async {
+    try {
+      await BackgroundNotificationService().start();
+      debugPrint('✅ Background notification service started successfully');
+    } catch (e) {
+      debugPrint('❌ Error starting background notification service: $e');
+    }
+  }
+
+  /// Xin quyền thông báo lần đầu
+  Future<void> _requestNotificationPermission() async {
+    // Delay một chút để UI load xong
+    await Future.delayed(const Duration(milliseconds: 1000));
+
+    if (!mounted) return;
+
+    // === SỬA MỚI: Kiểm tra permission thực tế thay vì chỉ dựa vào flag ===
+    // Điều này đảm bảo dialog hiện lại nếu permission bị revoke (test)
+    final hasPermission = await NotificationService().checkPermission();
+
+    if (!hasPermission) {
+      // Chưa có permission → hiển thị dialog giải thích
+      final granted = await NotificationPermissionDialog.show(context);
+
+      // Lưu trạng thái để không hỏi lại (trừ khi user revoke)
+      if (granted) {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setBool('notification_permission_asked', true);
+      }
+    } else {
+      debugPrint('✅ Notification permission already granted, skip dialog');
+    }
   }
 
   void _onItemTapped(int index) {
@@ -369,6 +412,9 @@ class _MainAppScreenState extends State<MainAppScreen> {
         HomePage(
           onDestinationTap: _openDestinationDetail,
           onSettingsTap: _openSettings,
+          onTabChangeRequest: (index) {
+            _onItemTapped(index); // Gọi hàm chuyển tab của MainAppScreen
+          },
         ),
         NotificationScreen(),
         MessagesScreen(accessToken: widget.accessToken),

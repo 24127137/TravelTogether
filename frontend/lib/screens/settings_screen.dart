@@ -9,6 +9,14 @@ import 'feedback_screen.dart';
 import 'password_changing.dart';
 import 'security.dart';
 import 'emergency_pin.dart';
+import '../services/auth_service.dart';
+import 'welcome.dart';
+import 'list_group_feedback.dart';
+// Networking and storage
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../config/api_config.dart';
 
 class SettingsScreen extends StatefulWidget {
   final VoidCallback onBack;
@@ -26,6 +34,47 @@ class _SettingsScreenState extends State<SettingsScreen> {
   
   // State cho dropdown Bảo mật
   bool _isSecurityExpanded = false;
+
+  // Profile fields (loaded from GET /users/me)
+  String _profileFullname = 'User';
+  String _profileEmail = '';
+  String? _profileAvatarUrl;
+  String? _accessToken;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadProfile();
+  }
+
+  Future<void> _loadProfile() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      _accessToken = prefs.getString('access_token');
+      if (_accessToken == null) return;
+
+      final uri = ApiConfig.getUri(ApiConfig.userProfile);
+      final resp = await http.get(uri, headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $_accessToken',
+      });
+
+      if (resp.statusCode == 200) {
+        final data = jsonDecode(utf8.decode(resp.bodyBytes));
+        setState(() {
+          _profileFullname = (data['fullname'] as String?)?.trim() ?? (data['email'] as String?) ?? 'User';
+          _profileEmail = (data['email'] as String?) ?? '';
+          final avatar = (data['avatar_url'] as String?);
+          _profileAvatarUrl = (avatar != null && avatar.isNotEmpty) ? avatar : null;
+        });
+      } else {
+        // optional: print status for debugging
+        debugPrint('Failed to load profile: ${resp.statusCode}');
+      }
+    } catch (e) {
+      debugPrint('Error loading profile: $e');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -126,7 +175,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                 ),
                                 child: CircleAvatar(
                                   radius: avatarRadius,
-                                  backgroundImage: const AssetImage('assets/images/avatar.jpg'),
+                                  backgroundImage: _profileAvatarUrl != null
+                                      ? NetworkImage(_profileAvatarUrl!)
+                                      : const AssetImage('assets/images/avatar.jpg') as ImageProvider<Object>,
                                 ),
                               ),
                               const SizedBox(width: 16),
@@ -136,7 +187,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      'Sir. EUGENE',
+                                      _profileFullname,
                                       style: TextStyle(
                                         fontSize: userNameSize,
                                         fontWeight: FontWeight.bold,
@@ -146,7 +197,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                     ),
                                     SizedBox(height: 4 * scaleFactor),
                                     Text(
-                                      'abc@gmail.com',
+                                      _profileEmail,
                                       style: TextStyle(
                                         fontSize: userEmailSize,
                                         color: const Color(0xFFEDE2CC),
@@ -197,7 +248,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         Navigator.push(
                           context,
                           PageRouteBuilder(
-                            pageBuilder: (context, animation, secondaryAnimation) => const FeedbackScreen(),
+                            pageBuilder: (context, animation, secondaryAnimation) => const ListGroupFeedbackScreen(),
                             transitionsBuilder: (context, animation, secondaryAnimation, child) {
                               const begin = Offset(1.0, 0.0);
                               const end = Offset.zero;
@@ -305,8 +356,127 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       width: double.infinity,
                       height: buttonHeight,
                       child: ElevatedButton(
-                        onPressed: () {
-                          // Xử lý đăng xuất
+                        onPressed: () async {
+                          // Hiển thị dialog xác nhận đăng xuất
+                          final shouldLogout = await showDialog<bool>(
+                            context: context,
+                            builder: (BuildContext context) {
+                              return AlertDialog(
+                                backgroundColor: const Color(0xFFEDE2CC),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                title: Text(
+                                  'logout_confirm_title'.tr(),
+                                  style: const TextStyle(
+                                    color: Color(0xFFA15C20),
+                                    fontFamily: 'Poppins',
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                content: Text(
+                                  'logout_confirm_message'.tr(),
+                                  style: const TextStyle(
+                                    color: Color(0xFF1B1E28),
+                                    fontFamily: 'Poppins',
+                                  ),
+                                ),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () => Navigator.of(context).pop(false),
+                                    child: Text(
+                                      'cancel'.tr(),
+                                      style: const TextStyle(
+                                        color: Color(0xFF666666),
+                                        fontFamily: 'Poppins',
+                                      ),
+                                    ),
+                                  ),
+                                  ElevatedButton(
+                                    onPressed: () => Navigator.of(context).pop(true),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: const Color(0xFFB64B12),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(10),
+                                      ),
+                                    ),
+                                    child: Text(
+                                      'logout'.tr(),
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontFamily: 'Poppins',
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              );
+                            },
+                          );
+
+                          // Nếu người dùng xác nhận đăng xuất
+                          if (shouldLogout == true && mounted) {
+                            showDialog(
+                              context: context,
+                              barrierDismissible: false,
+                              builder: (context) => const Center(
+                                child: CircularProgressIndicator(
+                                  color: Color(0xFFB99668),
+                                ),
+                              ),
+                            );
+
+                            try {
+                              final accessToken = await AuthService.getValidAccessToken();
+                              
+                              if (accessToken != null) {
+                                final url = ApiConfig.getUri(ApiConfig.authSignout);
+                                
+                                print('🔄 Calling POST /auth/signout');
+                                
+                                final response = await http.post(
+                                  url,
+                                  headers: {
+                                    'Content-Type': 'application/json',
+                                    'Authorization': 'Bearer $accessToken',
+                                  },
+                                ).timeout(const Duration(seconds: 10));
+
+                                print('📥 Response status: ${response.statusCode}');
+                                print('📥 Response body: ${response.body}');
+                              }
+
+                              await AuthService.clearTokens();
+
+                              if (mounted) {
+                                // Đóng loading dialog
+                                Navigator.of(context).pop();
+                                
+                                // Chuyển về màn hình Welcome và xóa toàn bộ stack
+                                Navigator.of(context).pushAndRemoveUntil(
+                                  MaterialPageRoute(
+                                    builder: (context) => const WelcomeScreen(),
+                                  ),
+                                  (route) => false, // Xóa toàn bộ route stack
+                                );
+                              }
+                            } catch (e) {
+                              print('❌ Error during signout: $e');
+
+                              await AuthService.clearTokens();
+                              
+                              if (mounted) {
+                                Navigator.of(context).pop();
+
+                                Navigator.of(context).pushAndRemoveUntil(
+                                  MaterialPageRoute(
+                                    builder: (context) => const WelcomeScreen(),
+                                  ),
+                                  (route) => false,
+                                );
+                              }
+                            }
+                          }
                         },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFFB64B12),
@@ -644,3 +814,4 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 }
+
