@@ -1,86 +1,39 @@
 import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
-import '../../models/feedback_models.dart'; // Import models
-import '../../services/feedback_service.dart'; // Import FeedbackService
-import '../../services/group_service.dart'; // <--- 1. Import GroupService để lấy ảnh
 
 class FeedbackScreen extends StatefulWidget {
-  final PendingReviewGroup groupData;
-  final String accessToken;
-
-  const FeedbackScreen({
-    super.key,
-    required this.groupData,
-    required this.accessToken,
-  });
+  const FeedbackScreen({super.key});
 
   @override
   State<FeedbackScreen> createState() => _FeedbackScreenState();
 }
 
 class _FeedbackScreenState extends State<FeedbackScreen> {
-  late List<UnreviewedMember> _remainingMembers;
-  final FeedbackService _apiService = FeedbackService();
-  final GroupService _groupService = GroupService(); // <--- 2. Init Service
+  // Data models
+  final String groupName = '2 tháng 1 lần';
+  final String groupAvatar = 'assets/images/group_avatar.jpg';
+
+  final List<String> members = [
+    'Cả nhóm',
+    'Nguyễn Văn A',
+    'Trần Thị B',
+    'Lê Văn C',
+    'Phạm Thị D',
+  ];
 
   // State
-  UnreviewedMember? selectedMember;
+  String? selectedMember;
   int selectedStars = 0;
   Set<String> selectedTags = {};
-  bool isLoading = false;
 
-  // Biến chứa ảnh mới load từ API (nếu model cũ thiếu ảnh)
-  String? _latestImageUrl;
-
-  // --- MAPPING TAGS ---
-  final Map<int, Map<String, String>> tagsMapping = {
-    1: {
-      'Tệ': 'bad', 'Không đáng tin': 'unreliable', 'Thiếu trách nhiệm': 'irresponsible',
-      'Thất hứa': 'broken_promises', 'Vô tổ chức': 'disorganized'
-    },
-    2: {
-      'Kém': 'poor', 'Muộn giờ': 'late', 'Thiếu nhiệt tình': 'unenthusiastic',
-      'Không hợp tác': 'uncooperative', 'Cần cải thiện': 'needs_improvement'
-    },
-    3: {
-      'Bình thường': 'average', 'Đúng giờ': 'punctual', 'Tham gia đầy đủ': 'participative',
-      'Hợp tác': 'cooperative', 'Ổn': 'decent'
-    },
-    4: {
-      'Tốt': 'good', 'Nhiệt tình': 'enthusiastic', 'Thân thiện': 'friendly',
-      'Hỗ trợ': 'helpful', 'Đáng tin cậy': 'trustworthy'
-    },
-    5: {
-      'Xuất sắc': 'excellent', 'Tuyệt vời': 'amazing', 'Chuyên nghiệp': 'professional',
-      'Vui vẻ': 'fun', 'Sáng tạo': 'creative'
-    },
+  // Tags theo mức sao
+  final Map<int, List<String>> tagsByRating = {
+    1: ['Tệ', 'Không đáng tin', 'Thiếu trách nhiệm', 'Thất hứa', 'Vô tổ chức'],
+    2: ['Kém', 'Muộn giờ', 'Thiếu nhiệt tình', 'Không hợp tác', 'Cần cải thiện'],
+    3: ['Bình thường', 'Đúng giờ', 'Tham gia đầy đủ', 'Hợp tác', 'Ổn'],
+    4: ['Tốt', 'Nhiệt tình', 'Thân thiện', 'Hỗ trợ', 'Đáng tin cậy'],
+    5: ['Xuất sắc', 'Tuyệt vời', 'Chuyên nghiệp', 'Vui vẻ', 'Sáng tạo'],
   };
-
-  @override
-  void initState() {
-    super.initState();
-    _remainingMembers = List.from(widget.groupData.unreviewedMembers);
-
-    // <--- 3. GỌI API LẤY ẢNH NẾU THIẾU --->
-    if (widget.groupData.groupImageUrl == null || widget.groupData.groupImageUrl!.isEmpty) {
-      _fetchImage();
-    }
-  }
-
-  // Hàm gọi API lấy thông tin nhóm (chứa ảnh)
-  Future<void> _fetchImage() async {
-    try {
-      final data = await _groupService.getGroupPlanById(widget.accessToken, widget.groupData.groupId);
-      // Kiểm tra xem có dữ liệu và có link ảnh không
-      if (data != null && data['group_image_url'] != null && mounted) {
-        setState(() {
-          _latestImageUrl = data['group_image_url'];
-        });
-      }
-    } catch (e) {
-      print("Lỗi load ảnh nhóm: $e");
-    }
-  }
 
   void _resetForm() {
     setState(() {
@@ -90,88 +43,49 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
     });
   }
 
-  Future<void> _submitFeedback() async {
+  void _submitFeedback() {
     if (selectedMember == null || selectedStars == 0 || selectedTags.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Vui lòng chọn đầy đủ thông tin đánh giá'.tr()), backgroundColor: Colors.red),
+        SnackBar(
+          content: Text('Vui lòng chọn đầy đủ thông tin đánh giá'.tr()),
+          backgroundColor: Colors.red,
+        ),
       );
       return;
     }
 
-    setState(() => isLoading = true);
+    // TODO: Gửi đánh giá lên server
 
-    try {
-      final englishTags = selectedTags.map((displayTag) {
-        return tagsMapping[selectedStars]![displayTag]!;
-      }).toList();
+    // Choose a localized display name for the member; translate "Cả nhóm" to "Whole group" in English
+    final memberDisplay = (selectedMember == 'Cả nhóm')
+        ? (context.locale.languageCode == 'en' ? 'Whole group' : 'Cả nhóm')
+        : selectedMember!;
 
-      final success = await _apiService.submitFeedback(
-        token: widget.accessToken,
-        revId: selectedMember!.profileId,
-        groupId: widget.groupData.groupId,
-        rating: selectedStars,
-        contentTags: englishTags,
-      );
+    // Localized success message
+    final successMessage = (context.locale.languageCode == 'en')
+        ? 'Feedback submitted for $memberDisplay'
+        : 'Đã gửi đánh giá cho $memberDisplay';
 
-      if (success) {
-        final evaluatedName = selectedMember!.fullname;
-
-        setState(() {
-          _remainingMembers.removeWhere((m) => m.profileId == selectedMember!.profileId);
-          _resetForm();
-          isLoading = false;
-        });
-
-        if (_remainingMembers.isEmpty) {
-          _showCompletionDialog();
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Đã gửi đánh giá cho $evaluatedName'), backgroundColor: Colors.green),
-          );
-        }
-      } else {
-        throw Exception("Server trả về lỗi (có thể do 401/400)");
-      }
-    } catch (e) {
-      setState(() => isLoading = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Lỗi: $e'), backgroundColor: Colors.red),
-      );
-    }
-  }
-
-  void _showCompletionDialog() {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (ctx) => AlertDialog(
-        title: Text("Hoàn tất".tr()),
-        content: Text("Bạn đã đánh giá tất cả thành viên trong nhóm này.".tr()),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.pop(ctx);
-              Navigator.pop(context, true);
-            },
-            child: const Text("OK"),
-          )
-        ],
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(successMessage),
+        backgroundColor: Colors.green,
       ),
     );
+
+    // Reset form sau khi submit
+    _resetForm();
   }
 
   @override
   Widget build(BuildContext context) {
-    final availableDisplayTags = selectedStars > 0 ? tagsMapping[selectedStars]!.keys.toList() : <String>[];
-
-    // <--- 4. ƯU TIÊN ẢNH VỪA LOAD ĐƯỢC --->
-    final displayImage = _latestImageUrl ?? widget.groupData.groupImageUrl;
-    final hasImage = displayImage != null && displayImage.isNotEmpty;
+    final availableTags = selectedStars > 0 ? tagsByRating[selectedStars]! : <String>[];
 
     return Scaffold(
       resizeToAvoidBottomInset: false,
       body: Stack(
         children: [
+          // Background với 2 khung nhỏ hơn
           Container(
             color: const Color(0xFFB64B12),
             child: Column(
@@ -191,13 +105,20 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
             ),
           ),
 
+          // Main content
           SafeArea(
             child: LayoutBuilder(
               builder: (context, constraints) {
+                // Responsive scaling dựa trên chiều cao màn hình
                 final screenHeight = constraints.maxHeight;
+
+                // Scale factor: baseline 800px = 1.0, 600px = 0.75
                 final scaleFactor = (screenHeight / 800).clamp(0.65, 1.0);
+
+                // Language scale: shorten big title when locale is English (to avoid overflow)
                 final langScale = context.locale.languageCode == 'en' ? 0.75 : 1.0;
 
+                // Tất cả sizes scale theo tỷ lệ
                 final titleFontSize = 96.0 * scaleFactor * langScale;
                 final titleOffset = -55.0 * scaleFactor * langScale;
                 final contentTopPosition = 50.0 * scaleFactor;
@@ -208,40 +129,67 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
                 final sectionTitleSize = 32.0 * scaleFactor;
                 final sectionSpacing = 40.0 * scaleFactor;
                 final headerVerticalPadding = 15.0 * scaleFactor;
-                final containerPadding = 16.0 * scaleFactor;
+                final contentHorizontalPadding = 24.0 * scaleFactor;
+                final contentBottomPadding = 24.0 * scaleFactor;
                 final tagFontSize = 14.0 * scaleFactor;
+                final bottomPosition = 20.0 * scaleFactor;
+                final strokeWidth = 5.0 * scaleFactor;
+                final containerPadding = 16.0 * scaleFactor;
+                final tagPaddingH = 16.0 * scaleFactor;
+                final tagPaddingV = 8.0 * scaleFactor;
+                final wrapSpacing = 8.0 * scaleFactor;
+                final minBoxHeight = 192.0 * scaleFactor;
+                final emptyTextSize = 16.0 * scaleFactor;
 
                 return Column(
                   children: [
+                    // Header với nút back và confirm
                     Padding(
                       padding: EdgeInsets.symmetric(horizontal: 26, vertical: headerVerticalPadding),
                       child: Row(
                         children: [
-                          _buildCircleBtn(
-                              icon: Icons.arrow_back,
-                              onTap: () => Navigator.pop(context, true)
+                          Container(
+                            width: 44,
+                            height: 44,
+                            decoration: const BoxDecoration(
+                              color: Color(0xFFF6F6F8),
+                              shape: BoxShape.circle,
+                            ),
+                            child: IconButton(
+                              icon: const Icon(Icons.arrow_back, color: Colors.black),
+                              onPressed: () => Navigator.pop(context),
+                            ),
                           ),
                           const Spacer(),
-                          if (isLoading)
-                            const CircularProgressIndicator(color: Colors.white)
-                          else
-                            _buildCircleBtn(
-                                icon: Icons.check,
-                                onTap: _submitFeedback
+                          Container(
+                            width: 44,
+                            height: 44,
+                            decoration: const BoxDecoration(
+                              color: Color(0xFFF6F6F8),
+                              shape: BoxShape.circle,
                             ),
+                            child: IconButton(
+                              icon: const Icon(Icons.check, color: Colors.black),
+                              onPressed: _submitFeedback,
+                            ),
+                          ),
                         ],
                       ),
                     ),
 
                     SizedBox(height: 10 * scaleFactor),
 
+                    // Stack để đặt chữ GÓP Ý chồng lên viền khung
                     Expanded(
                       child: Stack(
                         clipBehavior: Clip.none,
                         children: [
+                          // Content card - bắt đầu từ giữa chữ GÓP Ý
                           Positioned(
                             top: contentTopPosition,
-                            left: 20, right: 20, bottom: 20 * scaleFactor,
+                            left: 20,
+                            right: 20,
+                            bottom: bottomPosition,
                             child: Container(
                               decoration: BoxDecoration(
                                 color: const Color(0x65000000),
@@ -249,22 +197,24 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
                                 borderRadius: BorderRadius.circular(30),
                               ),
                               child: ListView(
-                                padding: EdgeInsets.fromLTRB(24 * scaleFactor, contentTopPadding, 24 * scaleFactor, 24 * scaleFactor),
+                                padding: EdgeInsets.fromLTRB(
+                                  contentHorizontalPadding,
+                                  contentTopPadding,
+                                  contentHorizontalPadding,
+                                  contentBottomPadding
+                                ),
                                 children: [
+                                  // Group info
                                   Row(
                                     children: [
-                                      // <--- HIỂN THỊ ẢNH NHÓM --->
                                       Container(
                                         width: groupImageSize,
                                         height: groupImageSize,
                                         decoration: BoxDecoration(
                                           borderRadius: BorderRadius.circular(10),
                                           image: DecorationImage(
-                                            image: hasImage
-                                                ? NetworkImage(displayImage) as ImageProvider
-                                                : const AssetImage('assets/images/default_group.jpg'),
+                                            image: AssetImage(groupAvatar),
                                             fit: BoxFit.cover,
-                                            onError: (_, __) {},
                                           ),
                                         ),
                                       ),
@@ -274,12 +224,13 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
                                           crossAxisAlignment: CrossAxisAlignment.start,
                                           children: [
                                             Text(
-                                              widget.groupData.groupName,
+                                              groupName,
                                               style: TextStyle(
-                                                color: Colors.white, fontSize: groupNameSize,
-                                                fontFamily: 'Alumni Sans', fontWeight: FontWeight.w900,
+                                                color: Colors.white,
+                                                fontSize: groupNameSize,
+                                                fontFamily: 'Alumni Sans',
+                                                fontWeight: FontWeight.w900,
                                               ),
-                                              maxLines: 2, overflow: TextOverflow.ellipsis,
                                             ),
                                             SizedBox(height: 8 * scaleFactor),
                                             Row(
@@ -310,24 +261,55 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
 
                                   SizedBox(height: sectionSpacing),
 
-                                  Text('Đối tượng'.tr(), style: _sectionTitleStyle(sectionTitleSize)),
+                                  // Đối tượng section
+                                  Text(
+                                    'Đối tượng'.tr(),
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: sectionTitleSize,
+                                      fontFamily: 'Alumni Sans',
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
                                   SizedBox(height: containerPadding),
                                   Container(
                                     padding: EdgeInsets.all(containerPadding),
-                                    decoration: _boxDecoration(),
-                                    child: _remainingMembers.isEmpty
-                                        ? Center(child: Text("Đã đánh giá hết", style: TextStyle(color: Colors.white70, fontSize: tagFontSize)))
-                                        : Wrap(
-                                      spacing: 8 * scaleFactor,
-                                      runSpacing: 8 * scaleFactor,
-                                      children: _remainingMembers.map((member) {
-                                        final isSelected = selectedMember?.profileId == member.profileId;
+                                    decoration: BoxDecoration(
+                                      border: Border.all(color: const Color(0xFFDCC9A7), width: 2),
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    child: Wrap(
+                                      spacing: wrapSpacing,
+                                      runSpacing: wrapSpacing,
+                                      children: members.map((member) {
+                                        final isSelected = selectedMember == member;
                                         return GestureDetector(
-                                          onTap: () => setState(() => selectedMember = member),
-                                          child: _buildTag(
-                                              text: member.fullname,
-                                              isSelected: isSelected,
-                                              fontSize: tagFontSize
+                                          onTap: () {
+                                            setState(() {
+                                              selectedMember = member;
+                                            });
+                                          },
+                                          child: Container(
+                                            padding: EdgeInsets.symmetric(
+                                              horizontal: tagPaddingH,
+                                              vertical: tagPaddingV
+                                            ),
+                                            decoration: BoxDecoration(
+                                              color: isSelected
+                                                  ? const Color(0xFFEDE2CC)
+                                                  : const Color(0x60B64B12),
+                                              borderRadius: BorderRadius.circular(20),
+                                            ),
+                                            child: Text(
+                                              // Translate only the 'Cả nhóm' key, keep real member names untranslated
+                                              member == 'Cả nhóm' ? member.tr() : member,
+                                              style: TextStyle(
+                                                color: isSelected ? Colors.black : Colors.white,
+                                                fontSize: tagFontSize,
+                                                fontFamily: 'Alumni Sans',
+                                                fontWeight: FontWeight.w500,
+                                              ),
+                                            ),
                                           ),
                                         );
                                       }).toList(),
@@ -336,34 +318,70 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
 
                                   SizedBox(height: sectionSpacing),
 
-                                  Text('Ý kiến'.tr(), style: _sectionTitleStyle(sectionTitleSize)),
+                                  // Ý kiến section
+                                  Text(
+                                    'Ý kiến'.tr(),
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: sectionTitleSize,
+                                      fontFamily: 'Alumni Sans',
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
                                   SizedBox(height: containerPadding),
                                   Container(
-                                    constraints: BoxConstraints(minHeight: 192.0 * scaleFactor),
+                                    constraints: BoxConstraints(minHeight: minBoxHeight),
                                     padding: EdgeInsets.all(containerPadding),
-                                    decoration: _boxDecoration(),
+                                    decoration: BoxDecoration(
+                                      border: Border.all(color: const Color(0xFFEDE2CC), width: 2),
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
                                     child: selectedStars == 0
                                         ? Center(
                                       child: Text(
                                         'Vui lòng chọn số sao để xem gợi ý'.tr(),
-                                        style: TextStyle(color: Colors.white70, fontSize: 16 * scaleFactor, fontFamily: 'Alumni Sans'),
+                                        style: TextStyle(
+                                          color: Colors.white70,
+                                          fontSize: emptyTextSize,
+                                          fontFamily: 'Alumni Sans',
+                                        ),
                                       ),
                                     )
                                         : Wrap(
-                                      spacing: 8 * scaleFactor,
-                                      runSpacing: 8 * scaleFactor,
-                                      children: availableDisplayTags.map((tag) {
+                                      spacing: wrapSpacing,
+                                      runSpacing: wrapSpacing,
+                                      children: availableTags.map((tag) {
                                         final isSelected = selectedTags.contains(tag);
                                         return GestureDetector(
                                           onTap: () {
                                             setState(() {
-                                              isSelected ? selectedTags.remove(tag) : selectedTags.add(tag);
+                                              if (isSelected) {
+                                                selectedTags.remove(tag);
+                                              } else {
+                                                selectedTags.add(tag);
+                                              }
                                             });
                                           },
-                                          child: _buildTag(
-                                              text: tag,
-                                              isSelected: isSelected,
-                                              fontSize: tagFontSize
+                                          child: Container(
+                                            padding: EdgeInsets.symmetric(
+                                              horizontal: tagPaddingH,
+                                              vertical: tagPaddingV
+                                            ),
+                                            decoration: BoxDecoration(
+                                              color: isSelected
+                                                  ? const Color(0xFFEDE2CC)
+                                                  : const Color(0x60B64B12),
+                                              borderRadius: BorderRadius.circular(20),
+                                            ),
+                                            child: Text(
+                                              tag.tr(),
+                                              style: TextStyle(
+                                                color: isSelected ? Colors.black : Colors.white,
+                                                fontSize: tagFontSize,
+                                                fontFamily: 'Alumni Sans',
+                                                fontWeight: FontWeight.w500,
+                                              ),
+                                            ),
                                           ),
                                         );
                                       }).toList(),
@@ -374,25 +392,37 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
                             ),
                           ),
 
+                          // Chữ GÓP Ý với viền màu F7912D
                           Positioned(
-                            top: 0, left: 0, right: 0,
+                            top: 0,
+                            left: 0,
+                            right: 0,
                             child: Transform.translate(
                               offset: Offset(0, titleOffset),
                               child: Center(
                                 child: Stack(
                                   children: [
+                                    // Viền
                                     Text(
                                       'GÓP Ý'.tr(),
                                       style: TextStyle(
-                                        fontSize: titleFontSize, fontFamily: 'Alumni Sans', fontWeight: FontWeight.w900,
-                                        foreground: Paint()..style = PaintingStyle.stroke..strokeWidth = 5 * scaleFactor..color = const Color(0xFFF7912D),
+                                        fontSize: titleFontSize,
+                                        fontFamily: 'Alumni Sans',
+                                        fontWeight: FontWeight.w900,
+                                        foreground: Paint()
+                                          ..style = PaintingStyle.stroke
+                                          ..strokeWidth = strokeWidth
+                                          ..color = const Color(0xFFF7912D),
                                       ),
                                     ),
+                                    // Chữ chính
                                     Text(
                                       'GÓP Ý'.tr(),
                                       style: TextStyle(
-                                        color: const Color(0xFF4A1A0F), fontSize: titleFontSize,
-                                        fontFamily: 'Alumni Sans', fontWeight: FontWeight.w900,
+                                        color: const Color(0xFF4A1A0F),
+                                        fontSize: titleFontSize,
+                                        fontFamily: 'Alumni Sans',
+                                        fontWeight: FontWeight.w900,
                                       ),
                                     ),
                                   ],
@@ -409,42 +439,6 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildCircleBtn({required IconData icon, required VoidCallback onTap}) {
-    return Container(
-      width: 44, height: 44,
-      decoration: const BoxDecoration(color: Color(0xFFF6F6F8), shape: BoxShape.circle),
-      child: IconButton(icon: Icon(icon, color: Colors.black), onPressed: onTap),
-    );
-  }
-
-  TextStyle _sectionTitleStyle(double size) {
-    return TextStyle(color: Colors.white, fontSize: size, fontFamily: 'Alumni Sans', fontWeight: FontWeight.w500);
-  }
-
-  BoxDecoration _boxDecoration() {
-    return BoxDecoration(
-      border: Border.all(color: const Color(0xFFEDE2CC), width: 2),
-      borderRadius: BorderRadius.circular(10),
-    );
-  }
-
-  Widget _buildTag({required String text, required bool isSelected, required double fontSize}) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      decoration: BoxDecoration(
-        color: isSelected ? const Color(0xFFEDE2CC) : const Color(0x60B64B12),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Text(
-        text.tr(),
-        style: TextStyle(
-          color: isSelected ? Colors.black : Colors.white,
-          fontSize: fontSize, fontFamily: 'Alumni Sans', fontWeight: FontWeight.w500,
-        ),
       ),
     );
   }

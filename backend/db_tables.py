@@ -112,3 +112,30 @@ class SecurityLocations(SQLModel, table=True):
     reason: Optional[str] = Field(default=None, sa_column=Column(TEXT))
     
     timestamp: Optional[datetime] = Field(default=None, sa_column_kwargs={"default": "NOW()"})
+
+class TokenSecurity(SQLModel, table=True):
+    __tablename__ = "token_security"
+    id: Optional[int] = Field(default=None, primary_key=True)
+    
+    # user_id là UNIQUE -> Mỗi user chỉ có 1 phiên active duy nhất
+    user_id: str = Field(sa_column=Column(UUID(as_uuid=False), unique=True, index=True))
+    
+    token_signature: str = Field(sa_column=Column(TEXT))
+    ip_address: str = Field(sa_column=Column(TEXT))
+    user_agent: Optional[str] = Field(default=None, sa_column=Column(TEXT))
+    created_at: Optional[datetime] = Field(default=None, sa_column_kwargs={"default": "NOW()"})
+
+class AIMessages(SQLModel, table=True):
+    __tablename__ = "ai_messages"
+    
+    id: Optional[int] = Field(default=None, primary_key=True)
+    
+    user_id: str = Field(sa_column=Column(UUID(as_uuid=False), ForeignKey("profiles.auth_user_id", ondelete="CASCADE")))
+    
+    role: str = Field(default="user") # "user" hoặc "ai"
+    message_type: str = Field(default="text") # "text" hoặc "image"
+    
+    content: Optional[str] = Field(default=None, sa_column=Column(TEXT))
+    image_url: Optional[str] = Field(default=None, sa_column=Column(TEXT))
+    
+    created_at: Optional[datetime] = Field(default=None, sa_column_kwargs={"default": "NOW()"})

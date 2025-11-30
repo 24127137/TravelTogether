@@ -36,6 +36,7 @@ class PendingRequestPublic(BaseModel):
     profile_uuid: str
     email: EmailStr
     fullname: Optional[str] = None
+    avatar_url: Optional[str] = None
     requested_at: Optional[datetime] = None
     class Config:
         from_attributes = True

@@ -1,9 +1,11 @@
 import 'dart:convert';
+import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 import '../config/api_config.dart';
 
 class AuthService {
+  static VoidCallback? onAuthFailure;
 
   static bool isTokenValid(String? token) {
     if (token == null || token.isEmpty) return false;
@@ -35,9 +37,14 @@ class AuthService {
 
     if (isTokenValid(refresh)) {
       final newAccess = await refreshAccessToken(refresh!);
-      return newAccess;
+      if (newAccess != null) return newAccess;
+      await clearTokens();
+      _triggerAuthFailure();
+      return null;
     }
 
+    await clearTokens();
+    _triggerAuthFailure();
     return null;
   }
 
@@ -58,8 +65,12 @@ class AuthService {
         await prefs.setString('refresh_token', data['refresh_token']);
 
         return data['access_token']; 
+      } else {
+        await clearTokens();
       }
-    } catch (_) {}
+    } catch (_) {
+      await clearTokens();
+    }
 
     return null;
   }
@@ -68,5 +79,11 @@ class AuthService {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('access_token');
     await prefs.remove('refresh_token');
+  }
+
+  static void _triggerAuthFailure() {
+    if (onAuthFailure != null) {
+      onAuthFailure!();
+    }
   }
 }

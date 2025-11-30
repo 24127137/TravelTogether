@@ -3,17 +3,9 @@
 
 import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
 import 'home_page.dart';
 import 'messages_screen.dart';
 import '../widgets/custom_bottom_nav_bar.dart';
-import '../widgets/notification_permission_dialog.dart';
-import '../services/background_notification_service.dart';
-import '../services/notification_service.dart'; // Import service để xử lý badge
-import '../services/auth_service.dart'; // === THÊM MỚI: Import auth service ===
-import '../config/api_config.dart'; // === THÊM MỚI: Import API config ===
 import '../models/destination.dart';
 import 'destination_detail_screen.dart';
 import 'destination_explore_screen.dart';
@@ -56,81 +48,13 @@ class _MainAppScreenState extends State<MainAppScreen> {
   bool _showTravelPlan = false;
   String? _groupDestinationName;
 
-  // === THÊM MỚI: Loading state cho pre-load ===
-  bool _isPreLoading = false;
-
-  // === THÊM MỚI: Cache profile data để Settings/Profile load nhanh ===
-  Map<String, dynamic>? _cachedProfileData;
-
   @override
   void initState() {
     super.initState();
     _selectedIndex = widget.initialIndex;
-    _startBackgroundNotificationService();
-    _requestNotificationPermission();
-    _preloadProfileData(); // === THÊM MỚI: Pre-load data ngay khi app start ===
-  }
-
-  // === THÊM MỚI: Pre-load profile data ngay từ đầu ===
-  Future<void> _preloadProfileData() async {
-    try {
-      final token = await AuthService.getValidAccessToken();
-      if (token == null) return;
-
-      final url = ApiConfig.getUri(ApiConfig.userProfile);
-      final response = await http.get(
-        url,
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": "Bearer $token",
-        },
-      );
-
-      if (response.statusCode == 200) {
-        _cachedProfileData = jsonDecode(utf8.decode(response.bodyBytes));
-        debugPrint('✅ Profile data pre-loaded successfully');
-      }
-    } catch (e) {
-      debugPrint('⚠️ Error pre-loading profile data: $e');
-    }
-  }
-
-  Future<void> _startBackgroundNotificationService() async {
-    try {
-      await BackgroundNotificationService().start();
-      debugPrint('✅ Background notification service started successfully');
-    } catch (e) {
-      debugPrint('❌ Error starting background notification service: $e');
-    }
-  }
-
-  Future<void> _requestNotificationPermission() async {
-    await Future.delayed(const Duration(milliseconds: 1000));
-
-    if (!mounted) return;
-
-    final hasPermission = await NotificationService().checkPermission();
-
-    if (!hasPermission) {
-      final granted = await NotificationPermissionDialog.show(context);
-      if (granted) {
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setBool('notification_permission_asked', true);
-      }
-    } else {
-      debugPrint('✅ Notification permission already granted, skip dialog');
-    }
   }
 
   void _onItemTapped(int index) {
-    // === THÊM MỚI LOGIC BADGE ===
-    // Nếu người dùng chọn tab Notification (index == 1)
-    // Gọi lệnh xóa badge ngay lập tức để UI cập nhật (mất chấm đỏ)
-    if (index == 1) {
-      NotificationService().clearBadge();
-    }
-    // ============================
-
     setState(() {
       _selectedIndex = index;
       _showDetail = false;
@@ -203,25 +127,23 @@ class _MainAppScreenState extends State<MainAppScreen> {
     });
   }
 
-
-  // === SỬA MỚI: Pre-load data THỰC SỰ trước khi mở Settings ===
-  Future<void> _openSettings() async {
-    // Hiện loading ngay lập tức
-    setState(() => _isPreLoading = true);
-
-    // Load data nếu chưa có cache hoặc cache cũ
-    if (_cachedProfileData == null) {
-      await _preloadProfileData();
-    }
-
-    // Delay nhỏ để đảm bảo loading animation hiện (tối thiểu 400ms)
-    await Future.delayed(const Duration(milliseconds: 400));
-
-    if (!mounted) return;
-
-    // Ẩn loading và hiện Settings với data đã sẵn sàng
+  void _closeAllScreens() {
     setState(() {
-      _isPreLoading = false;
+      _showDetail = false;
+      _showExplore = false;
+      _showBeforeGroup = false;
+      _showGroupCreating = false;
+      _showSettings = false;
+      _showProfile = false;
+      _showGroupState = false;
+      _showTravelPlan = false;
+      _showJoinGroup = false;
+      _selectedIndex = 0; // Quay về Home tab
+    });
+  }
+
+  void _openSettings() {
+    setState(() {
       _showDetail = false;
       _showExplore = false;
       _showBeforeGroup = false;
@@ -230,13 +152,6 @@ class _MainAppScreenState extends State<MainAppScreen> {
       _showProfile = false;
       _selectedIndex = -1;
     });
-  }
-
-  // === THÊM MỚI: Callback khi quay từ Profile về Settings ===
-  Future<void> _onProfileBack() async {
-    // Refresh cache trước khi quay về Settings
-    await _preloadProfileData();
-    _openSettings();
   }
 
   void _openGroupState() {
@@ -268,71 +183,8 @@ class _MainAppScreenState extends State<MainAppScreen> {
     });
   }
 
-  void _closeAllScreens() {
+  void _openProfile() {
     setState(() {
-      _showDetail = false;
-      _showExplore = false;
-      _showBeforeGroup = false;
-      _showGroupCreating = false;
-      _showSettings = false;
-      _showProfile = false;
-      _showJoinGroup = false;
-      _showGroupState = false;
-      _showTravelPlan = false;
-      _selectedIndex = 0;
-    });
-
-    // === THÊM MỚI: Update cache trong HomePage sau khi đóng Settings ===
-    _updateHomePageCache();
-  }
-
-  // === THÊM MỚI: Update cache để HomePage hiển thị ngay data mới ===
-  Future<void> _updateHomePageCache() async {
-    if (_cachedProfileData == null) return;
-
-    try {
-      final prefs = await SharedPreferences.getInstance();
-
-      // Lấy fullname và tách tên
-      String fullName = _cachedProfileData!['fullname']?.toString() ?? 'User';
-      String firstName = fullName.trim().contains(' ')
-          ? fullName.trim().split(' ').last
-          : fullName.trim();
-
-      String? avatarUrl = _cachedProfileData!['avatar_url']?.toString();
-
-      // Update cache trong SharedPreferences
-      await prefs.setString('user_firstname', firstName);
-      if (avatarUrl != null && avatarUrl.isNotEmpty) {
-        await prefs.setString('user_avatar', avatarUrl);
-      } else {
-        await prefs.remove('user_avatar');
-      }
-
-      debugPrint('✅ HomePage cache updated: $firstName, $avatarUrl');
-    } catch (e) {
-      debugPrint('❌ Error updating HomePage cache: $e');
-    }
-  }
-
-  // === SỬA MỚI: Pre-load data THỰC SỰ trước khi mở Profile ===
-  Future<void> _openProfile() async {
-    // Hiện loading ngay lập tức
-    setState(() => _isPreLoading = true);
-
-    // Load data nếu chưa có cache hoặc cache cũ
-    if (_cachedProfileData == null) {
-      await _preloadProfileData();
-    }
-
-    // Delay nhỏ để đảm bảo loading animation hiện (tối thiểu 400ms)
-    await Future.delayed(const Duration(milliseconds: 400));
-
-    if (!mounted) return;
-
-    // Ẩn loading và hiện Profile với data đã sẵn sàng
-    setState(() {
-      _isPreLoading = false;
       _showDetail = false;
       _showExplore = false;
       _showBeforeGroup = false;
@@ -367,10 +219,13 @@ class _MainAppScreenState extends State<MainAppScreen> {
     }
   }
 
+  // Xử lý nút back của điện thoại
   Future<bool> _handleBackButton() async {
+    // Nếu đang ở màn hình phụ (Settings, Detail, Explore, BeforeGroup, GroupCreating, Profile, JoinGroup, GroupState, TravelPlan)
     if (_showSettings || _showDetail || _showExplore || _showBeforeGroup ||
         _showGroupCreating || _showProfile || _showGroupState || _showTravelPlan || _showJoinGroup) {
 
+      // Nếu đang ở JoinGroup, quay về BeforeGroup
       if (_showJoinGroup) {
         setState(() {
           _showJoinGroup = false;
@@ -379,6 +234,7 @@ class _MainAppScreenState extends State<MainAppScreen> {
         return false;
       }
 
+      // Nếu đang ở GroupState, quay về tab Personal (tab 3)
       if (_showGroupState) {
         setState(() {
           _showGroupState = false;
@@ -387,6 +243,7 @@ class _MainAppScreenState extends State<MainAppScreen> {
         return false;
       }
 
+      // Nếu đang ở TravelPlan, quay về tab Personal (tab 3)
       if (_showTravelPlan) {
         setState(() {
           _showTravelPlan = false;
@@ -395,27 +252,32 @@ class _MainAppScreenState extends State<MainAppScreen> {
         return false;
       }
 
+      // Nếu đang ở Profile, quay về Settings
       if (_showProfile) {
         _openSettings();
         return false;
       }
 
+      // Nếu đang ở GroupCreating, quay về BeforeGroup
       if (_showGroupCreating) {
         _openBeforeGroup();
         return false;
       }
 
+      // Các trường hợp khác, đóng tất cả
       _closeAllScreens();
-      return false;
+      return false; // Không thoát app
     }
 
+    // Nếu đang ở tab khác ngoài Home (tab 0)
     if (_selectedIndex != 0) {
       setState(() {
-        _selectedIndex = 0;
+        _selectedIndex = 0; // Quay về tab Home
       });
-      return false;
+      return false; // Không thoát app
     }
 
+    // Nếu đang ở tab Home → Hiển thị dialog xác nhận thoát
     final shouldExit = await showDialog<bool>(
       context: context,
       builder: (context) =>
@@ -435,7 +297,7 @@ class _MainAppScreenState extends State<MainAppScreen> {
           ),
     );
 
-    return shouldExit ?? false;
+    return shouldExit ?? false; // Chỉ thoát khi user chọn "Thoát"
   }
 
   @override
@@ -470,15 +332,11 @@ class _MainAppScreenState extends State<MainAppScreen> {
         },
       );
     } else if (_showProfile) {
-      mainContent = ProfilePage(
-        onBack: _onProfileBack, // === SỬA: Dùng callback đặc biệt để refresh cache ===
-        cachedData: _cachedProfileData, // === THÊM MỚI: Truyền cached data ===
-      );
+      mainContent = ProfilePage(onBack: _openSettings);
     } else if (_showSettings) {
       mainContent = SettingsScreen(
         onBack: _closeAllScreens,
         onProfileTap: _openProfile,
-        cachedData: _cachedProfileData, // === THÊM MỚI: Truyền cached data ===
       );
     } else if (_showGroupCreating) {
       mainContent = GroupCreatingScreen(
@@ -502,7 +360,7 @@ class _MainAppScreenState extends State<MainAppScreen> {
         cityId: _selectedDestination!.cityId,
         currentIndex: _selectedIndex,
         onTabChange: _onItemTapped,
-        onBack: _backToDestinationDetail,
+        onBack: _backToDestinationDetail, // Sửa: quay về Detail thay vì Home
         onBeforeGroup: _openBeforeGroup,
         onSearchPlace: _openDestinationSearchScreen,
       );
@@ -511,9 +369,6 @@ class _MainAppScreenState extends State<MainAppScreen> {
         HomePage(
           onDestinationTap: _openDestinationDetail,
           onSettingsTap: _openSettings,
-          onTabChangeRequest: (index) {
-            _onItemTapped(index);
-          },
         ),
         NotificationScreen(),
         MessagesScreen(accessToken: widget.accessToken),
@@ -539,6 +394,7 @@ class _MainAppScreenState extends State<MainAppScreen> {
         }
       },
       child: Scaffold(
+        // Don't resize when keyboard opens so bottom nav stays fixed; keyboard overlays content
         resizeToAvoidBottomInset: false,
         extendBody: true,
         body: Stack(
@@ -548,23 +404,11 @@ class _MainAppScreenState extends State<MainAppScreen> {
               bottom: 0,
               left: 0,
               right: 0,
-              // Vì CustomBottomNavBar đã được sửa ở bước trước để lắng nghe Service,
-              // ở đây ta chỉ cần truyền tham số như bình thường.
               child: CustomBottomNavBar(
                 currentIndex: _selectedIndex,
                 onTap: _onItemTapped,
               ),
             ),
-            // === THÊM MỚI: Loading overlay khi pre-load data ===
-            if (_isPreLoading)
-              Container(
-                color: Colors.black.withValues(alpha: 0.5),
-                child: const Center(
-                  child: CircularProgressIndicator(
-                    valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFB99668)),
-                  ),
-                ),
-              ),
           ],
         ),
       ),

@@ -607,7 +607,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
                   ],
                 ),
                 Positioned(
-                  top: 144,
+                  top: 182,
                   left: 0,
                   right: 0,
                   child: Center(

@@ -3,7 +3,7 @@ TITLE Travel App Backend Server
 COLOR 0A
 
 ECHO ======================================================
-ECHO        DANG KHOI DONG SERVER BACKEND...
+ECHO        DANG KHOI DONG SERVER BACKEND...`
 ECHO ======================================================
 ECHO.
 
