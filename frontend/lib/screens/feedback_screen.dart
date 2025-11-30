@@ -1,17 +1,17 @@
-// feedback_screen.dart
 import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
 import '../../models/feedback_models.dart'; // Import models
-import '../../services/feedback_service.dart'; // Import service
+import '../../services/feedback_service.dart'; // Import FeedbackService
+import '../../services/group_service.dart'; // <--- 1. Import GroupService để lấy ảnh
 
 class FeedbackScreen extends StatefulWidget {
   final PendingReviewGroup groupData;
-  final String accessToken; // <--- Thêm biến này
+  final String accessToken;
 
   const FeedbackScreen({
     super.key,
     required this.groupData,
-    required this.accessToken, // <--- Yêu cầu bắt buộc
+    required this.accessToken,
   });
 
   @override
@@ -21,12 +21,16 @@ class FeedbackScreen extends StatefulWidget {
 class _FeedbackScreenState extends State<FeedbackScreen> {
   late List<UnreviewedMember> _remainingMembers;
   final FeedbackService _apiService = FeedbackService();
+  final GroupService _groupService = GroupService(); // <--- 2. Init Service
 
   // State
   UnreviewedMember? selectedMember;
   int selectedStars = 0;
   Set<String> selectedTags = {};
   bool isLoading = false;
+
+  // Biến chứa ảnh mới load từ API (nếu model cũ thiếu ảnh)
+  String? _latestImageUrl;
 
   // --- MAPPING TAGS ---
   final Map<int, Map<String, String>> tagsMapping = {
@@ -56,6 +60,26 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
   void initState() {
     super.initState();
     _remainingMembers = List.from(widget.groupData.unreviewedMembers);
+
+    // <--- 3. GỌI API LẤY ẢNH NẾU THIẾU --->
+    if (widget.groupData.groupImageUrl == null || widget.groupData.groupImageUrl!.isEmpty) {
+      _fetchImage();
+    }
+  }
+
+  // Hàm gọi API lấy thông tin nhóm (chứa ảnh)
+  Future<void> _fetchImage() async {
+    try {
+      final data = await _groupService.getGroupPlanById(widget.accessToken, widget.groupData.groupId);
+      // Kiểm tra xem có dữ liệu và có link ảnh không
+      if (data != null && data['group_image_url'] != null && mounted) {
+        setState(() {
+          _latestImageUrl = data['group_image_url'];
+        });
+      }
+    } catch (e) {
+      print("Lỗi load ảnh nhóm: $e");
+    }
   }
 
   void _resetForm() {
@@ -77,14 +101,12 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
     setState(() => isLoading = true);
 
     try {
-      // 1. Convert tags
       final englishTags = selectedTags.map((displayTag) {
         return tagsMapping[selectedStars]![displayTag]!;
       }).toList();
 
-      // 2. Gọi API dùng Token được truyền vào
       final success = await _apiService.submitFeedback(
-        token: widget.accessToken, // <--- Dùng token từ widget
+        token: widget.accessToken,
         revId: selectedMember!.profileId,
         groupId: widget.groupData.groupId,
         rating: selectedStars,
@@ -141,6 +163,10 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
   @override
   Widget build(BuildContext context) {
     final availableDisplayTags = selectedStars > 0 ? tagsMapping[selectedStars]!.keys.toList() : <String>[];
+
+    // <--- 4. ƯU TIÊN ẢNH VỪA LOAD ĐƯỢC --->
+    final displayImage = _latestImageUrl ?? widget.groupData.groupImageUrl;
+    final hasImage = displayImage != null && displayImage.isNotEmpty;
 
     return Scaffold(
       resizeToAvoidBottomInset: false,
@@ -227,16 +253,18 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
                                 children: [
                                   Row(
                                     children: [
+                                      // <--- HIỂN THỊ ẢNH NHÓM --->
                                       Container(
                                         width: groupImageSize,
                                         height: groupImageSize,
                                         decoration: BoxDecoration(
                                           borderRadius: BorderRadius.circular(10),
                                           image: DecorationImage(
-                                            image: (widget.groupData.groupImageUrl != null)
-                                                ? NetworkImage(widget.groupData.groupImageUrl!) as ImageProvider
+                                            image: hasImage
+                                                ? NetworkImage(displayImage) as ImageProvider
                                                 : const AssetImage('assets/images/default_group.jpg'),
                                             fit: BoxFit.cover,
+                                            onError: (_, __) {},
                                           ),
                                         ),
                                       ),
