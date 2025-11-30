@@ -33,7 +33,7 @@ class SecurityService:
         """
         # 1. Lấy thông tin User (Email & Tên)
         profile = session.exec(select(Profiles).where(Profiles.auth_user_id == user_id)).first()
-        if not profile or not profile.email:
+        if not profile or not profile.emergency_contact:
             print(f"⚠️ [Security] Không tìm thấy email cho user {user_id}")
             return
 
@@ -50,16 +50,16 @@ class SecurityService:
             loop = asyncio.get_running_loop()
             # Nếu đang chạy trong FastAPI (đã có loop), dùng create_task để không chặn luồng chính
             loop.create_task(EmailService.send_security_alert(
-                email_to=[profile.email],
-                user_name=profile.full_name or "Người dùng",
+                email_to=[profile.emergency_contact],
+                user_name=profile.fullname or "Người dùng",
                 alert_type=alert_type,
                 map_link=map_link # Truyền thêm link bản đồ
             ))
         except RuntimeError:
             # Nếu chạy trong Scheduler (chưa có loop), dùng asyncio.run
             asyncio.run(EmailService.send_security_alert(
-                email_to=[profile.email],
-                user_name=profile.full_name or "Người dùng",
+                email_to=[profile.emergency_contact],
+                user_name=profile.fullname or "Người dùng",
                 alert_type=alert_type,
                 map_link=map_link
             ))
@@ -149,6 +149,17 @@ class SecurityService:
         
         session.commit()
         return "wrong"
+    
+    def save_location(self, session: Session, user_id: str, reason: str, location: Optional[Dict[str, Any]] = None):
+        record = SecurityLocations(
+            user_id=user_id,
+            reason=reason,
+            location=location, # JSON toạ độ
+            timestamp=datetime.now(timezone.utc), # SỬA 4: Dùng UTC
+        )
+        session.add(record)
+        session.commit()
+        return True
     # ============================================================
     # SỬA 5: Check Overdue logic
     # ============================================================
