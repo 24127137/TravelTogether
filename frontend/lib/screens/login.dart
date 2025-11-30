@@ -62,6 +62,7 @@ class _LoginScreenState extends State<LoginScreen> {
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('access_token', accessToken);
         await prefs.setString('refresh_token', refreshToken);
+        await prefs.setString('user_id', user['id']); // Lưu user_id để phân biệt tin nhắn
 
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text("Đăng nhập thành công! Xin chào ${user['email']}")),
@@ -106,17 +107,18 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      resizeToAvoidBottomInset: false,
       body: Stack(
         fit: StackFit.expand,
         children: [
           Image.asset(
-            'assets/images/saigon.jpg',
+            'assets/images/login.png',
             fit: BoxFit.cover,
           ),
           Container(color: Colors.black.withValues(alpha: 0.3)),
 
           SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 100),
+            padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 200),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [

@@ -3,10 +3,14 @@
 
 import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 import '../data/mock_explore_items.dart';
 import '../widgets/enter_bar.dart';
+import '../config/api_config.dart';
+import '../services/auth_service.dart';
 
-class DestinationExploreScreen extends StatelessWidget {
+class DestinationExploreScreen extends StatefulWidget {
   final String cityId;
   final int? currentIndex;
   final void Function(int)? onTabChange;
@@ -15,23 +19,51 @@ class DestinationExploreScreen extends StatelessWidget {
   final VoidCallback? onSearchPlace; // Thêm callback
   const DestinationExploreScreen({Key? key, required this.cityId, this.currentIndex, this.onTabChange, this.onBack, this.onBeforeGroup, this.onSearchPlace}) : super(key: key);
 
+  @override
+  State<DestinationExploreScreen> createState() => _DestinationExploreScreenState();
+}
+
+class _DestinationExploreScreenState extends State<DestinationExploreScreen> {
+  final Set<String> _selectedPlaceNames = {};
+
   void _triggerSearchCallback() {
-    if (onSearchPlace != null) {
-      onSearchPlace!();
+    if (widget.onSearchPlace != null) widget.onSearchPlace!();
+  }
+
+  Future<void> _handleConfirm() async {
+    // Build itinerary map like {"1": "Place A", "2": "Place B"}
+    if (_selectedPlaceNames.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('no_places_selected'.tr())));
+      return;
+    }
+
+    final itineraryMap = <String, String>{};
+    int i = 1;
+    for (final name in _selectedPlaceNames) {
+      itineraryMap['$i'] = name;
+      i++;
+    }
+
+    final ok = await _updateItineraryAPI(itineraryMap);
+    if (ok) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('itinerary_saved'.tr())));
+      if (widget.onBeforeGroup != null) widget.onBeforeGroup!();
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('save_itinerary_failed'.tr())));
     }
   }
 
   @override
   Widget build(BuildContext context) {
     // Lọc các địa điểm theo cityId
-    final cityItems = mockExploreItems.where((item) => item.cityId == cityId).toList();
+    final cityItems = mockExploreItems.where((item) => item.cityId == widget.cityId).toList();
 
     return PopScope(
-      canPop: onBack == null, // Cho phép pop nếu không có callback
+      canPop: widget.onBack == null, // Cho phép pop nếu không có callback
       onPopInvokedWithResult: (didPop, result) {
         // Khi người dùng vuốt để quay lại, gọi callback onBack giống như nút back
-        if (!didPop && onBack != null) {
-          onBack!();
+        if (!didPop && widget.onBack != null) {
+          widget.onBack!();
         }
       },
       child: Scaffold(
@@ -50,8 +82,8 @@ class DestinationExploreScreen extends StatelessWidget {
             icon: const Icon(Icons.arrow_back, color: Colors.black),
             onPressed: () {
               // Quay về destination detail screen
-              if (onBack != null) {
-                onBack!();
+              if (widget.onBack != null) {
+                widget.onBack!();
               }
             },
           ),
@@ -157,6 +189,7 @@ class DestinationExploreScreen extends StatelessWidget {
                             item.getSubtitle(context.locale.languageCode), // Dịch subtitle
                             cardWidth,
                             scaleFactor,
+                            item.name,
                           );
                         },
                       ),
@@ -174,7 +207,7 @@ class DestinationExploreScreen extends StatelessWidget {
             bottom: kBottomNavigationBarHeight + 35,
             child: Center(
               child: EnterButton(
-                onConfirm: onBeforeGroup ?? () {},
+                onConfirm: _handleConfirm,
               ),
             ),
           ),
@@ -191,102 +224,161 @@ class DestinationExploreScreen extends StatelessWidget {
       String subtitle,
       double cardWidth,
       double scaleFactor,
+      String placeName,
       ) {
     return StatefulBuilder(
       builder: (context, setState) {
-        final ValueNotifier<bool> isFavorite = ValueNotifier(false);
-        return ValueListenableBuilder<bool>(
-          valueListenable: isFavorite,
-          builder: (context, fav, _) {
-            return GestureDetector(
-              onTap: () {
-                isFavorite.value = !fav;
-              },
-              child: Container(
-                width: cardWidth,
-                height: 180 * scaleFactor,
-                margin: EdgeInsets.only(right: 8 * scaleFactor),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFD9D9D9),
-                  borderRadius: BorderRadius.circular(30),
+        final isSelected = _selectedPlaceNames.contains(placeName);
+        return GestureDetector(
+          onTap: () {
+            setState(() {
+              if (_selectedPlaceNames.contains(placeName)) {
+                _selectedPlaceNames.remove(placeName);
+              } else {
+                _selectedPlaceNames.add(placeName);
+              }
+            });
+          },
+          child: Container(
+            width: cardWidth,
+            height: 180 * scaleFactor,
+            margin: EdgeInsets.only(right: 8 * scaleFactor),
+            decoration: BoxDecoration(
+              color: const Color(0xFFD9D9D9),
+              borderRadius: BorderRadius.circular(30),
+              border: isSelected ? Border.all(color: const Color(0xFFB99668), width: 3) : null,
+            ),
+            child: Stack(
+              children: [
+                Positioned.fill(
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(30),
+                    child: Image.asset(imageUrl, fit: BoxFit.cover),
+                  ),
                 ),
-                child: Stack(
-                  children: [
-                    Positioned.fill(
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(30),
-                        child: Image.asset(imageUrl, fit: BoxFit.cover),
-                      ),
-                    ),
-                    // Trái tim ở góc phải trên
-                    Positioned(
-                      right: 16 * scaleFactor,
-                      top: 16 * scaleFactor,
-                      child: GestureDetector(
-                        onTap: () {
-                          isFavorite.value = !fav;
-                        },
-                        child: Container(
-                          width: 32 * scaleFactor,
-                          height: 32 * scaleFactor,
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(16 * scaleFactor),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.08),
-                                blurRadius: 8,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
-                          ),
-                          child: Icon(
-                            Icons.favorite,
-                            color: fav ? Colors.red : Colors.black.withValues(alpha: 0.2),
-                            size: 22 * scaleFactor,
-                          ),
-                        ),
-                      ),
-                    ),
-                    // Nội dung tên, subtitle
-                    Positioned(
-                      left: 20 * scaleFactor,
-                      bottom: 20 * scaleFactor,
-                      right: 20 * scaleFactor,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            namePart1,
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 16 * scaleFactor,
-                              fontFamily: 'Roboto',
-                              fontWeight: FontWeight.w600,
-                              shadows: const [Shadow(color: Colors.black26, blurRadius: 2)],
-                            ),
-                          ),
-                          SizedBox(height: 4 * scaleFactor),
-                          Text(
-                            subtitle,
-                            style: TextStyle(
-                              color: const Color(0xFFC9C8C8),
-                              fontSize: 13 * scaleFactor,
-                              fontFamily: 'Roboto',
-                              fontWeight: FontWeight.w400,
-                              shadows: const [Shadow(color: Colors.black12, blurRadius: 1)],
-                            ),
+                // Heart selection button in corner
+                Positioned(
+                  right: 16 * scaleFactor,
+                  top: 16 * scaleFactor,
+                  child: GestureDetector(
+                    onTap: () {
+                      setState(() {
+                        if (_selectedPlaceNames.contains(placeName)) {
+                          _selectedPlaceNames.remove(placeName);
+                        } else {
+                          _selectedPlaceNames.add(placeName);
+                        }
+                      });
+                    },
+                    child: Container(
+                      width: 32 * scaleFactor,
+                      height: 32 * scaleFactor,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16 * scaleFactor),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.08),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
                           ),
                         ],
                       ),
+                      child: Icon(
+                        Icons.favorite,
+                        color: isSelected ? Colors.red : Colors.black.withValues(alpha: 0.2),
+                        size: 22 * scaleFactor,
+                      ),
                     ),
-                  ],
+                  ),
                 ),
-              ),
-            );
-          },
+                // Nội dung tên, subtitle
+                Positioned(
+                  left: 20 * scaleFactor,
+                  bottom: 20 * scaleFactor,
+                  right: 20 * scaleFactor,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        namePart1,
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 16 * scaleFactor,
+                          fontFamily: 'Roboto',
+                          fontWeight: FontWeight.w600,
+                          shadows: const [Shadow(color: Colors.black26, blurRadius: 2)],
+                        ),
+                      ),
+                      SizedBox(height: 4 * scaleFactor),
+                      Text(
+                        subtitle,
+                        style: TextStyle(
+                          color: const Color(0xFFC9C8C8),
+                          fontSize: 13 * scaleFactor,
+                          fontFamily: 'Roboto',
+                          fontWeight: FontWeight.w400,
+                          shadows: const [Shadow(color: Colors.black12, blurRadius: 1)],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
         );
       },
     );
+  }
+
+  // Update itinerary on user profile
+  Future<bool> _updateItineraryAPI(Map<String, String> itinerary) async {
+    try {
+      final token = await AuthService.getValidAccessToken();
+      if (token == null) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('session_expired'.tr())));
+        return false;
+      }
+
+      final url = ApiConfig.getUri(ApiConfig.userProfile);
+      // fetch current user data to preserve fields
+      final resp = await http.get(url, headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      });
+
+      if (resp.statusCode != 200) {
+        debugPrint('Failed to fetch user data: ${resp.statusCode} ${resp.body}');
+        return false;
+      }
+
+      final data = jsonDecode(resp.body) as Map<String, dynamic>;
+
+      final body = {
+        'fullname': data['fullname'] ?? '',
+        'email': data['email'] ?? '',
+        'gender': data['gender'] ?? '',
+        'birth_date': data['birth_date'] ?? '',
+        'description': data['description'] ?? '',
+        'interests': data['interests'] ?? [],
+        'itinerary': itinerary,
+      };
+
+      final patchResp = await http.patch(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode(body),
+      );
+
+      debugPrint('Update itinerary status: ${patchResp.statusCode} body: ${patchResp.body}');
+      return patchResp.statusCode == 200 || patchResp.statusCode == 201;
+    } catch (e) {
+      debugPrint('Error updating itinerary: $e');
+      return false;
+    }
   }
 }
