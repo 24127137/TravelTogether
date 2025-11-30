@@ -53,76 +53,90 @@ class _TravelPlanScreenState extends State<TravelPlanScreen> {
       final profile = await _userService.getUserProfile();
       if (profile == null) throw Exception("Không lấy được thông tin cá nhân");
 
-      dynamic itineraryData;
+      dynamic itineraryData; // Dữ liệu sẽ hiển thị
+      _isMemberView = false; // Mặc định là xem cá nhân
 
-      String currentCity = profile['preferred_city'] ?? "";
-      String prefix = "${currentCity}_";
+      // === LOGIC MỚI: CHECK STATUS TRƯỚC ===
+      bool useGroupPlan = false;
 
+      // Kiểm tra xem user có dính dáng tới nhóm nào không (Host hoặc Member)
       List owned = profile['owned_groups'] ?? [];
       List joined = profile['joined_groups'] ?? [];
 
-      if (owned.isNotEmpty) {
-        print("👤 User là HOST");
-        _isMemberView = false;
-        itineraryData = profile['itinerary'];
-      }
-      else if (joined.isNotEmpty) {
-        print("👥 User là MEMBER -> Dùng kế hoạch 'Lách luật'");
-        _isMemberView = true;
-
-        // --- SỬA ĐOẠN NÀY: LẤY ID NHÓM RỒI GỌI API PUBLIC ---
+      if (owned.isNotEmpty || joined.isNotEmpty) {
+        // Có nhóm -> Gọi API check trạng thái nhóm
         try {
-          // 1. Lấy Group ID từ thông tin profile
-          var firstGroup = joined[0]; // {"group_id": 123, "name": "..."}
-          int groupId = firstGroup['group_id'];
+          final groupDetail = await _groupService.getMyGroupDetail(token);
 
-          // 2. Gọi API Public (Cái API không bị lỗi 500)
-          final groupPlan = await _groupService.getGroupPlanById(token, groupId);
+          if (groupDetail != null) {
+            String status = groupDetail['status'] ?? 'closed';
+            int groupId = groupDetail['id'];
 
-          if (groupPlan != null) {
-            itineraryData = groupPlan['itinerary'];
+            print("🔍 Trạng thái nhóm (ID $groupId): $status");
+
+            if (status == 'open') {
+              // TRƯỜNG HỢP 1: NHÓM ĐANG HOẠT ĐỘNG (OPEN)
+              // Dù là Host hay Member -> Lấy Group Plan
+              print("✅ Nhóm OPEN -> Load Group Plan");
+
+              final groupPlan = await _groupService.getGroupPlanById(token, groupId);
+              if (groupPlan != null) {
+                itineraryData = groupPlan['itinerary'];
+                useGroupPlan = true;
+                _isMemberView = true; // Đánh dấu là đang xem view nhóm
+              }
+            } else {
+              // TRƯỜNG HỢP 2: NHÓM EXPIRED HOẶC CLOSED
+              print("⚠️ Nhóm $status -> Quay về Personal Plan");
+              useGroupPlan = false;
+            }
           }
         } catch (e) {
-          print("⚠️ Lỗi lấy plan: $e");
-          // Fallback nếu không lấy được
-          itineraryData = profile['itinerary'];
+          print("❌ Lỗi check nhóm: $e -> Quay về Personal Plan");
         }
-        // -----------------------------------------------------
-      }
-      else {
-        print("👤 User SOLO");
-        _isMemberView = false;
-        itineraryData = profile['itinerary'];
       }
 
-      // 2. Xử lý dữ liệu hiển thị (Safe Parsing)
+      // TRƯỜNG HỢP 3: KHÔNG DÙNG GROUP PLAN (Solo / Expired / Closed)
+      if (!useGroupPlan) {
+        print("👤 Load Personal Itinerary (Theo Preferred City)");
+        itineraryData = profile['itinerary'];
+        _isMemberView = false;
+      }
+
+      // --- XỬ LÝ HIỂN THỊ (PARSE DATA) ---
       List<String> rawNames = [];
 
-      if (itineraryData != null && itineraryData is Map) {
-        var sortedKeys = itineraryData.keys.toList()..sort();
+      // Lấy tên thành phố hiện tại để lọc (Chỉ dùng khi xem cá nhân)
+      String currentCity = profile['preferred_city'] ?? "";
+      String prefix = "${currentCity}_";
 
-        for (var key in sortedKeys) {
-          String strKey = key.toString();
+      if (itineraryData != null) {
+        if (itineraryData is Map) {
+          // Sort key để hiển thị đúng thứ tự
+          var sortedKeys = itineraryData.keys.toList()..sort();
 
-          // LOGIC LỌC QUAN TRỌNG:
-          if (_isMemberView) {
-            // Nếu là Member xem Group Plan: Hiện tất cả (vì Group chỉ đi 1 nơi)
-            rawNames.add(itineraryData[key].toString());
-          } else {
-            // Nếu là Host/Solo: Chỉ hiện địa điểm của Thành phố hiện tại
-            // Kiểm tra xem Key có bắt đầu bằng "TênThànhPhố_" không
-            if (strKey.startsWith(prefix)) {
-              rawNames.add(itineraryData[key].toString());
+          for (var key in sortedKeys) {
+            String strKey = key.toString();
+
+            if (useGroupPlan) {
+              // Nếu đang xem Group Plan: Lấy HẾT (vì plan nhóm là duy nhất)
+              if (itineraryData[key] != null) rawNames.add(itineraryData[key].toString());
+            } else {
+              // Nếu đang xem Cá nhân: Chỉ lấy item thuộc CITY hiện tại
+              // (Logic lọc theo prefix như đã thống nhất)
+              if (strKey.startsWith(prefix)) {
+                rawNames.add(itineraryData[key].toString());
+              }
             }
           }
         }
-      }
         else if (itineraryData is List) {
+          // Fallback cho trường hợp dữ liệu cũ dạng List
           rawNames = (itineraryData as List).map((e) => e.toString()).toList();
         }
+      }
 
-
-      // Map tên sang ảnh
+      // Map tên sang ảnh (giữ nguyên logic cũ)
       List<Map<String, String>> newPlaces = rawNames.map((name) {
         String imagePath = _findImageUrl(name);
         return {
@@ -140,7 +154,7 @@ class _TravelPlanScreenState extends State<TravelPlanScreen> {
       }
 
     } catch (e) {
-      print("❌ Lỗi load plan: $e");
+      print("❌ Lỗi load plan tổng: $e");
       if (mounted) setState(() { _error = 'Lỗi: $e'; _isLoading = false; });
     }
   }
@@ -158,8 +172,6 @@ class _TravelPlanScreenState extends State<TravelPlanScreen> {
   }
 }
 
-// ... (Phần _TravelPlanContent và _PlaceCard giữ nguyên như cũ) ...
-// Copy lại phần UI từ code trước của tôi để đảm bảo không thiếu sót
 class _TravelPlanContent extends StatelessWidget {
   final VoidCallback? onBack;
   final List<Map<String, String>> places;
