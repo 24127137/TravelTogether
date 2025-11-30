@@ -3,10 +3,12 @@ import asyncio
 import logging
 from typing import Dict, List, Optional, Any
 from supabase import create_client, Client
+from sqlmodel import Session
 
 # Import Model và Config
 from chat_ai_model import gemini_client
 from config import settings
+from db_tables import AIMessages
 
 # ====================================================================
 # KHỞI TẠO SUPABASE CLIENT
@@ -19,6 +21,9 @@ except Exception as e:
     sb_client = None
 
 class ChatService:
+    
+    def __init__(self, db_session: Session = None):
+        self.db = db_session
     
     # ====================================================================
     # HELPER: THAO TÁC DATABASE (SUPABASE)
@@ -99,6 +104,56 @@ class ChatService:
         except Exception as e:
             logging.error(f"DB Error (Delete Session): {e}")
 
+    def _get_user_messages(self, user_id: str, limit: int = 50) -> List[AIMessages]:
+        """Lấy lịch sử chat của user (mới nhất trước)"""
+        try:
+            statement = (
+                select(AIMessages)
+                .where(AIMessages.user_id == user_id)
+                .order_by(desc(AIMessages.created_at))
+                .limit(limit)
+            )
+            messages = self.db.exec(statement).all()
+            return list(reversed(messages))  # Reverse để theo thứ tự cũ → mới
+        except Exception as e:
+            logging.error(f"DB Error (Get User Messages): {e}")
+            return []
+
+    def _save_message(self, user_id: str, role: str, content: str, message_type: str = "text", image_url: Optional[str] = None):
+        """Lưu tin nhắn vào DB"""
+        try:
+            message = AIMessages(
+                user_id=user_id,
+                role=role,
+                message_type=message_type,
+                content=content,
+                image_url=image_url,
+                created_at=datetime.utcnow()
+            )
+            self.db.add(message)
+            self.db.commit()
+            self.db.refresh(message)
+            logging.info(f"Message saved for user {user_id} with role {role}")
+            return message
+        except Exception as e:
+            logging.error(f"DB Error (Save Message): {e}")
+            self.db.rollback()
+            raise
+
+    def _clear_user_chat(self, user_id: str):
+        """Xóa tất cả tin nhắn của user"""
+        try:
+            statement = select(AIMessages).where(AIMessages.user_id == user_id)
+            messages = self.db.exec(statement).all()
+            for msg in messages:
+                self.db.delete(msg)
+            self.db.commit()
+            logging.info(f"Chat cleared for user {user_id}")
+        except Exception as e:
+            logging.error(f"DB Error (Clear Chat): {e}")
+            self.db.rollback()
+            raise
+    
     # ====================================================================
     # LOGIC CHÍNH: XỬ LÝ SESSION & TIN NHẮN
     # ====================================================================
@@ -188,6 +243,29 @@ class ChatService:
         self._save_session_to_db(session_id, history, user_id)
 
         return ai_response_text
+
+    def get_chat_history(self, user_id: str, limit: int = 50) -> List[dict]:
+        """Lấy lịch sử chat của user"""
+        try:
+            messages = self._get_user_messages(user_id, limit=limit)
+            return [
+                {
+                    "id": msg.id,
+                    "role": msg.role,
+                    "content": msg.content,
+                    "message_type": msg.message_type,
+                    "image_url": msg.image_url,
+                    "created_at": msg.created_at.isoformat() if msg.created_at else None
+                }
+                for msg in messages
+            ]
+        except Exception as e:
+            logging.error(f"Error getting chat history: {e}")
+            return []
+    
+    def delete_chat_history(self, user_id: str):
+        """Xóa toàn bộ lịch sử chat của user"""
+        self._clear_user_chat(user_id)
 
 # Instance service
 chat_service = ChatService()
