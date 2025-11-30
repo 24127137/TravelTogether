@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:intl/date_symbol_data_local.dart';
 
@@ -25,14 +26,6 @@ void main() async {
     url: 'https://meuqntvawakdzntewscp.supabase.co',
     anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1ldXFudHZhd2FrZHpudGV3c2NwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE2MzUxOTEsImV4cCI6MjA3NzIxMTE5MX0.w0wtRkKTelo9iHQfLtJ61H5xLCUu2VVMKr8BV4Ljcgw',
   );
-
-  // === THÊM MỚI: Set up auth failure callback to navigate to onboarding ===
-  AuthService.onAuthFailure = () {
-    navigatorKey.currentState?.pushAndRemoveUntil(
-      MaterialPageRoute(builder: (_) => const OnboardingScreen()),
-      (route) => false,
-    );
-  };
 
   // === THÊM MỚI: Initialize Notification Service ===
   try {
@@ -60,8 +53,8 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      navigatorKey: navigatorKey,
-      home: const SplashScreen(), 
+      navigatorKey: navigatorKey, // === THÊM MỚI: Global navigator key ===
+      home: const SplashScreen(), // === SỬA: Dùng SplashScreen để check token ===
       debugShowCheckedModeBanner: false,
       localizationsDelegates: context.localizationDelegates,
       supportedLocales: context.supportedLocales,
@@ -94,23 +87,44 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 
   Future<void> _initFlow() async {
-    await Future.delayed(const Duration(milliseconds: 400));
+    await Future.delayed(const Duration(milliseconds: 500));
 
+    switch (_testMode) {
+      case TestMode.bypassMain:
+        _go(MainAppScreen(accessToken: 'test_token'));
+        return;
+      case TestMode.onboarding:
+        _go(const OnboardingScreen());
+        return;
+      case TestMode.full:
+      // continue to the normal flow below
+        break;
+    }
+
+    // Normal app startup flow: check onboarding flag and try to obtain a valid token
     try {
+      final prefs = await SharedPreferences.getInstance();
+      final onboardingSeen = prefs.getBool('hasSeenOnboarding') ?? false;
+
+      if (!onboardingSeen) {
+        _go(const OnboardingScreen());
+        return;
+      }
+
       final token = await AuthService.getValidAccessToken();
 
       if (token != null) {
         _go(MainAppScreen(accessToken: token));
-        return;
+      } else {
+        await AuthService.clearTokens();
+        _go(const OnboardingScreen());
       }
-
-      await AuthService.clearTokens();
-      _go(const FirstScreen());
-
     } catch (e, st) {
-      debugPrint("Startup error: $e\n$st");
-
-      _go(const FirstScreen());
+      // If anything fails during startup, log and send user to onboarding for a clean start.
+      // This prevents crashes during development when services aren't available.
+      // ignore: avoid_print
+      print('Startup flow failed: $e\n$st');
+      _go(const OnboardingScreen());
     }
   }
 
