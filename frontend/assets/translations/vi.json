@@ -68,7 +68,7 @@
   "personal": "Cá nhân",
   "status": "Tình Trạng",
   "account": "Tài khoản",
-  "hello_user": "Xin chào, Toàn",
+  "hello_user": "Xin chào, {}",
   "logout_confirm": "Bạn có chắc chắn muốn đăng xuất?",
   "yes": "Có",
   "no": "Không",

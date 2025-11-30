@@ -2,10 +2,10 @@
 
 import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
+import '../services/notification_service.dart';
 
 class CustomBottomNavBar extends StatelessWidget {
   final int currentIndex;
-  // Thêm callback để báo về widget cha khi tab được chọn
   final ValueChanged<int> onTap;
 
   const CustomBottomNavBar({
@@ -13,8 +13,6 @@ class CustomBottomNavBar extends StatelessWidget {
     required this.currentIndex,
     required this.onTap,
   }) : super(key: key);
-
-  // Phương thức chuyển hướng cũ đã bị loại bỏ
 
   @override
   Widget build(BuildContext context) {
@@ -40,16 +38,46 @@ class CustomBottomNavBar extends StatelessWidget {
         ),
         child: Padding(
           padding: EdgeInsets.only(
-            top: 8, // Dịch icon và text lên trên
+            top: 8,
             bottom: MediaQuery.of(context).padding.bottom,
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              _buildNavItem(context, Icons.home, 'home', 0),
-              _buildNavItem(context, Icons.notifications_none, 'notification', 1, hasBadge: true),
-              _buildNavItem(context, Icons.message_outlined, 'messages', 2),
-              _buildNavItem(context, Icons.person_outline, 'personal', 3),
+              // Tab 0: Home
+              Expanded(
+                child: _buildNavItemContent(context, Icons.home, 'home', 0),
+              ),
+
+              // Tab 1: Notification (Cần lắng nghe trạng thái từ Service)
+              Expanded(
+                child: ValueListenableBuilder<bool>(
+                  // Lắng nghe biến showBadgeNotifier từ Service
+                  valueListenable: NotificationService().showBadgeNotifier,
+                  builder: (context, showBadge, child) {
+                    // Logic: Chỉ hiện badge khi Service báo true VÀ user đang KHÔNG đứng ở tab này
+                    final shouldShow = showBadge && (currentIndex != 1);
+
+                    return _buildNavItemContent(
+                      context,
+                      Icons.notifications_none,
+                      'notification',
+                      1,
+                      hasBadge: shouldShow, // Truyền trạng thái động vào đây
+                    );
+                  },
+                ),
+              ),
+
+              // Tab 2: Messages
+              Expanded(
+                child: _buildNavItemContent(context, Icons.message_outlined, 'messages', 2),
+              ),
+
+              // Tab 3: Personal
+              Expanded(
+                child: _buildNavItemContent(context, Icons.person_outline, 'personal', 3),
+              ),
             ],
           ),
         ),
@@ -57,69 +85,68 @@ class CustomBottomNavBar extends StatelessWidget {
     );
   }
 
-
-  Widget _buildNavItem(
+  // Đổi tên hàm và bỏ Expanded ra ngoài để dễ tùy biến cho tab Notification
+  Widget _buildNavItemContent(
       BuildContext context,
       IconData icon,
       String label,
-      int index,
-      {bool hasBadge = false} // Thêm tham số tùy chọn cho chấm tròn
-      ) {
+      int index, {
+        bool hasBadge = false,
+      }) {
     final isSelected = index == currentIndex;
-    // Đảm bảo màu sắc khớp với thiết kế gốc
     final color = isSelected ? const Color(0xFF5E3714) : const Color(0xFF868B91);
 
-    return Expanded( // Dùng Expanded để căn đều khoảng cách tốt hơn
-      child: InkWell(
-        onTap: () => onTap(index), // Gọi callback onTap
-        // Remove rounded tap shape -> use a rectangular (non-rounded) ink response
-        borderRadius: BorderRadius.zero,
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Stack(
-              clipBehavior: Clip.none, // Cho phép chấm tròn nằm ngoài Icon
-              children: [
-                Icon(icon, color: color),
-                // Chấm tròn (Badge/Notification Dot)
-                if (hasBadge)
-                  Positioned(
-                    top: -4,
-                    right: -4,
-                    child: Container(
-                      width: 8,
-                      height: 8,
-                      decoration: const ShapeDecoration(
-                        color: Colors.red, // Màu đỏ cho notification
-                        shape: OvalBorder(),
+    return InkWell(
+      onTap: () => onTap(index),
+      borderRadius: BorderRadius.zero,
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Icon(icon, color: color),
+              // Chấm tròn đỏ
+              if (hasBadge)
+                Positioned(
+                  top: -2, // Tinh chỉnh vị trí
+                  right: -2,
+                  child: Container(
+                    width: 9, // Kích thước vừa phải
+                    height: 9,
+                    decoration: BoxDecoration(
+                      color: Color(0xFFA82F01),
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: const Color(0xFFEDE2CC), // Viền trùng màu nền để tạo khoảng cách với icon
+                        width: 1.5,
                       ),
                     ),
                   ),
-              ],
-            ),
-            const SizedBox(height: 4),
-            Text(
-              label.tr(),
-              style: TextStyle(
-                color: color,
-                fontSize: 13,
-                fontFamily: 'Inter',
-                fontWeight: isSelected ? FontWeight.w500 : FontWeight.w400,
-              ),
-            ),
-            const SizedBox(height: 4),
-            // Thanh nhỏ màu nâu phía dưới tab đang chọn (theo thiết kế gốc)
-            if (isSelected)
-              Container(
-                width: 5,
-                height: 5,
-                decoration: const ShapeDecoration(
-                  color: Color(0xFF8A724C),
-                  shape: OvalBorder(),
                 ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            label.tr(),
+            style: TextStyle(
+              color: color,
+              fontSize: 13,
+              fontFamily: 'Inter',
+              fontWeight: isSelected ? FontWeight.w500 : FontWeight.w400,
+            ),
+          ),
+          const SizedBox(height: 4),
+          if (isSelected)
+            Container(
+              width: 5,
+              height: 5,
+              decoration: const ShapeDecoration(
+                color: Color(0xFF8A724C),
+                shape: OvalBorder(),
               ),
-          ],
-        ),
+            ),
+        ],
       ),
     );
   }

@@ -13,7 +13,7 @@ class UserService {
     'sapa': 'Sa Pa', 'halong': 'Hạ Long',
   };
 
-  // Lấy thành phố yêu thích
+  // ... (Giữ nguyên getPreferredCity, updatePreferredCityRaw, updatePreferredCity) ...
   Future<String?> getPreferredCity() async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('access_token');
@@ -47,7 +47,7 @@ class UserService {
   }
 
   // ===============================================================
-  // FIX LỖI 422: CHUYỂN LIST THÀNH MAP {"1": "A", "2": "B"}
+  // FIX: LƯU ITINERARY THEO THÀNH PHỐ HIỆN TẠI
   // ===============================================================
   Future<bool> toggleItineraryItem(String placeName, bool isAdding) async {
     final prefs = await SharedPreferences.getInstance();
@@ -57,7 +57,7 @@ class UserService {
     try {
       final url = Uri.parse('$baseUrl/users/me');
 
-      // --- BƯỚC 1: LẤY DỮ LIỆU CŨ TỪ SERVER ---
+      // 1. GET DỮ LIỆU
       final getResponse = await http.get(
         url,
         headers: {'Authorization': 'Bearer $token'},
@@ -66,53 +66,59 @@ class UserService {
       if (getResponse.statusCode != 200) return false;
 
       final data = jsonDecode(utf8.decode(getResponse.bodyBytes));
-      List<String> currentItineraryList = []; // Dùng List để dễ thêm/xóa
-
       var profileData = data['profile'] ?? data;
+
+      // Lấy tên thành phố đang chọn (Ví dụ: "Đà Nẵng")
+      // Nếu null thì dùng "Unknown"
+      String currentCity = profileData['preferred_city'] ?? "Unknown";
+
+      // Tạo prefix để phân biệt (Ví dụ: "Đà Nẵng_")
+      String prefix = "${currentCity}_";
+
       var rawItinerary = profileData['itinerary'];
 
-      // LOGIC GIẢI MÃ: Chuyển mọi định dạng (Map hoặc List) về List<String> để xử lý
-      if (rawItinerary != null) {
-        if (rawItinerary is List) {
-          // Trường hợp 1: Là List ["A", "B"]
-          currentItineraryList = List<String>.from(rawItinerary.map((e) => e.toString()));
-        } else if (rawItinerary is Map) {
-          // Trường hợp 2: Là Map
-          if (rawItinerary.containsKey('places') && rawItinerary['places'] is List) {
-            // Dạng cũ: {"places": ["A", "B"]}
-            var list = rawItinerary['places'] as List;
-            currentItineraryList = list.map((e) => e.toString()).toList();
+      List<String> currentCityItems = [];
+      Map<String, String> otherCityItems = {};
+
+      // 2. PHÂN LOẠI: Cái nào của city này, cái nào của city khác
+      if (rawItinerary != null && rawItinerary is Map) {
+        rawItinerary.forEach((key, value) {
+          String strKey = key.toString();
+          String strVal = value.toString();
+
+          if (strKey.startsWith(prefix)) {
+            currentCityItems.add(strVal);
           } else {
-            // Dạng chuẩn Backend: {"1": "A", "2": "B"}
-            // Lấy values ra và cho vào List
-            for (var val in rawItinerary.values) {
-              currentItineraryList.add(val.toString());
-            }
+            // Giữ lại dữ liệu của các thành phố khác
+            otherCityItems[strKey] = strVal;
           }
-        }
+        });
       }
 
-      // --- BƯỚC 2: THỰC HIỆN THÊM / XÓA ---
+      // 3. THÊM / XÓA (Chỉ tác động vào list của city hiện tại)
       if (isAdding) {
-        if (!currentItineraryList.contains(placeName)) {
-          currentItineraryList.add(placeName);
+        if (!currentCityItems.contains(placeName)) {
+          currentCityItems.add(placeName);
         }
       } else {
-        currentItineraryList.remove(placeName);
+        currentCityItems.remove(placeName);
       }
 
-      // --- BƯỚC 3: ĐÓNG GÓI LẠI THÀNH MAP SỐ THỨ TỰ (QUAN TRỌNG) ---
-      // Backend yêu cầu Dict[str, str] nên ta phải chuyển List -> Map
-      // Ví dụ: ["A", "B"] -> {"1": "A", "2": "B"}
-      Map<String, String> payloadMap = {};
-      for (int i = 0; i < currentItineraryList.length; i++) {
-        // Key là số thứ tự dạng chuỗi ("1", "2"...)
-        payloadMap[(i + 1).toString()] = currentItineraryList[i];
+      // 4. ĐÓNG GÓI LẠI
+      Map<String, String> finalPayload = {};
+
+      // 4.1 Chép lại city khác
+      finalPayload.addAll(otherCityItems);
+
+      // 4.2 Chép city hiện tại với key mới (đánh số lại)
+      for (int i = 0; i < currentCityItems.length; i++) {
+        String newKey = "$prefix${i + 1}"; // Ví dụ: "Đà Nẵng_1"
+        finalPayload[newKey] = currentCityItems[i];
       }
 
-      print("📝 Payload gửi đi (Map chuẩn): {'itinerary': $payloadMap}");
+      print("📝 Payload chuẩn bị gửi: $finalPayload");
 
-      // --- BƯỚC 4: GỬI PATCH ---
+      // 5. GỬI ĐI
       final patchResponse = await http.patch(
         url,
         headers: {
@@ -120,17 +126,11 @@ class UserService {
           'Authorization': 'Bearer $token',
         },
         body: jsonEncode({
-          'itinerary': payloadMap, // Gửi Map { "1": "..." } thay vì List
+          'itinerary': finalPayload,
         }),
       );
 
-      if (patchResponse.statusCode == 200 || patchResponse.statusCode == 204) {
-        print("✅ [UserService] Lưu Itinerary thành công!");
-        return true;
-      } else {
-        print("❌ [UserService] Lỗi server: ${patchResponse.statusCode} - ${patchResponse.body}");
-        return false;
-      }
+      return (patchResponse.statusCode == 200 || patchResponse.statusCode == 204);
 
     } catch (e) {
       print('❌ [UserService] Exception: $e');
@@ -138,29 +138,60 @@ class UserService {
     }
   }
 
-  // Lấy profile đầy đủ
-  Future<Map<String, dynamic>?> getUserProfile() async {
+  // Hàm này trả về danh sách tên địa điểm đã lưu: ["Cầu Rồng", "Bà Nà Hills"]
+  Future<List<String>> getSavedItineraryNames() async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('access_token');
-    if (token == null) return null;
+    if (token == null) return [];
 
     try {
       final url = Uri.parse('$baseUrl/users/me');
       final response = await http.get(
-          url,
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer $token'
-          }
+        url,
+        headers: {'Authorization': 'Bearer $token'},
       );
 
       if (response.statusCode == 200) {
         final data = jsonDecode(utf8.decode(response.bodyBytes));
-        return data['profile'] ?? data;
+        var profileData = data['profile'] ?? data;
+        var rawItinerary = profileData['itinerary'];
+
+        List<String> savedNames = [];
+
+        // Logic giải mã (giống hàm toggle): Lấy tất cả Value trong Map ra
+        if (rawItinerary != null) {
+          if (rawItinerary is Map) {
+            // Backend trả về {"Đà Nẵng_1": "Cầu Rồng", "Hà Nội_1": "Hồ Gươm"}
+            // Ta chỉ cần lấy phần Value ("Cầu Rồng", "Hồ Gươm")
+            for (var val in rawItinerary.values) {
+              savedNames.add(val.toString());
+            }
+          } else if (rawItinerary is List) {
+            // Fallback trường hợp cũ
+            savedNames = List<String>.from(rawItinerary.map((e) => e.toString()));
+          }
+        }
+        return savedNames;
       }
     } catch (e) {
-      print('❌ Lỗi lấy profile: $e');
+      print('❌ Lỗi lấy itinerary: $e');
     }
+    return [];
+  }
+
+  // ... (Hàm getUserProfile giữ nguyên) ...
+  Future<Map<String, dynamic>?> getUserProfile() async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('access_token');
+    if (token == null) return null;
+    try {
+      final url = Uri.parse('$baseUrl/users/me');
+      final response = await http.get(url, headers: {'Content-Type': 'application/json', 'Authorization': 'Bearer $token'});
+      if (response.statusCode == 200) {
+        final data = jsonDecode(utf8.decode(response.bodyBytes));
+        return data['profile'] ?? data;
+      }
+    } catch (e) { print('❌ $e'); }
     return null;
   }
 }

@@ -14,11 +14,17 @@ import '../screens/notification_screen.dart'; // === THÊM MỚI: Import màn h�
 /// Hỗ trợ cả Android và iOS
 class NotificationService {
   static final NotificationService _instance = NotificationService._internal();
+  final ValueNotifier<bool> showBadgeNotifier = ValueNotifier(false);
   factory NotificationService() => _instance;
   NotificationService._internal();
 
   final FlutterLocalNotificationsPlugin _notifications = FlutterLocalNotificationsPlugin();
   bool _initialized = false;
+
+  // === THÊM MỚI: Hàm xóa chấm đỏ (gọi khi user vào màn hình thông báo) ===
+  void clearBadge() {
+    showBadgeNotifier.value = false;
+  }
 
   /// Khởi tạo notification service
   /// Phải gọi hàm này trước khi sử dụng
@@ -82,7 +88,7 @@ class NotificationService {
       // Xử lý theo loại notification
       switch (payload) {
         case 'message':
-          // Navigate tới màn hình chat nhóm
+        // Navigate tới màn hình chat nhóm
           debugPrint('🚀 Navigating to ChatboxScreen');
           Navigator.of(context).push(
             MaterialPageRoute(
@@ -92,7 +98,7 @@ class NotificationService {
           break;
 
         case 'ai_chat':
-          // Navigate tới màn hình AI chatbot
+        // Navigate tới màn hình AI chatbot
           debugPrint('🚀 Navigating to AiChatbotScreen');
           Navigator.of(context).push(
             MaterialPageRoute(
@@ -102,7 +108,7 @@ class NotificationService {
           break;
 
         case 'group_request':
-          // Navigate tới màn hình notifications để xem yêu cầu
+        // Navigate tới màn hình notifications để xem yêu cầu
           debugPrint('🚀 Navigating to NotificationScreen');
           Navigator.of(context).push(
             MaterialPageRoute(
@@ -112,7 +118,7 @@ class NotificationService {
           break;
 
         default:
-          // Nếu payload có format khác (ví dụ JSON), có thể parse thêm
+        // Nếu payload có format khác (ví dụ JSON), có thể parse thêm
           debugPrint('⚠️ Unknown payload type: $payload');
           // Thử parse JSON nếu có
           try {
@@ -156,10 +162,10 @@ class NotificationService {
       final granted = await _notifications
           .resolvePlatformSpecificImplementation<IOSFlutterLocalNotificationsPlugin>()
           ?.requestPermissions(
-            alert: true,
-            badge: true,
-            sound: true,
-          );
+        alert: true,
+        badge: true,
+        sound: true,
+      );
       return granted ?? false;
     } else if (defaultTargetPlatform == TargetPlatform.android) {
       // Android 13+ cần xin quyền thông báo
@@ -176,10 +182,10 @@ class NotificationService {
       final granted = await _notifications
           .resolvePlatformSpecificImplementation<IOSFlutterLocalNotificationsPlugin>()
           ?.requestPermissions(
-            alert: true,
-            badge: true,
-            sound: true,
-          );
+        alert: true,
+        badge: true,
+        sound: true,
+      );
       return granted ?? false;
     } else if (defaultTargetPlatform == TargetPlatform.android) {
       final androidImplementation = _notifications.resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
@@ -244,6 +250,8 @@ class NotificationService {
     required int unreadCount,
     String? groupId, // === THÊM MỚI: ID của nhóm để navigate chính xác ===
   }) async {
+    // === THÊM MỚI: Bật chấm đỏ lên khi có tin nhắn ===
+    showBadgeNotifier.value = true;
     // Tạo payload JSON để lưu thêm thông tin
     final payloadData = {
       'type': 'message',
@@ -255,8 +263,8 @@ class NotificationService {
       id: 1, // ID cố định cho message notifications
       title: groupName,
       body: unreadCount > 1
-        ? '$unreadCount tin nhắn mới'
-        : message,
+          ? '$unreadCount tin nhắn mới'
+          : message,
       payload: jsonEncode(payloadData), // === SỬA: Dùng JSON payload ===
       priority: NotificationPriority.high,
     );
@@ -268,6 +276,7 @@ class NotificationService {
     required String groupName,
     String? groupId, // === THÊM MỚI: ID của nhóm ===
   }) async {
+    showBadgeNotifier.value = true;
     // Tạo payload JSON
     final payloadData = {
       'type': 'group_request',
@@ -364,4 +373,3 @@ enum NotificationPriority {
   normal,
   high,
 }
-
