@@ -2,9 +2,13 @@
 /// Mô tả: Màn hình khám phá địa điểm theo thành phố, giao diện tiếng Việt.
 
 import 'package:flutter/material.dart';
+<<<<<<< HEAD
 import 'package:easy_localization/easy_localization.dart';
 import '../data/mock_explore_items.dart';
 import '../widgets/enter_bar.dart';
+=======
+import '../data/mock_explore_items.dart';
+>>>>>>> 9fb9c5b (Add homepage frontend and after that implementation)
 
 class DestinationExploreScreen extends StatelessWidget {
   final String cityId;
@@ -27,6 +31,7 @@ class DestinationExploreScreen extends StatelessWidget {
     final cityItems = mockExploreItems.where((item) => item.cityId == cityId).toList();
 
     return Scaffold(
+<<<<<<< HEAD
       extendBodyBehindAppBar: true,
       extendBody: true,
       appBar: AppBar(
@@ -50,6 +55,16 @@ class DestinationExploreScreen extends StatelessWidget {
             },
 
           ),
+=======
+      backgroundColor: const Color(0xFFF7F3E8),
+      extendBody: true,
+      appBar: AppBar(
+        backgroundColor: const Color(0xFFF7F3E8),
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Color(0xFF3E3322)),
+          onPressed: onBack ?? () => Navigator.of(context).pop(),
+>>>>>>> 9fb9c5b (Add homepage frontend and after that implementation)
         ),
         actions: [
           Padding(
@@ -61,6 +76,7 @@ class DestinationExploreScreen extends StatelessWidget {
           ),
         ],
       ),
+<<<<<<< HEAD
       body: Container(
         decoration: const BoxDecoration(
           image: DecorationImage(
@@ -135,15 +151,135 @@ class DestinationExploreScreen extends StatelessWidget {
           ),
         ),
       ),// BottomNavigationBar removed: MainAppScreen provides the persistent BottomNavigationBar
+=======
+      body: ListView(
+        padding: EdgeInsets.fromLTRB(16,16,16, kBottomNavigationBarHeight + MediaQuery.of(context).padding.bottom + 16),
+        children: [
+          const Text(
+            'Khám phá Việt Nam',
+            style: TextStyle(
+              color: Color(0xFF3E3322),
+              fontSize: 20,
+              fontFamily: 'Inter',
+              fontWeight: FontWeight.w500,
+              letterSpacing: 0.10,
+            ),
+          ),
+          const SizedBox(height: 24),
+          GestureDetector(
+            onTap: _triggerSearchCallback,
+            child: Container(
+              width: double.infinity,
+              height: 74,
+              decoration: BoxDecoration(
+                border: Border.all(color: const Color(0xFFDCC9A7), width: 2),
+                borderRadius: BorderRadius.circular(21),
+              ),
+              alignment: Alignment.centerLeft,
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: const Text(
+                'Tìm kiếm địa điểm',
+                style: TextStyle(
+                  color: Color(0xFF3E3322),
+                  fontSize: 16,
+                  fontFamily: 'Roboto',
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 24),
+          const Text(
+            'Địa điểm nổi bật',
+            style: TextStyle(
+              color: Color(0xFFB99668),
+              fontSize: 16,
+              fontFamily: 'Poppins',
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 16),
+          SizedBox(
+            height: 441,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              itemCount: cityItems.length,
+              separatorBuilder: (_, __) => const SizedBox(width: 30),
+              itemBuilder: (context, index) {
+                final item = cityItems[index];
+                return _buildPlaceCard(
+                  item.imageUrl,
+                  item.name,
+                  '', // Không dùng namePart2
+                  item.subtitle, // Đúng là subtitle
+                );
+              },
+            ),
+          ),
+          const SizedBox(height: 32),
+          Center(
+            child: GestureDetector(
+              onTap: onBeforeGroup,
+              child: Container(
+                width: 216,
+                padding: const EdgeInsets.all(4),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    begin: Alignment(0.21, 0.40),
+                    end: Alignment(1.07, 0.83),
+                    colors: [Color(0xFFB64B12), Color(0xFFA15C20)],
+                  ),
+                  borderRadius: BorderRadius.circular(35),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 45,
+                      height: 45,
+                      decoration: const BoxDecoration(
+                        color: Color(0xFF5E3714),
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    const SizedBox(width: 22),
+                    const Text(
+                      'Bấm xác nhận',
+                      style: TextStyle(
+                        color: Color(0xFFF7F3E8),
+                        fontSize: 13,
+                        fontFamily: 'Climate Crisis',
+                        fontWeight: FontWeight.w400,
+                        height: 1.54,
+                        letterSpacing: 0.30,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+      // BottomNavigationBar removed: MainAppScreen provides the persistent BottomNavigationBar.
+>>>>>>> 9fb9c5b (Add homepage frontend and after that implementation)
     );
   }
 
   Widget _buildPlaceCard(
+<<<<<<< HEAD
       String imageUrl,
       String namePart1,
       String namePart2,
       String subtitle,
       ) {
+=======
+    String imageUrl,
+    String namePart1,
+    String namePart2,
+    String subtitle,
+  ) {
+>>>>>>> 9fb9c5b (Add homepage frontend and after that implementation)
     return StatefulBuilder(
       builder: (context, setState) {
         final ValueNotifier<bool> isFavorite = ValueNotifier(false);
@@ -241,4 +377,8 @@ class DestinationExploreScreen extends StatelessWidget {
       },
     );
   }
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> 9fb9c5b (Add homepage frontend and after that implementation)

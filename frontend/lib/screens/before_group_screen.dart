@@ -1,10 +1,17 @@
 /// File: before_group_screen.dart
+<<<<<<< HEAD
 //File này là screen tên là Group or Solo trong figma
 import 'package:flutter/material.dart';
+=======
+
+import 'package:flutter/material.dart';
+// Removed CustomBottomNavBar import so this screen doesn't create its own bottom bar
+>>>>>>> 9fb9c5b (Add homepage frontend and after that implementation)
 
 // Chuyển thành StatefulWidget để quản lý trạng thái của icon trái tim
 class BeforeGroup extends StatefulWidget {
   final VoidCallback? onBack;
+<<<<<<< HEAD
   final Function(String? destinationName)? onCreateGroup;
 
   const BeforeGroup({
@@ -12,6 +19,9 @@ class BeforeGroup extends StatefulWidget {
     this.onBack,
     this.onCreateGroup,
   }) : super(key: key);
+=======
+  const BeforeGroup({Key? key, this.onBack}) : super(key: key);
+>>>>>>> 9fb9c5b (Add homepage frontend and after that implementation)
 
   @override
   State<BeforeGroup> createState() => _BeforeGroupState();
@@ -33,6 +43,7 @@ class _BeforeGroupState extends State<BeforeGroup> {
       }
     });
     await Future.delayed(const Duration(milliseconds: 300));
+<<<<<<< HEAD
 
     if (cardType == 'Tạo nhóm') {
       // Gọi callback để mở GroupCreatingScreen
@@ -43,6 +54,9 @@ class _BeforeGroupState extends State<BeforeGroup> {
       // Xử lý "Gia nhập" - quay lại
       if (widget.onBack != null) widget.onBack!();
     }
+=======
+    if (widget.onBack != null) widget.onBack!();
+>>>>>>> 9fb9c5b (Add homepage frontend and after that implementation)
   }
 
   @override
@@ -57,11 +71,16 @@ class _BeforeGroupState extends State<BeforeGroup> {
         children: [
           // Lớp 1: Ảnh nền
           Image.asset(
+<<<<<<< HEAD
             'assets/images/group.png',
+=======
+            'assets/images/danang.jpg',
+>>>>>>> 9fb9c5b (Add homepage frontend and after that implementation)
             fit: BoxFit.cover,
           ),
 
           // Lớp 2: Nội dung có thể cuộn
+<<<<<<< HEAD
           SingleChildScrollView(
             child: Padding(
               padding: EdgeInsets.only(
@@ -72,20 +91,40 @@ class _BeforeGroupState extends State<BeforeGroup> {
               ),
               child: Column(
                 children: [
+=======
+          // Sử dụng SingleChildScrollView để tránh lỗi overflow
+          SingleChildScrollView(
+            padding: EdgeInsets.only(bottom: kBottomNavigationBarHeight + MediaQuery.of(context).padding.bottom + 16),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20.0),
+              child: Column(
+                children: [
+                  // Thêm khoảng trống để né Header
+                  const SizedBox(height: 100),
+
+>>>>>>> 9fb9c5b (Add homepage frontend and after that implementation)
                   // Card "Tạo nhóm"
                   // Sắp xếp lệch trái bằng Padding
                   Padding(
                     padding: const EdgeInsets.only(right: 80.0),
                     child: _buildGroupCard(
                       title: 'Tạo nhóm',
+<<<<<<< HEAD
                       imagePath: 'assets/images/create.jpg',
+=======
+                      imagePath: 'assets/images/dalat.jpg',
+>>>>>>> 9fb9c5b (Add homepage frontend and after that implementation)
                       titleColor: const Color(0xFF723B12),
                       isFavorite: _isTaoNhomFav,
                       onTap: () => _handleCardTap('Tạo nhóm'),
                     ),
                   ),
 
+<<<<<<< HEAD
                   const SizedBox(height: 20),
+=======
+                  const SizedBox(height: 30),
+>>>>>>> 9fb9c5b (Add homepage frontend and after that implementation)
 
                   // Card "Gia nhập"
                   // Sắp xếp lệch phải bằng Padding
@@ -93,12 +132,22 @@ class _BeforeGroupState extends State<BeforeGroup> {
                     padding: const EdgeInsets.only(left: 80.0),
                     child: _buildGroupCard(
                       title: 'Gia nhập',
+<<<<<<< HEAD
                       imagePath: 'assets/images/join.jpg',
+=======
+                      imagePath: 'assets/images/phuquoc.jpg',
+>>>>>>> 9fb9c5b (Add homepage frontend and after that implementation)
                       titleColor: const Color(0xFF8A724C),
                       isFavorite: _isGiaNhapFav,
                       onTap: () => _handleCardTap('Gia nhập'),
                     ),
                   ),
+<<<<<<< HEAD
+=======
+
+                  // Thêm khoảng trống để né BottomNavBar
+                  const SizedBox(height: 120),
+>>>>>>> 9fb9c5b (Add homepage frontend and after that implementation)
                 ],
               ),
             ),
@@ -106,6 +155,11 @@ class _BeforeGroupState extends State<BeforeGroup> {
 
           // Lớp 3: Header cố định
           _buildHeader(),
+<<<<<<< HEAD
+=======
+
+          // Lớp 4: (Đã loại bỏ Bottom Navigation Bar để sử dụng bar từ MainAppScreen)
+>>>>>>> 9fb9c5b (Add homepage frontend and after that implementation)
         ],
       ),
     );
@@ -127,10 +181,44 @@ class _BeforeGroupState extends State<BeforeGroup> {
               child: Container(
                 width: MediaQuery.of(context).size.width, // Full width
                 height: 70,
+<<<<<<< HEAD
+=======
+                color: const Color(0x70DCC9A7),
+              ),
+            ),
+            Positioned(
+              left: 72,
+              top: 1,
+              child: Container(
+                width: 100,
+                height: 69,
+>>>>>>> 9fb9c5b (Add homepage frontend and after that implementation)
                 color: const Color(0xFFF0E7D8),
               ),
             ),
             Positioned(
+<<<<<<< HEAD
+=======
+              left: 15,
+              top: 21,
+              child: Container(
+                width: 53,
+                height: 42,
+                color: const Color(0xFFF0E7D8),
+              ),
+            ),
+            Positioned(
+              left: 312,
+              top: 18,
+              child: Container(
+                width: 88,
+                height: 42,
+                color: const Color(0xFFF0E7D8),
+              ),
+            ),
+            // Centered header text, moved slightly lower
+            Positioned(
+>>>>>>> 9fb9c5b (Add homepage frontend and after that implementation)
               top: 30,
               left: 0,
               right: 0,
@@ -164,7 +252,11 @@ class _BeforeGroupState extends State<BeforeGroup> {
       onTap: onTap,
       child: Container(
         width: 295,
+<<<<<<< HEAD
         height: 295,
+=======
+        height: 333,
+>>>>>>> 9fb9c5b (Add homepage frontend and after that implementation)
         decoration: BoxDecoration(
           color: const Color(0xFFEDE2CC),
           borderRadius: BorderRadius.circular(15),
@@ -179,7 +271,11 @@ class _BeforeGroupState extends State<BeforeGroup> {
               child: Stack(
                 children: [
                   Container(
+<<<<<<< HEAD
                     height: 240,
+=======
+                    height: 257,
+>>>>>>> 9fb9c5b (Add homepage frontend and after that implementation)
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(10),
                       image: DecorationImage(
@@ -200,8 +296,14 @@ class _BeforeGroupState extends State<BeforeGroup> {
                 ],
               ),
             ),
+<<<<<<< HEAD
             Positioned(
               bottom: 1,
+=======
+            // Text (đặt ở dưới cùng, nhích xuống để tránh chạm ảnh)
+            Positioned(
+              bottom: 5,
+>>>>>>> 9fb9c5b (Add homepage frontend and after that implementation)
               left: 0,
               right: 0,
               child: Center(
@@ -209,8 +311,13 @@ class _BeforeGroupState extends State<BeforeGroup> {
                   title,
                   style: TextStyle(
                     color: titleColor,
+<<<<<<< HEAD
                     fontSize: 25,
                     fontFamily: 'Alumni Sans',
+=======
+                    fontSize: 35,
+                    fontFamily: 'Inter',
+>>>>>>> 9fb9c5b (Add homepage frontend and after that implementation)
                     fontWeight: FontWeight.w700,
                     decoration: TextDecoration.none,
                   ),

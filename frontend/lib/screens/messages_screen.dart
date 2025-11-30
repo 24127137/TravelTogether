@@ -2,6 +2,7 @@
 /// Mô tả: Widget nội dung tin nhắn. Đã dịch sang tiếng Việt.
 
 import 'package:flutter/material.dart';
+<<<<<<< HEAD
 import 'package:easy_localization/easy_localization.dart';
 import '../data/mock_messages.dart';
 import 'chatbox_screen.dart';
@@ -11,23 +12,50 @@ class MessagesScreen extends StatelessWidget {
   final String? accessToken;
 
   const MessagesScreen({Key? key, this.onBack, this.accessToken}) : super(key: key);
+=======
+import '../models/message.dart';
+import '../data/mock_messages.dart';
+
+class MessagesScreen extends StatelessWidget {
+  final VoidCallback? onBack;
+  const MessagesScreen({Key? key, this.onBack}) : super(key: key);
+>>>>>>> 9fb9c5b (Add homepage frontend and after that implementation)
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+<<<<<<< HEAD
       backgroundColor: const Color(0xFFF7F7F7), // Thêm màu nền cho đẹp hơn
       // Removed default AppBar to use the custom header inside the body
+=======
+      appBar: AppBar(
+        title: const Text('Tin nhắn'),
+        leading: onBack != null
+            ? IconButton(
+                icon: const Icon(Icons.arrow_back),
+                onPressed: onBack,
+              )
+            : null,
+      ),
+>>>>>>> 9fb9c5b (Add homepage frontend and after that implementation)
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _buildHeader(context),
+<<<<<<< HEAD
             const SizedBox(height: 20), // move search bar down slightly
+=======
+>>>>>>> 9fb9c5b (Add homepage frontend and after that implementation)
             _buildSearchBar(),
             const SizedBox(height: 16),
             Expanded(
               child: ListView.separated(
+<<<<<<< HEAD
                 padding: const EdgeInsets.only(left: 12, right: 20),
+=======
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+>>>>>>> 9fb9c5b (Add homepage frontend and after that implementation)
                 itemCount: mockMessages.length,
                 separatorBuilder: (_, __) => const SizedBox(height: 20),
                 itemBuilder: (context, index) {
@@ -36,7 +64,11 @@ class MessagesScreen extends StatelessWidget {
                     sender: m.sender,
                     message: m.message,
                     time: m.time,
+<<<<<<< HEAD
                     isOnline: m.isOnline == true,
+=======
+                    isOnline: m.isOnline,
+>>>>>>> 9fb9c5b (Add homepage frontend and after that implementation)
                   );
                 },
               ),
@@ -50,6 +82,7 @@ class MessagesScreen extends StatelessWidget {
   // ---------- HEADER ----------
   Widget _buildHeader(BuildContext context) {
     return Padding(
+<<<<<<< HEAD
       // remove left padding so back button sits at the screen edge
       padding: const EdgeInsets.only(top: 12, right: 16),
       child: Row(
@@ -71,11 +104,34 @@ class MessagesScreen extends StatelessWidget {
           Text(
             'messages'.tr(),
             style: const TextStyle(
+=======
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          IconButton(
+            icon: const Icon(Icons.arrow_back, color: Color(0xFFB99668)),
+            onPressed: () {
+              if (onBack != null) onBack!(); else Navigator.pop(context);
+            },
+          ),
+          const Text(
+            'Tin nhắn',
+            style: TextStyle(
+>>>>>>> 9fb9c5b (Add homepage frontend and after that implementation)
               color: Color(0xFF8A724C),
               fontSize: 20,
               fontWeight: FontWeight.w600,
             ),
           ),
+<<<<<<< HEAD
+=======
+          IconButton(
+            icon: const Icon(Icons.edit_outlined,
+                color: Color(0xFFB99668), size: 26),
+            onPressed: () {},
+          ),
+>>>>>>> 9fb9c5b (Add homepage frontend and after that implementation)
         ],
       ),
     );
@@ -84,6 +140,7 @@ class MessagesScreen extends StatelessWidget {
   // ---------- SEARCH BAR ----------
   Widget _buildSearchBar() {
     return Padding(
+<<<<<<< HEAD
       padding: const EdgeInsets.only(left: 12, right: 20),
       child: TextField(
         decoration: InputDecoration(
@@ -91,6 +148,15 @@ class MessagesScreen extends StatelessWidget {
           hintStyle: const TextStyle(
             color: Color(0xFF7C838D),
             fontSize: 15,
+=======
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: TextField(
+        decoration: InputDecoration(
+          hintText: 'Tìm kiếm cuộc trò chuyện & tin nhắn',
+          hintStyle: const TextStyle(
+            color: Color(0xFF7C838D),
+            fontSize: 16,
+>>>>>>> 9fb9c5b (Add homepage frontend and after that implementation)
           ),
           prefixIcon: const Icon(Icons.search, color: Color(0xFF7C838D)),
           filled: true,
@@ -129,6 +195,7 @@ class _MessageTile extends StatelessWidget {
     return InkWell(
       borderRadius: BorderRadius.circular(12),
       onTap: () {
+<<<<<<< HEAD
         // **********************************************
         // 2. THỰC HIỆN NAVIGATION ĐẾN CHATBOXSCREEN
         // **********************************************
@@ -138,6 +205,9 @@ class _MessageTile extends StatelessWidget {
             builder: (context) => const ChatboxScreen(),
           ),
         );
+=======
+        // TODO: Navigate to chat detail
+>>>>>>> 9fb9c5b (Add homepage frontend and after that implementation)
       },
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -210,4 +280,8 @@ class _MessageTile extends StatelessWidget {
       ),
     );
   }
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> 9fb9c5b (Add homepage frontend and after that implementation)

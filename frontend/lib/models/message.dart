@@ -5,6 +5,7 @@ class Message {
   final String sender;
   final String message;
   final String time;
+<<<<<<< HEAD
   // make non-nullable with default false to avoid runtime null issues
   final bool isOnline;
   final bool isUser;
@@ -49,3 +50,15 @@ class Message {
     );
   }
 }
+=======
+  final bool isOnline;
+
+  Message({
+    required this.sender,
+    required this.message,
+    required this.time,
+    required this.isOnline,
+  });
+}
+
+>>>>>>> 9fb9c5b (Add homepage frontend and after that implementation)
