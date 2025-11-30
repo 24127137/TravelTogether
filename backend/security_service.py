@@ -1,14 +1,15 @@
 import hashlib
+import asyncio
 from datetime import datetime, timezone, timedelta, time
 from typing import Optional, Dict, Any
 from sqlmodel import Session, select
-from sqlalchemy import Column, text
-from sqlalchemy.dialects.postgresql import UUID, JSONB, TEXT, TIME # Import đúng kiểu dữ liệu PG
-from sqlalchemy import or_
+from sqlalchemy import Column, text, or_
+from sqlalchemy.dialects.postgresql import UUID, JSONB, TEXT, TIME
 
-# Giả sử các model đã được import đúng từ file model
-from db_tables import UserSecurity, SecurityLocations 
-# from config import settings
+# Import các bảng
+from db_tables import UserSecurity, SecurityLocations, Profiles 
+# Import Email Service
+from email_service import EmailService
 
 # ==================== CONSTANTS ====================
 MAX_RETRY_ATTEMPTS = 5
@@ -25,7 +26,43 @@ class SecurityService:
     def verify(plain: str, hashed: str) -> bool:
         """Verify plain text against hashed value"""
         return SecurityService.hash_pin(plain) == hashed
+    def _trigger_email(self, session: Session, user_id: str, alert_type: str, location: Optional[Dict[str, Any]] = None):
+        """
+        Tìm email user và gửi cảnh báo. 
+        Tự động tạo Google Maps Link nếu có toạ độ.
+        """
+        # 1. Lấy thông tin User (Email & Tên)
+        profile = session.exec(select(Profiles).where(Profiles.auth_user_id == user_id)).first()
+        if not profile or not profile.email:
+            print(f"⚠️ [Security] Không tìm thấy email cho user {user_id}")
+            return
 
+        # 2. Tạo Link Google Maps (nếu có toạ độ)
+        map_link = None
+        if location and 'latitude' in location and 'longitude' in location:
+            lat = location['latitude']
+            long = location['longitude']
+            map_link = f"https://www.google.com/maps?q={lat},{long}"
+
+        # 3. Gọi EmailService (Xử lý bất đồng bộ trong môi trường đồng bộ)
+        # Vì EmailService là async, ta cần trick này để nó chạy được trong hàm def thường
+        try:
+            loop = asyncio.get_running_loop()
+            # Nếu đang chạy trong FastAPI (đã có loop), dùng create_task để không chặn luồng chính
+            loop.create_task(EmailService.send_security_alert(
+                email_to=[profile.email],
+                user_name=profile.full_name or "Người dùng",
+                alert_type=alert_type,
+                map_link=map_link # Truyền thêm link bản đồ
+            ))
+        except RuntimeError:
+            # Nếu chạy trong Scheduler (chưa có loop), dùng asyncio.run
+            asyncio.run(EmailService.send_security_alert(
+                email_to=[profile.email],
+                user_name=profile.full_name or "Người dùng",
+                alert_type=alert_type,
+                map_link=map_link
+            ))
     def get_user_security(self, session: Session, user_id: str) -> Optional[UserSecurity]:
         stmt = select(UserSecurity).where(UserSecurity.user_id == user_id)
         return session.exec(stmt).first()
@@ -72,29 +109,27 @@ class SecurityService:
         session: Session, 
         user_id: str, 
         pin: str, 
-        current_location: Optional[Dict[str, Any]] = None # Cần truyền location từ API vào đây
+        current_location: Optional[Dict[str, Any]] = None
     ) -> str:
-        """
-        Returns: "safe", "danger", "wrong"
-        """
         sec = self.get_user_security(session, user_id)
         if not sec:
             return "wrong"
 
         # 1. Check Danger PIN
-        # Sửa tên hàm self.verify_pin -> self.verify
         if sec.danger_pin_hash and self.verify(pin, sec.danger_pin_hash):
-            # Truyền location thực tế vào
             self.save_location(session, user_id, reason="danger_pin", location=current_location)
             
             sec.wrong_attempt_count = 0
             sec.status = "danger"
             session.commit()
+            
+            # [CẬP NHẬT] Gửi mail báo động ngay lập tức
+            self._trigger_email(session, user_id, "danger", current_location)
+            
             return "danger"
 
         # 2. Check Safe PIN
         if sec.safe_pin_hash and self.verify(pin, sec.safe_pin_hash):
-            # SỬA 4: Luôn dùng UTC để lưu vào DB
             sec.last_confirmation_ts = datetime.now(timezone.utc)
             sec.wrong_attempt_count = 0
             sec.status = "safe"
@@ -108,21 +143,12 @@ class SecurityService:
         if sec.wrong_attempt_count >= MAX_RETRY_ATTEMPTS:
             self.save_location(session, user_id, reason="wrong_pin", location=current_location)
             sec.status = "danger"
+            
+            # [CẬP NHẬT] Gửi mail khi sai quá nhiều lần
+            self._trigger_email(session, user_id, "danger", current_location)
         
         session.commit()
         return "wrong"
-
-    def save_location(self, session: Session, user_id: str, reason: str, location: Optional[Dict[str, Any]] = None):
-        record = SecurityLocations(
-            user_id=user_id,
-            reason=reason,
-            location=location, # JSON toạ độ
-            timestamp=datetime.now(timezone.utc), # SỬA 4: Dùng UTC
-        )
-        session.add(record)
-        session.commit()
-        return True
-
     # ============================================================
     # SỬA 5: Check Overdue logic
     # ============================================================
@@ -149,6 +175,7 @@ class SecurityService:
                 # Lưu location (lúc này cronjob chạy nên có thể không có location, để None)
                 self.save_location(session, user_id, reason="timeout")
                 session.commit()
+                self._trigger_email(session, user_id, "overdue", location=None)
             return True
 
         return False
@@ -180,7 +207,7 @@ class SecurityService:
             # Lưu log location (Không có toạ độ vì chạy ngầm)
             self.save_location(session, sec.user_id, reason="timeout", location=None)
             count += 1
-        
+            self._trigger_email(session, sec.user_id, "overdue", location=None)
         # Commit một lần cho tất cả thay đổi
         if count > 0:
             session.commit()
