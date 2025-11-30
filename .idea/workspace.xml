@@ -4,19 +4,7 @@
     <option name="autoReloadType" value="NONE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="fc62ebc6-5fea-4dae-abc1-b5859c194cd0" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/CHATBOX_MERGE_SUMMARY.md" beforeDir="false" afterPath="$PROJECT_DIR$/CHATBOX_MERGE_SUMMARY.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/DESTINATION_EXPLORE_RESOLUTION.md" beforeDir="false" afterPath="$PROJECT_DIR$/DESTINATION_EXPLORE_RESOLUTION.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/HOME_PAGE_MERGE_SUMMARY.md" beforeDir="false" afterPath="$PROJECT_DIR$/HOME_PAGE_MERGE_SUMMARY.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/group_services/host.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/group_services/host.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/lib/config/api_config.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/lib/config/api_config.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/lib/screens/chatbox_screen.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/lib/screens/chatbox_screen.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/lib/screens/feedback_screen.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/lib/screens/feedback_screen.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/lib/screens/group_state_screen.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/lib/screens/group_state_screen.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/lib/screens/home_page.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/lib/screens/home_page.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/lib/screens/main_app_screen.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/lib/screens/main_app_screen.dart" afterDir="false" />
-    </list>
+    <list default="true" id="fc62ebc6-5fea-4dae-abc1-b5859c194cd0" name="Changes" comment="" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -61,6 +49,7 @@
     "cf.first.check.clang-format": "false",
     "cidr.known.project.marker": "true",
     "com.google.services.firebase.aqiPopupShown": "true",
+    "dart.analysis.tool.window.visible": "false",
     "git-widget-placeholder": "feature/fe/week7",
     "io.flutter.reload.alreadyRun": "true",
     "kotlin-language-version-configured": "true",
