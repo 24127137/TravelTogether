@@ -54,8 +54,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       navigatorKey: navigatorKey, // === THÊM MỚI: Global navigator key ===
-      // home: const SplashScreen(),
-      home: const FirstScreen(),
+      home: const SplashScreen(), // === SỬA: Dùng SplashScreen để check token ===
       debugShowCheckedModeBanner: false,
       localizationsDelegates: context.localizationDelegates,
       supportedLocales: context.supportedLocales,

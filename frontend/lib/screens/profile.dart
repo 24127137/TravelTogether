@@ -11,8 +11,13 @@ import 'package:easy_localization/easy_localization.dart';
 
 class ProfilePage extends StatefulWidget {
   final VoidCallback? onBack;
+  final Map<String, dynamic>? cachedData; // === THÊM MỚI: Cached profile data ===
 
-  const ProfilePage({super.key, this.onBack});
+  const ProfilePage({
+    super.key,
+    this.onBack,
+    this.cachedData, // === THÊM MỚI ===
+  });
 
   @override
   State<ProfilePage> createState() => _ProfilePageState();
@@ -415,6 +420,43 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Future<void> _fetchProfile() async {
+    // === THÊM MỚI: Sử dụng cached data nếu có ===
+    if (widget.cachedData != null) {
+      final data = widget.cachedData!;
+      setState(() {
+        fullName = data['fullname'] ?? fullName;
+        email = data['email'] ?? email;
+        description = data['description'] ?? description;
+
+        final serverGender = data['gender'];
+        if (serverGender == "male") {
+          gender = "male".tr();
+        } else if (serverGender == "female") {
+          gender = "female".tr();
+        } else {
+          gender = "other".tr();
+        }
+
+        final serverBirth = data['birth_date'] ?? data['birthday'];
+        if (serverBirth != null && serverBirth is String && serverBirth.isNotEmpty) {
+          try {
+            final dt = DateTime.parse(serverBirth);
+            birthDate = '${dt.day.toString().padLeft(2,'0')}/'
+                '${dt.month.toString().padLeft(2,'0')}/'
+                '${dt.year}';
+          } catch (_) {
+            birthDate = data['birthday'] ?? birthDate;
+          }
+        }
+
+        interests = List<String>.from(data['interests'] ?? interests);
+        _avatarNetworkUrl = data['avatar_url'] as String?;
+      });
+      debugPrint('✅ Profile loaded from cache');
+      return;
+    }
+
+    // === Fallback: Load từ API nếu không có cache ===
     try {
       String? accessToken = await AuthService.getValidAccessToken();
 
