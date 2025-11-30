@@ -2,7 +2,10 @@
 /// Mô tả: Widget container chính quản lý các tab và bottom bar, giao diện tiếng Việt.
 
 import 'package:flutter/material.dart';
+<<<<<<< HEAD
 import 'package:easy_localization/easy_localization.dart';
+=======
+>>>>>>> 9fb9c5b (Add homepage frontend and after that implementation)
 import 'home_page.dart';
 import 'messages_screen.dart';
 import '../widgets/custom_bottom_nav_bar.dart';
@@ -10,6 +13,7 @@ import '../models/destination.dart';
 import 'destination_detail_screen.dart';
 import 'destination_explore_screen.dart';
 import 'before_group_screen.dart';
+<<<<<<< HEAD
 import 'group_creating.dart';
 import 'destination_search_screen.dart';
 import 'settings_screen.dart';
@@ -26,6 +30,13 @@ class MainAppScreen extends StatefulWidget {
     this.initialIndex = 0,
     required this.accessToken,
   }) : super(key: key);
+=======
+import 'destination_search_screen.dart';
+
+class MainAppScreen extends StatefulWidget {
+  final int initialIndex;
+  const MainAppScreen({Key? key, this.initialIndex = 0}) : super(key: key);
+>>>>>>> 9fb9c5b (Add homepage frontend and after that implementation)
 
   @override
   State<MainAppScreen> createState() => _MainAppScreenState();
@@ -37,10 +48,13 @@ class _MainAppScreenState extends State<MainAppScreen> {
   bool _showDetail = false;
   bool _showExplore = false;
   bool _showBeforeGroup = false;
+<<<<<<< HEAD
   bool _showGroupCreating = false;
   bool _showSettings = false;
   bool _showProfile = false;
   String? _groupDestinationName;
+=======
+>>>>>>> 9fb9c5b (Add homepage frontend and after that implementation)
 
   @override
   void initState() {
@@ -54,9 +68,12 @@ class _MainAppScreenState extends State<MainAppScreen> {
       _showDetail = false;
       _showExplore = false;
       _showBeforeGroup = false;
+<<<<<<< HEAD
       _showGroupCreating = false;
       _showSettings = false;
       _showProfile = false;
+=======
+>>>>>>> 9fb9c5b (Add homepage frontend and after that implementation)
     });
   }
 
@@ -66,8 +83,11 @@ class _MainAppScreenState extends State<MainAppScreen> {
       _showDetail = true;
       _showExplore = false;
       _showBeforeGroup = false;
+<<<<<<< HEAD
       _showGroupCreating = false;
       _showSettings = false;
+=======
+>>>>>>> 9fb9c5b (Add homepage frontend and after that implementation)
     });
   }
 
@@ -76,8 +96,11 @@ class _MainAppScreenState extends State<MainAppScreen> {
       _showDetail = false;
       _showExplore = true;
       _showBeforeGroup = false;
+<<<<<<< HEAD
       _showGroupCreating = false;
       _showSettings = false;
+=======
+>>>>>>> 9fb9c5b (Add homepage frontend and after that implementation)
     });
   }
 
@@ -86,6 +109,7 @@ class _MainAppScreenState extends State<MainAppScreen> {
       _showDetail = false;
       _showExplore = false;
       _showBeforeGroup = true;
+<<<<<<< HEAD
       _showGroupCreating = false;
       _showSettings = false;
     });
@@ -100,6 +124,8 @@ class _MainAppScreenState extends State<MainAppScreen> {
       _showSettings = false;
       _showProfile = false;
       _groupDestinationName = destinationName;
+=======
+>>>>>>> 9fb9c5b (Add homepage frontend and after that implementation)
     });
   }
 
@@ -108,6 +134,7 @@ class _MainAppScreenState extends State<MainAppScreen> {
       _showDetail = false;
       _showExplore = false;
       _showBeforeGroup = false;
+<<<<<<< HEAD
       _showGroupCreating = false;
       _showSettings = false;
       _showProfile = false;
@@ -133,6 +160,8 @@ class _MainAppScreenState extends State<MainAppScreen> {
       _showGroupCreating = false;
       _showSettings = false;
       _showProfile = true;
+=======
+>>>>>>> 9fb9c5b (Add homepage frontend and after that implementation)
     });
   }
 
@@ -146,6 +175,7 @@ class _MainAppScreenState extends State<MainAppScreen> {
     }
   }
 
+<<<<<<< HEAD
   // Xử lý nút back của điện thoại
   Future<bool> _handleBackButton() async {
     // Nếu đang ở màn hình phụ (Settings, Detail, Explore, BeforeGroup, GroupCreating, Profile)
@@ -212,6 +242,13 @@ class _MainAppScreenState extends State<MainAppScreen> {
         onBack: _closeAllScreens,
         onCreateGroup: _openGroupCreating,
       );
+=======
+  @override
+  Widget build(BuildContext context) {
+    Widget mainContent;
+    if (_showBeforeGroup) {
+      mainContent = BeforeGroup(onBack: _closeAllScreens);
+>>>>>>> 9fb9c5b (Add homepage frontend and after that implementation)
     } else if (_showDetail && _selectedDestination != null) {
       mainContent = DestinationDetailScreen(
         destination: _selectedDestination,
@@ -229,6 +266,7 @@ class _MainAppScreenState extends State<MainAppScreen> {
       );
     } else {
       final List<Widget> _screens = [
+<<<<<<< HEAD
         HomePage(
           onDestinationTap: _openDestinationDetail,
           onSettingsTap: _openSettings,
@@ -236,12 +274,19 @@ class _MainAppScreenState extends State<MainAppScreen> {
         NotificationScreen(),
         MessagesScreen(accessToken: widget.accessToken),
         const PrivateScreen(),
+=======
+        HomePage(onDestinationTap: _openDestinationDetail),
+        Center(child: Text('Thông báo', style: TextStyle(fontSize: 24))),
+        MessagesScreen(),
+        Center(child: Text('Tài khoản', style: TextStyle(fontSize: 24))),
+>>>>>>> 9fb9c5b (Add homepage frontend and after that implementation)
       ];
       mainContent = IndexedStack(
         index: _selectedIndex,
         children: _screens,
       );
     }
+<<<<<<< HEAD
 
     return PopScope(
       canPop: false,
@@ -260,6 +305,13 @@ class _MainAppScreenState extends State<MainAppScreen> {
           currentIndex: _selectedIndex,
           onTap: _onItemTapped,
         ),
+=======
+    return Scaffold(
+      body: mainContent,
+      bottomNavigationBar: CustomBottomNavBar(
+        currentIndex: _selectedIndex,
+        onTap: _onItemTapped,
+>>>>>>> 9fb9c5b (Add homepage frontend and after that implementation)
       ),
     );
   }

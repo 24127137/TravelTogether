@@ -1,7 +1,10 @@
 // File: custom_bottom_nav_bar.dart (ĐÃ SỬA)
 
 import 'package:flutter/material.dart';
+<<<<<<< HEAD
 import 'package:easy_localization/easy_localization.dart';
+=======
+>>>>>>> 9fb9c5b (Add homepage frontend and after that implementation)
 
 class CustomBottomNavBar extends StatelessWidget {
   final int currentIndex;
@@ -19,6 +22,7 @@ class CustomBottomNavBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
+<<<<<<< HEAD
       height: 80 + MediaQuery.of(context).padding.bottom,
       decoration: const BoxDecoration(
         color: Colors.transparent,
@@ -53,11 +57,41 @@ class CustomBottomNavBar extends StatelessWidget {
             ],
           ),
         ),
+=======
+      // Padding Bottom để chừa khoảng trống cho Safe Area (notch/home bar)
+      padding: EdgeInsets.only(bottom: MediaQuery.of(context).padding.bottom > 0 ? 10 : 0),
+      height: 90 + MediaQuery.of(context).padding.bottom, // Tăng chiều cao để chứa Safe Area
+      decoration: BoxDecoration(
+        color: const Color(0xFFEDE2CC),
+        // Ensure the bottom bar is rectangular (no rounded corners)
+        shape: BoxShape.rectangle,
+        borderRadius: BorderRadius.zero,
+        boxShadow: [
+          BoxShadow(
+            color: const Color.fromRGBO(0, 0, 0, 0.1),
+            blurRadius: 100,
+            offset: const Offset(0, 4),
+          )
+        ],
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
+        children: [
+          // Index phải khớp với vị trí trong List<Widget> _screens ở MainAppScreen
+          _buildNavItem(context, Icons.home, 'Trang chủ', 0),
+          _buildNavItem(context, Icons.notifications_none, 'Thông báo', 1, hasBadge: true), // Thêm hasBadge
+          _buildNavItem(context, Icons.message_outlined, 'Tin nhắn', 2),
+          _buildNavItem(context, Icons.person_outline, 'Cá nhân', 3),
+        ],
+>>>>>>> 9fb9c5b (Add homepage frontend and after that implementation)
       ),
     );
   }
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> 9fb9c5b (Add homepage frontend and after that implementation)
   Widget _buildNavItem(
       BuildContext context,
       IconData icon,
@@ -99,7 +133,11 @@ class CustomBottomNavBar extends StatelessWidget {
             ),
             const SizedBox(height: 4),
             Text(
+<<<<<<< HEAD
               label.tr(),
+=======
+              label,
+>>>>>>> 9fb9c5b (Add homepage frontend and after that implementation)
               style: TextStyle(
                 color: color,
                 fontSize: 13,

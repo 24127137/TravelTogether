@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+<<<<<<< HEAD
 import 'package:easy_localization/easy_localization.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -110,3 +111,13 @@ class _SplashScreenState extends State<SplashScreen> {
     );
   }
 }
+=======
+import 'screens/main_app_screen.dart';
+
+void main() {
+  runApp(const MaterialApp(
+    home: MainAppScreen(),
+    debugShowCheckedModeBanner: false,
+  ));
+}
+>>>>>>> 9fb9c5b (Add homepage frontend and after that implementation)

@@ -2,10 +2,16 @@
 /// Mô tả: Màn hình tìm kiếm và chọn điểm đến, giao diện tiếng Việt.
 
 import 'package:flutter/material.dart';
+<<<<<<< HEAD
 import 'package:easy_localization/easy_localization.dart';
 import '../data/mock_explore_items.dart';
 import '../models/destination_explore_item.dart';
 //File này là screen tên là <Destination_search> trong figma
+=======
+import 'package:my_travel_app/data/mock_explore_items.dart';
+import 'package:my_travel_app/models/destination_explore_item.dart';
+
+>>>>>>> 9fb9c5b (Add homepage frontend and after that implementation)
 class DestinationSearchScreen extends StatefulWidget {
   final String cityId;
   const DestinationSearchScreen({Key? key, required this.cityId}) : super(key: key);
@@ -20,12 +26,19 @@ class _DestinationSearchScreenState extends State<DestinationSearchScreen> {
 
   @override
   Widget build(BuildContext context) {
+<<<<<<< HEAD
     final currentLocale = context.locale.languageCode;
+=======
+>>>>>>> 9fb9c5b (Add homepage frontend and after that implementation)
     final filteredItems = mockExploreItems
         .where((item) =>
     item.cityId == widget.cityId &&
         (item.name.toLowerCase().contains(_searchText.toLowerCase()) ||
+<<<<<<< HEAD
             item.getSubtitle(currentLocale).toLowerCase().contains(_searchText.toLowerCase())))
+=======
+            item.subtitle.toLowerCase().contains(_searchText.toLowerCase())))
+>>>>>>> 9fb9c5b (Add homepage frontend and after that implementation)
         .toList();
 
     return Scaffold(
@@ -40,7 +53,11 @@ class _DestinationSearchScreenState extends State<DestinationSearchScreen> {
             child: Padding(
               padding: const EdgeInsets.only(left: 24.0, top: 16.0, bottom: 0.0),
               child: Text(
+<<<<<<< HEAD
                 'place'.tr(),
+=======
+                'Địa điểm',
+>>>>>>> 9fb9c5b (Add homepage frontend and after that implementation)
                 style: const TextStyle(
                   fontFamily: 'Alumni Sans',
                   fontWeight: FontWeight.w800,
@@ -114,7 +131,11 @@ class _DestinationSearchScreenState extends State<DestinationSearchScreen> {
           });
         },
         decoration: InputDecoration(
+<<<<<<< HEAD
           hintText: 'search_place'.tr(),
+=======
+          hintText: 'Tìm kiếm địa điểm...',
+>>>>>>> 9fb9c5b (Add homepage frontend and after that implementation)
           filled: true,
           fillColor: const Color(0xFFEDE2CC),
           border: OutlineInputBorder(
@@ -198,7 +219,11 @@ class _DestinationSearchScreenState extends State<DestinationSearchScreen> {
                           overflow: TextOverflow.ellipsis,
                         ),
                         Text(
+<<<<<<< HEAD
                           item.getSubtitle(context.locale.languageCode), // Dịch subtitle
+=======
+                          item.subtitle, // MÔ TẢ NGẮN (SUBTITLE)
+>>>>>>> 9fb9c5b (Add homepage frontend and after that implementation)
                           style: const TextStyle(
                             fontFamily: 'Roboto',
                             fontWeight: FontWeight.w400,
@@ -260,5 +285,10 @@ class _DestinationSearchScreenState extends State<DestinationSearchScreen> {
        ],
      );
    }
+<<<<<<< HEAD
 }
+=======
+
+} // end of _DestinationSearchScreenState
+>>>>>>> 9fb9c5b (Add homepage frontend and after that implementation)
 
