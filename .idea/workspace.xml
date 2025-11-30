@@ -64,6 +64,7 @@
     "cf.first.check.clang-format": "false",
     "cidr.known.project.marker": "true",
     "com.google.services.firebase.aqiPopupShown": "true",
+    "dart.analysis.tool.window.visible": "false",
     "git-widget-placeholder": "feature/fe/week7",
     "io.flutter.reload.alreadyRun": "true",
     "kotlin-language-version-configured": "true",
