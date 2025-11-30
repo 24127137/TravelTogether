@@ -3,7 +3,9 @@ import asyncio
 import logging
 from typing import Dict, List, Optional, Any
 from supabase import create_client, Client
-from sqlmodel import Session
+from sqlmodel import Session, select
+from sqlalchemy import desc
+from datetime import datetime
 
 # Import Model và Config
 from chat_ai_model import gemini_client
@@ -107,12 +109,11 @@ class ChatService:
     def _get_user_messages(self, user_id: str, limit: int = 50) -> List[AIMessages]:
         """Lấy lịch sử chat của user (mới nhất trước)"""
         try:
-            statement = (
-                select(AIMessages)
-                .where(AIMessages.user_id == user_id)
-                .order_by(desc(AIMessages.created_at))
+            statement = select(AIMessages)\
+                .where(AIMessages.user_id == user_id)\
+                .order_by(desc(AIMessages.created_at))\
                 .limit(limit)
-            )
+            
             messages = self.db.exec(statement).all()
             return list(reversed(messages))  # Reverse để theo thứ tự cũ → mới
         except Exception as e:
