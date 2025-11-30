@@ -29,7 +29,6 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  // Trạng thái cho bộ chọn ngày
   bool _isCalendarVisible = false;
   DateTime? _rangeStart;
   DateTime? _rangeEnd;
@@ -37,11 +36,56 @@ class _HomePageState extends State<HomePage> {
 
   final UserService _userService = UserService(); // Init Service
 
+  String _userName = 'User'; // Mặc định
+  String? _userAvatar;
+
   @override
   void initState() {
     super.initState();
+    _loadUserInfo();
     // Tự động kiểm tra xem có cần popup thông báo vào nhóm không
     _checkNewGroupAcceptance();
+  }
+
+  Future<void> _loadUserInfo() async {
+    final prefs = await SharedPreferences.getInstance();
+
+    // 1. Load từ cache trước để hiển thị ngay
+    setState(() {
+      _userName = prefs.getString('user_firstname') ?? 'User';
+      _userAvatar = prefs.getString('user_avatar');
+    });
+
+    // 2. Gọi API để lấy dữ liệu mới nhất
+    try {
+      final token = await AuthService.getValidAccessToken();
+      if (token != null) {
+        final profile = await _userService.getUserProfile();
+        if (profile != null) {
+          String fullName = profile['fullname'] ?? 'User';
+          dynamic avatarUrl = profile['avatar_url'];
+
+          // Tách tên (Lấy chữ cuối cùng trong họ tên, ví dụ: "Nguyễn Văn Toàn" -> "Toàn")
+          String firstName = fullName.trim().split(' ').last;
+
+          // Lưu vào cache
+          await prefs.setString('user_firstname', firstName);
+          if (avatarUrl != null && avatarUrl.toString().isNotEmpty) {
+            await prefs.setString('user_avatar', avatarUrl.toString());
+          }
+
+          // Cập nhật UI
+          if (mounted) {
+            setState(() {
+              _userName = firstName;
+              _userAvatar = avatarUrl?.toString();
+            });
+          }
+        }
+      }
+    } catch (e) {
+      print('Lỗi load user info: $e');
+    }
   }
 
   // --- LOGIC AUTO POPUP ---
@@ -204,6 +248,8 @@ class _HomePageState extends State<HomePage> {
                     onSettingsTap: widget.onSettingsTap,
                     // Truyền hàm xử lý nút Loa xuống dưới
                     onAnnouncementTap: _handleAnnouncementTap,
+                    userName: _userName,
+                    avatarUrl: _userAvatar,
                   ),
                   Expanded(
                     child: ListView(
@@ -261,6 +307,8 @@ class _TopSection extends StatelessWidget {
   final VoidCallback onDurationTap;
   final VoidCallback? onSettingsTap;
   final VoidCallback onAnnouncementTap; // Callback mới
+  final String userName;
+  final String? avatarUrl;
 
   const _TopSection({
     required this.durationText,
@@ -268,6 +316,8 @@ class _TopSection extends StatelessWidget {
     required this.onDurationTap,
     this.onSettingsTap,
     required this.onAnnouncementTap, // Required
+    required this.userName,
+    this.avatarUrl,
   });
 
   @override
@@ -286,6 +336,8 @@ class _TopSection extends StatelessWidget {
           _CustomAppBar(
             onSettingsTap: onSettingsTap,
             onAnnouncementTap: onAnnouncementTap, // Truyền tiếp
+            userName: userName,
+            avatarUrl: avatarUrl,
           ),
           const SizedBox(height: 24),
           _SelectionButton(
@@ -308,36 +360,43 @@ class _TopSection extends StatelessWidget {
 class _CustomAppBar extends StatelessWidget {
   final VoidCallback? onSettingsTap;
   final VoidCallback onAnnouncementTap; // Callback mới
+  final String userName;
+  final String? avatarUrl;
 
   const _CustomAppBar({
     this.onSettingsTap,
     required this.onAnnouncementTap,
+    required this.userName,
+    this.avatarUrl,
   });
 
   @override
   Widget build(BuildContext context) {
     return Row(
       children: [
+        // AVATAR ĐỘNG
         Container(
-          decoration: ShapeDecoration(
+          decoration: const ShapeDecoration(
             shape: OvalBorder(
               side: BorderSide(
                 width: 2,
                 strokeAlign: BorderSide.strokeAlignCenter,
-                color: const Color(0xFFF7F3E8),
+                color: Color(0xFFF7F3E8),
               ),
             ),
           ),
-          child: const CircleAvatar(
-            // Cần đảm bảo asset này tồn tại
-            // Thay thế bằng NetworkImage nếu cần
-            backgroundImage: AssetImage('assets/images/avatar.jpg'),
+          child: CircleAvatar(
             radius: 18,
+            backgroundColor: Colors.grey[300], // Màu nền khi chưa có ảnh
+            backgroundImage: (avatarUrl != null && avatarUrl!.isNotEmpty)
+                ? NetworkImage(avatarUrl!) as ImageProvider
+                : const AssetImage('assets/images/avatar.jpg'), // Ảnh mặc định
           ),
         ),
         const SizedBox(width: 12),
+        // TÊN ĐỘNG
         Text(
-          'hello_user'.tr(),
+          'hello_user'.tr(args: [userName]), // Dùng tham số dịch: "Xin chào, {name}"
           style: const TextStyle(
               fontFamily: 'Poppins', fontSize: 16, fontWeight: FontWeight.w600),
         ),
