@@ -3,12 +3,16 @@ import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
 import '../../models/feedback_models.dart'; // Import models
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> 274291d (update)
 import '../../services/feedback_service.dart'; // Import FeedbackService
 import '../../services/group_service.dart'; // <--- 1. Import GroupService để lấy ảnh
 
 class FeedbackScreen extends StatefulWidget {
   final PendingReviewGroup groupData;
   final String accessToken;
+<<<<<<< HEAD
 =======
 import '../../services/feedback_service.dart'; // Import service
 
@@ -16,15 +20,21 @@ class FeedbackScreen extends StatefulWidget {
   final PendingReviewGroup groupData;
   final String accessToken; // <--- Thêm biến này
 >>>>>>> 3ee7efe (done all groupapis)
+=======
+>>>>>>> 274291d (update)
 
   const FeedbackScreen({
     super.key,
     required this.groupData,
 <<<<<<< HEAD
+<<<<<<< HEAD
     required this.accessToken,
 =======
     required this.accessToken, // <--- Yêu cầu bắt buộc
 >>>>>>> 3ee7efe (done all groupapis)
+=======
+    required this.accessToken,
+>>>>>>> 274291d (update)
   });
 
   @override
@@ -35,9 +45,13 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
   late List<UnreviewedMember> _remainingMembers;
   final FeedbackService _apiService = FeedbackService();
 <<<<<<< HEAD
+<<<<<<< HEAD
   final GroupService _groupService = GroupService(); // <--- 2. Init Service
 =======
 >>>>>>> 3ee7efe (done all groupapis)
+=======
+  final GroupService _groupService = GroupService(); // <--- 2. Init Service
+>>>>>>> 274291d (update)
 
   // State
   UnreviewedMember? selectedMember;
@@ -46,11 +60,17 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
   bool isLoading = false;
 
 <<<<<<< HEAD
+<<<<<<< HEAD
   // Biến chứa ảnh mới load từ API (nếu model cũ thiếu ảnh)
   String? _latestImageUrl;
 
 =======
 >>>>>>> 3ee7efe (done all groupapis)
+=======
+  // Biến chứa ảnh mới load từ API (nếu model cũ thiếu ảnh)
+  String? _latestImageUrl;
+
+>>>>>>> 274291d (update)
   // --- MAPPING TAGS ---
   final Map<int, Map<String, String>> tagsMapping = {
     1: {
@@ -80,6 +100,9 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
     super.initState();
     _remainingMembers = List.from(widget.groupData.unreviewedMembers);
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> 274291d (update)
 
     // <--- 3. GỌI API LẤY ẢNH NẾU THIẾU --->
     if (widget.groupData.groupImageUrl == null || widget.groupData.groupImageUrl!.isEmpty) {
@@ -100,8 +123,11 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
     } catch (e) {
       print("Lỗi load ảnh nhóm: $e");
     }
+<<<<<<< HEAD
 =======
 >>>>>>> 3ee7efe (done all groupapis)
+=======
+>>>>>>> 274291d (update)
   }
 
   void _resetForm() {
@@ -124,13 +150,17 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
 
     try {
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
       // 1. Convert tags
 >>>>>>> 3ee7efe (done all groupapis)
+=======
+>>>>>>> 274291d (update)
       final englishTags = selectedTags.map((displayTag) {
         return tagsMapping[selectedStars]![displayTag]!;
       }).toList();
 
+<<<<<<< HEAD
 <<<<<<< HEAD
       final success = await _apiService.submitFeedback(
         token: widget.accessToken,
@@ -139,6 +169,10 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
       final success = await _apiService.submitFeedback(
         token: widget.accessToken, // <--- Dùng token từ widget
 >>>>>>> 3ee7efe (done all groupapis)
+=======
+      final success = await _apiService.submitFeedback(
+        token: widget.accessToken,
+>>>>>>> 274291d (update)
         revId: selectedMember!.profileId,
         groupId: widget.groupData.groupId,
         rating: selectedStars,
@@ -196,12 +230,18 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
   Widget build(BuildContext context) {
     final availableDisplayTags = selectedStars > 0 ? tagsMapping[selectedStars]!.keys.toList() : <String>[];
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> 274291d (update)
 
     // <--- 4. ƯU TIÊN ẢNH VỪA LOAD ĐƯỢC --->
     final displayImage = _latestImageUrl ?? widget.groupData.groupImageUrl;
     final hasImage = displayImage != null && displayImage.isNotEmpty;
+<<<<<<< HEAD
 =======
 >>>>>>> 3ee7efe (done all groupapis)
+=======
+>>>>>>> 274291d (update)
 
     return Scaffold(
       resizeToAvoidBottomInset: false,
@@ -296,12 +336,17 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
                                           borderRadius: BorderRadius.circular(10),
                                           image: DecorationImage(
 <<<<<<< HEAD
+<<<<<<< HEAD
                                             image: hasImage
                                                 ? NetworkImage(displayImage) as ImageProvider
 =======
                                             image: (widget.groupData.groupImageUrl != null)
                                                 ? NetworkImage(widget.groupData.groupImageUrl!) as ImageProvider
 >>>>>>> 3ee7efe (done all groupapis)
+=======
+                                            image: hasImage
+                                                ? NetworkImage(displayImage) as ImageProvider
+>>>>>>> 274291d (update)
                                                 : const AssetImage('assets/images/default_group.jpg'),
                                             fit: BoxFit.cover,
                                             onError: (_, __) {},

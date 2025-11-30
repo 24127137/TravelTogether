@@ -5,18 +5,20 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="fc62ebc6-5fea-4dae-abc1-b5859c194cd0" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/DEBUG_REALTIME_NOTIFICATIONS.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/LOCAL_NOTIFICATIONS_GUIDE.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/NOTIFICATION_NAVIGATION_GUIDE.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/NOTIFICATION_TAP_FIX_SUMMARY.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/REALTIME_NOTIFICATIONS_AND_BRANDING.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/TESTING_NOTIFICATION_NAVIGATION.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/frontend/lib/services/background_notification_service.dart" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/frontend/lib/services/notification_service.dart" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/frontend/lib/widgets/notification_permission_dialog.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/libraries/Dart_Packages.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/libraries/Dart_Packages.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+<<<<<<< HEAD
+=======
+      <change beforePath="$PROJECT_DIR$/CHATBOX_MERGE_SUMMARY.md" beforeDir="false" afterPath="$PROJECT_DIR$/CHATBOX_MERGE_SUMMARY.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/DESTINATION_EXPLORE_RESOLUTION.md" beforeDir="false" afterPath="$PROJECT_DIR$/DESTINATION_EXPLORE_RESOLUTION.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/HOME_PAGE_MERGE_SUMMARY.md" beforeDir="false" afterPath="$PROJECT_DIR$/HOME_PAGE_MERGE_SUMMARY.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/group_services/host.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/group_services/host.py" afterDir="false" />
+>>>>>>> 274291d (update)
       <change beforePath="$PROJECT_DIR$/frontend/lib/config/api_config.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/lib/config/api_config.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/lib/screens/chatbox_screen.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/lib/screens/chatbox_screen.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/lib/screens/feedback_screen.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/lib/screens/feedback_screen.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/lib/screens/group_state_screen.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/lib/screens/group_state_screen.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/lib/screens/home_page.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/lib/screens/home_page.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/lib/screens/main_app_screen.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/lib/screens/main_app_screen.dart" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -49,28 +51,27 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;Flutter.Test.executor&quot;: &quot;Run&quot;,
-    &quot;Flutter.main.dart.executor&quot;: &quot;Run&quot;,
-    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.cidr.known.project.marker&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.readMode.enableVisualFormatting&quot;: &quot;true&quot;,
-    &quot;cf.first.check.clang-format&quot;: &quot;false&quot;,
-    &quot;cidr.known.project.marker&quot;: &quot;true&quot;,
-    &quot;com.google.services.firebase.aqiPopupShown&quot;: &quot;true&quot;,
-    &quot;dart.analysis.tool.window.visible&quot;: &quot;false&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;feature/fe/week7&quot;,
-    &quot;io.flutter.reload.alreadyRun&quot;: &quot;true&quot;,
-    &quot;kotlin-language-version-configured&quot;: &quot;true&quot;,
-    &quot;last_opened_file_path&quot;: &quot;C:/Users/tn421/TravelTogether&quot;,
-    &quot;settings.editor.selected.configurable&quot;: &quot;flutter.settings&quot;,
-    &quot;show.migrate.to.gradle.popup&quot;: &quot;false&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "Flutter.Test.executor": "Run",
+    "Flutter.main.dart.executor": "Run",
+    "ModuleVcsDetector.initialDetectionPerformed": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
+    "RunOnceActivity.cidr.known.project.marker": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "RunOnceActivity.readMode.enableVisualFormatting": "true",
+    "cf.first.check.clang-format": "false",
+    "cidr.known.project.marker": "true",
+    "com.google.services.firebase.aqiPopupShown": "true",
+    "git-widget-placeholder": "feature/fe/week7",
+    "io.flutter.reload.alreadyRun": "true",
+    "kotlin-language-version-configured": "true",
+    "last_opened_file_path": "C:/Users/tn421/TravelTogether",
+    "settings.editor.selected.configurable": "flutter.settings",
+    "show.migrate.to.gradle.popup": "false"
   }
-}</component>
+}]]></component>
   <component name="RunManager">
     <configuration name="main.dart" type="FlutterRunConfigurationType" factoryName="Flutter">
       <option name="filePath" value="$PROJECT_DIR$/frontend/lib/main.dart" />

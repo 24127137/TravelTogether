@@ -9,6 +9,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 <<<<<<< HEAD
+<<<<<<< HEAD
 import '../config/api_config.dart';
 import '../models/message.dart';
 import 'host_member_screen.dart';
@@ -20,6 +21,14 @@ import '../models/message.dart';
 import 'member_screen(Host).dart' as host;
 import 'member_screen(Member).dart' as member;
 >>>>>>> 3ee7efe (done all groupapis)
+=======
+import 'package:web_socket_channel/status.dart' as status;
+import '../services/auth_service.dart';
+import '../config/api_config.dart';
+import '../models/message.dart';
+import 'member_screen(Host).dart' as host;
+import 'member_screen(Member).dart' as member;
+>>>>>>> 274291d (update)
 
 //màn hình lúc chat
 class ChatboxScreen extends StatefulWidget {
@@ -52,6 +61,7 @@ class _ChatboxScreenState extends State<ChatboxScreen> with WidgetsBindingObserv
   bool _isAutoScrolling = false; // === THÊM MỚI: Cờ để tránh mark seen khi auto scroll ===
   Map<int, GlobalKey> _messageKeys = {}; // === THÊM MỚI: keys per message for ensureVisible ===
   bool _showScrollToBottomButton = false; // === THÊM MỚI: Hiển thị nút scroll xuống ===
+<<<<<<< HEAD
 =======
   final ImagePicker _imagePicker = ImagePicker();
   List<Message> _messages = [];
@@ -67,6 +77,10 @@ class _ChatboxScreenState extends State<ChatboxScreen> with WidgetsBindingObserv
   String _groupName = '';
   String? _groupImageUrl;
 >>>>>>> 3ee7efe (done all groupapis)
+=======
+  String _groupName = ''; // === THÊM MỚI: Tên nhóm ===
+  String? _groupImageUrl; // === THÊM MỚI: Ảnh nhóm ===
+>>>>>>> 274291d (update)
 
   @override
   void initState() {
@@ -763,7 +777,7 @@ class _ChatboxScreenState extends State<ChatboxScreen> with WidgetsBindingObserv
     _saveLastSeenMessage();
 
     // Đóng WebSocket connection
-    _channel?.sink.close();
+    _channel?.sink.close(status.normalClosure);
 
     // Clean up controllers
 =======
@@ -771,6 +785,7 @@ class _ChatboxScreenState extends State<ChatboxScreen> with WidgetsBindingObserv
 >>>>>>> 3ee7efe (done all groupapis)
     _controller.dispose();
     _scrollController.dispose();
+    _focusNode.removeListener(() {});
     _focusNode.dispose();
 
     super.dispose();
@@ -1024,6 +1039,12 @@ class _ChatboxScreenState extends State<ChatboxScreen> with WidgetsBindingObserv
         final data = jsonDecode(utf8.decode(response.bodyBytes));
         final List<dynamic> members = data['members'] ?? [];
 
+        // === THÊM MỚI: Lưu tên nhóm và ảnh nhóm ===
+        setState(() {
+          _groupName = data['name']?.toString() ?? '';
+          _groupImageUrl = data['image_url']?.toString();
+        });
+
         // Cache avatar theo profile_uuid
         for (var member in members) {
           final profileUuid = member['profile_uuid'] as String?;
@@ -1035,6 +1056,7 @@ class _ChatboxScreenState extends State<ChatboxScreen> with WidgetsBindingObserv
         }
 
         print('✅ Group members loaded: ${_groupMembers.length} members');
+        print('✅ Group name: $_groupName');
         print('✅ User avatars: $_userAvatars');
       }
     } catch (e) {
@@ -1137,7 +1159,7 @@ class _ChatboxScreenState extends State<ChatboxScreen> with WidgetsBindingObserv
 
         // === THÊM MỚI: Fetch avatars for all senders (parallel) ===
         await Future.wait(
-          senderIds.map((id) => _fetchUserAvatar(id))
+            senderIds.map((id) => _fetchUserAvatar(id))
         );
 
         setState(() {
@@ -1237,7 +1259,7 @@ class _ChatboxScreenState extends State<ChatboxScreen> with WidgetsBindingObserv
 
       // Lắng nghe tin nhắn từ server
       _channel!.stream.listen(
-        (message) {
+            (message) {
           print('📥 WebSocket received: $message');
           _handleWebSocketMessage(message);
         },
@@ -1508,11 +1530,125 @@ class _ChatboxScreenState extends State<ChatboxScreen> with WidgetsBindingObserv
     }
   }
 
+  // === THÊM MỚI: Navigate to members screen based on user role ===
+  Future<void> _navigateToMembersScreen() async {
+    _accessToken = await AuthService.getValidAccessToken();
+
+    try {
+      final groupUrl = ApiConfig.getUri(ApiConfig.myGroup);
+      final groupResponse = await http.get(
+        groupUrl,
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer $_accessToken",
+        },
+      );
+
+      if (groupResponse.statusCode != 200) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Lỗi load thông tin nhóm')),
+          );
+        }
+        return;
+      }
+
+      final groupData = jsonDecode(utf8.decode(groupResponse.bodyBytes));
+
+      final groupName = groupData['name']?.toString() ?? 'Unknown Group';
+      final currentMembers = groupData['member_count'] as int? ?? 0;
+      final maxMembers = groupData['max_members'] as int? ?? 0;
+
+      String? currentUserRole;
+      final List<dynamic> membersList = groupData['members'] ?? [];
+
+      for (var memberData in membersList) {
+        final profileUuid = memberData['profile_uuid']?.toString();
+        if (profileUuid == _currentUserId) {
+          currentUserRole = memberData['role']?.toString();
+          print('✅ Found current user role: $currentUserRole');
+          break;
+        }
+      }
+
+      final List<host.Member> ownerMembers = [];
+      final List<member.Member> memberMembers = [];
+      for (var memberData in membersList) {
+        try {
+          final profileUuid = memberData['profile_uuid']?.toString();
+          final fullname = memberData['fullname']?.toString();
+          final email = memberData['email']?.toString();
+          final avatarUrl = memberData['avatar_url']?.toString();
+
+          if (profileUuid == null || profileUuid.isEmpty) {
+            continue;
+          }
+
+          if (currentUserRole?.toLowerCase() == 'owner') {
+            ownerMembers.add(host.Member(
+              id: profileUuid,
+              name: fullname ?? 'Unknown',
+              email: email ?? 'no-email@example.com',
+              avatarUrl: avatarUrl,
+            ));
+          } else {
+            memberMembers.add(member.Member(
+              id: profileUuid,
+              name: fullname ?? 'Unknown',
+              email: email ?? 'no-email@example.com',
+              avatarUrl: avatarUrl ?? '',
+            ));
+          }
+        } catch (e) {
+          print('⚠️ Error parsing member: $e');
+          continue;
+        }
+      }
+
+      if (mounted) {
+        if (currentUserRole?.toLowerCase() == 'owner') {
+          print('🚀 Navigating to MemberScreenHost (Owner)');
+          await Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => host.MemberScreenHost(
+                groupName: groupName,
+                currentMembers: currentMembers,
+                maxMembers: maxMembers,
+                members: ownerMembers,
+              ),
+            ),
+          );
+        } else {
+          print('🚀 Navigating to MemberScreenMember (Member)');
+          await Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => member.MemberScreenMember(
+                groupName: groupName,
+                currentMembers: currentMembers,
+                maxMembers: maxMembers,
+                members: memberMembers,
+              ),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      print('❌ Error loading members: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Lỗi load thành viên: $e')),
+        );
+      }
+    }
+  }
+
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      resizeToAvoidBottomInset: true, // === SỬA: true để UI resize khi keyboard mở ===
+      resizeToAvoidBottomInset: false, // === SỬA: false để dùng Positioned input bar ===
       appBar: AppBar(
         backgroundColor: const Color(0xFFB99668),
         elevation: 0,
@@ -1525,10 +1661,14 @@ class _ChatboxScreenState extends State<ChatboxScreen> with WidgetsBindingObserv
           children: [
             Text(
 <<<<<<< HEAD
+<<<<<<< HEAD
               'chat_title'.tr(),
 =======
               _groupName.isNotEmpty ? _groupName : 'chat_title'.tr(),
 >>>>>>> 3ee7efe (done all groupapis)
+=======
+              _groupName.isNotEmpty ? _groupName : 'chat_title'.tr(),
+>>>>>>> 274291d (update)
               style: const TextStyle(
                 color: Colors.white,
                 fontSize: 16,
@@ -1567,14 +1707,20 @@ class _ChatboxScreenState extends State<ChatboxScreen> with WidgetsBindingObserv
             ),
           )
 <<<<<<< HEAD
+<<<<<<< HEAD
         : Stack( // === SỬA ĐỔI: Sử dụng Stack để chồng nút lên trên danh sách tin nhắn ===
 =======
+=======
+>>>>>>> 274291d (update)
         : LayoutBuilder(
         builder: (context, constraints) {
           final bottomInset = MediaQuery.of(context).viewInsets.bottom;
           const double inputBarHeight = 56.0;
           return Stack(
+<<<<<<< HEAD
 >>>>>>> 3ee7efe (done all groupapis)
+=======
+>>>>>>> 274291d (update)
             children: [
               Column(
                 children: [
@@ -1596,18 +1742,18 @@ class _ChatboxScreenState extends State<ChatboxScreen> with WidgetsBindingObserv
                               color: Colors.white,
                               child: ListView.builder(
                                 controller: _scrollController,
-                                padding: const EdgeInsets.only(
+                                padding: EdgeInsets.only(
                                   left: 12,
                                   right: 12,
                                   top: 16,
-                                  bottom: 16,
+                                  bottom: inputBarHeight + 8 + bottomInset,
                                 ),
                                 itemCount: _messages.length,
                                 itemBuilder: (context, index) {
                                   final m = _messages[index];
 <<<<<<< HEAD
                                   final dateSeparator = _getDateSeparator(index);
-                                  final shouldShowAvatar = _shouldShowAvatar(index); // === THÊM MỚI: Message grouping ===
+                                  final shouldShowAvatar = _shouldShowAvatar(index);
 
                                   // Ensure we have a GlobalKey for this index
                                   _messageKeys[index] = _messageKeys[index] ?? GlobalKey();
@@ -1650,7 +1796,7 @@ class _ChatboxScreenState extends State<ChatboxScreen> with WidgetsBindingObserv
                                               await Scrollable.ensureVisible(
                                                 messageKey.currentContext!,
                                                 duration: const Duration(milliseconds: 300),
-                                                alignment: 0.3, // try to position message above keyboard
+                                                alignment: 0.3,
                                                 curve: Curves.easeOut,
                                               );
                                             } catch (e) {
@@ -1671,7 +1817,7 @@ class _ChatboxScreenState extends State<ChatboxScreen> with WidgetsBindingObserv
                                             message: m,
                                             senderAvatarUrl: m.senderAvatarUrl,
                                             currentUserId: _currentUserId,
-                                            shouldShowAvatar: shouldShowAvatar, // === THÊM MỚI: Truyền thông tin grouping ===
+                                            shouldShowAvatar: shouldShowAvatar,
                                           ),
                                         ),
                                       ),
@@ -1684,71 +1830,7 @@ class _ChatboxScreenState extends State<ChatboxScreen> with WidgetsBindingObserv
 >>>>>>> 3ee7efe (done all groupapis)
                                   );
                                 },
-                              ), // ListView.builder
-                            ), // Container (color: Colors.white)
-                          ), // Expanded
-                        ], // children of inner Column
-                      ), // Column
-                    ), // Container (with decoration)
-                  ), // Expanded
-
-                  // Input bar at bottom
-                  SafeArea(
-                    top: false,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
-                      color: Colors.white,
-                      child: Row(
-                        children: [
-                          // === THÊM MỚI: Nút chọn ảnh - hiện bottom sheet để chọn camera/gallery ===
-                          Material(
-                            color: const Color(0xFFB99668),
-                            shape: const CircleBorder(),
-                            child: IconButton(
-                              icon: _isUploading
-                                ? const SizedBox(
-                                    width: 20,
-                                    height: 20,
-                                    child: CircularProgressIndicator(
-                                      color: Colors.white,
-                                      strokeWidth: 2,
-                                    ),
-                                  )
-                                : const Icon(Icons.add_photo_alternate, color: Colors.white),
-                              onPressed: _isUploading ? null : _showImageSourceSelection,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFEBE3D7),
-                                borderRadius: BorderRadius.circular(30.0),
                               ),
-                              child: TextField(
-                                controller: _controller,
-                                focusNode: _focusNode,
-                                maxLines: null, // === SỬA: Cho phép nhiều dòng ===
-                                minLines: 1, // === SỬA: Bắt đầu với 1 dòng ===
-                                keyboardType: TextInputType.multiline, // === SỬA: Keyboard hỗ trợ multiline ===
-                                textInputAction: TextInputAction.newline, // === SỬA: Enter để xuống dòng ===
-                                decoration: InputDecoration(
-                                  contentPadding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-                                  hintText: 'enter_message'.tr(),
-                                  hintStyle: const TextStyle(color: Colors.black38),
-                                  border: InputBorder.none,
-                                ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Material(
-                            color: const Color(0xFFB99668),
-                            shape: const CircleBorder(),
-                            child: IconButton(
-                              icon: const Icon(Icons.send, color: Colors.white),
-                              onPressed: _sendMessage,
                             ),
                           ),
                         ],
@@ -1758,11 +1840,81 @@ class _ChatboxScreenState extends State<ChatboxScreen> with WidgetsBindingObserv
                 ],
               ),
 <<<<<<< HEAD
+<<<<<<< HEAD
               // === THÊM MỚI: Nút "Go to latest message" - Positioned ở giữa màn hình, bên phải ===
+=======
+
+              // === THÊM MỚI: Input bar positioned at bottom ===
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: bottomInset,
+                child: SafeArea(
+                  top: false,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
+                    color: Colors.white,
+                    child: Row(
+                      children: [
+                        Material(
+                          color: const Color(0xFFB99668),
+                          shape: const CircleBorder(),
+                          child: IconButton(
+                            icon: _isUploading
+                              ? const SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                    color: Colors.white,
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                              : const Icon(Icons.add_photo_alternate, color: Colors.white),
+                            onPressed: _isUploading ? null : _showImageSourceSelection,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFEBE3D7),
+                              borderRadius: BorderRadius.circular(30.0),
+                            ),
+                            child: TextField(
+                              controller: _controller,
+                              focusNode: _focusNode,
+                              decoration: InputDecoration(
+                                contentPadding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                                hintText: 'enter_message'.tr(),
+                                hintStyle: const TextStyle(color: Colors.black38),
+                                border: InputBorder.none,
+                              ),
+                              onSubmitted: (_) => _sendMessage(),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Material(
+                          color: const Color(0xFFB99668),
+                          shape: const CircleBorder(),
+                          child: IconButton(
+                            icon: const Icon(Icons.send, color: Colors.white),
+                            onPressed: _sendMessage,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+
+              // === THÊM MỚI: Nút "Go to latest message" ===
+>>>>>>> 274291d (update)
               if (_showScrollToBottomButton)
                 Positioned(
-                  right: 16, // === Căn bên phải ===
-                  bottom: 100, // === Cách đáy 100px để tránh input bar ===
+                  right: 16,
+                  bottom: 100 + bottomInset,
                   child: Material(
                     color: const Color(0xFFB99668),
                     elevation: 6,
@@ -1773,6 +1925,7 @@ class _ChatboxScreenState extends State<ChatboxScreen> with WidgetsBindingObserv
                       onPressed: _isAutoScrolling
                           ? null
                           : () async {
+<<<<<<< HEAD
                               if (!_scrollController.hasClients) return;
                               try {
                                 _isAutoScrolling = true;
@@ -1850,13 +2003,32 @@ class _ChatboxScreenState extends State<ChatboxScreen> with WidgetsBindingObserv
                         ),
                       ],
 >>>>>>> 3ee7efe (done all groupapis)
+=======
+                        if (!_scrollController.hasClients) return;
+                        try {
+                          _isAutoScrolling = true;
+                          await _scrollController.animateTo(
+                            _scrollController.position.maxScrollExtent,
+                            duration: const Duration(milliseconds: 300),
+                            curve: Curves.easeOut,
+                          );
+                        } catch (e) {
+                          // ignore
+                        } finally {
+                          _isAutoScrolling = false;
+                          if (mounted) setState(() => _showScrollToBottomButton = false);
+                        }
+                      },
+>>>>>>> 274291d (update)
                     ),
                   ),
                 ),
-             ],
-           ),
-     );
-   }
+            ],
+          );
+        },
+      ),
+    );
+  }
 }
 
 class _MessageBubble extends StatelessWidget {
@@ -1919,18 +2091,18 @@ class _MessageBubble extends StatelessWidget {
               width: 48, // === Chiều rộng cố định cho vùng avatar ===
               child: showAvatar
                   ? Padding(
-                      padding: const EdgeInsets.only(right: 8.0),
-                      child: CircleAvatar(
-                        radius: 20,
-                        backgroundColor: const Color(0xFFD9CBB3),
-                        backgroundImage: senderAvatarUrl != null && senderAvatarUrl!.isNotEmpty
-                            ? NetworkImage(senderAvatarUrl!)
-                            : null,
-                        child: senderAvatarUrl == null || senderAvatarUrl!.isEmpty
-                            ? const Icon(Icons.person, size: 24, color: Colors.white)
-                            : null,
-                      ),
-                    )
+                padding: const EdgeInsets.only(right: 8.0),
+                child: CircleAvatar(
+                  radius: 20,
+                  backgroundColor: const Color(0xFFD9CBB3),
+                  backgroundImage: senderAvatarUrl != null && senderAvatarUrl!.isNotEmpty
+                      ? NetworkImage(senderAvatarUrl!)
+                      : null,
+                  child: senderAvatarUrl == null || senderAvatarUrl!.isEmpty
+                      ? const Icon(Icons.person, size: 24, color: Colors.white)
+                      : null,
+                ),
+              )
                   : const SizedBox(), // === Khoảng trống để canh chỉnh ===
 =======
           if (showAvatar) ...[
@@ -2017,11 +2189,16 @@ class _MessageBubble extends StatelessWidget {
                         fontSize: 16,
                         fontWeight: !isUser && !message.isSeen
 <<<<<<< HEAD
+<<<<<<< HEAD
                           ? FontWeight.bold  // === THÊM MỚI: In đậm nếu chưa seen ===
 =======
                           ? FontWeight.bold
 >>>>>>> 3ee7efe (done all groupapis)
                           : FontWeight.normal,
+=======
+                            ? FontWeight.bold  // === THÊM MỚI: In đậm nếu chưa seen ===
+                            : FontWeight.normal,
+>>>>>>> 274291d (update)
                       ),
                     ),
                   const SizedBox(height: 6),
@@ -2047,8 +2224,13 @@ class _MessageBubble extends StatelessWidget {
   }
 }
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 
+=======
+
+// === THÊM MỚI: PendingRequest class for member screen compatibility ===
+>>>>>>> 274291d (update)
 class PendingRequest {
   final String id;
   final String name;
@@ -2056,7 +2238,11 @@ class PendingRequest {
   final DateTime requestedAt;
   final double rating;
   final List<String> keywords;
+<<<<<<< HEAD
   
+=======
+
+>>>>>>> 274291d (update)
   PendingRequest({
     required this.id,
     required this.name,
@@ -2066,4 +2252,7 @@ class PendingRequest {
     this.keywords = const [],
   });
 }
+<<<<<<< HEAD
 >>>>>>> 3ee7efe (done all groupapis)
+=======
+>>>>>>> 274291d (update)
