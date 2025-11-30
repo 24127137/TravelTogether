@@ -134,7 +134,7 @@ async def send_ai_message(payload: SendRequest):
         raise HTTPException(status_code=500, detail=f"Lỗi nội bộ khi gọi AI: {e}")
 
     # Lưu response vào history
-    history.append({"role": "assistant", "text": ai_response_text})
+    history.append({"role": "ai", "text": ai_response_text})
 
     return SendResponse(response=ai_response_text)
 
