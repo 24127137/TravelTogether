@@ -134,6 +134,7 @@ class _TravelPlanScreenState extends State<TravelPlanScreen> {
           // Fallback cho trường hợp dữ liệu cũ dạng List
           rawNames = (itineraryData as List).map((e) => e.toString()).toList();
         }
+      }
 
 
       // Map tên sang ảnh (giữ nguyên logic cũ)
