@@ -42,7 +42,7 @@ class _HomePageState extends State<HomePage> {
   Future<void> _loadUserInfo() async {
     final prefs = await SharedPreferences.getInstance();
 
-    // 1. Load từ cache trước để hiển thị ngay
+    // 1. Load từ cache trước để hiển thị ngay (tránh UI trống)
     setState(() {
       _userName = prefs.getString('user_firstname') ?? 'User';
       _userAvatar = prefs.getString('user_avatar');
@@ -51,35 +51,46 @@ class _HomePageState extends State<HomePage> {
     // 2. Gọi API để lấy dữ liệu mới nhất
     try {
       final token = await AuthService.getValidAccessToken();
-      if (token != null) {
-        final profile = await _userService.getUserProfile();
-        if (profile != null) {
-          String fullName = profile['fullname'] ?? 'User';
-          String avatarUrl = profile['avatar_url'];
+      if (token == null) return;
 
-          // Tách tên (Lấy chữ cuối cùng trong họ tên, ví dụ: "Nguyễn Văn Toàn" -> "Toàn")
-          // Hoặc lấy chữ đầu tiên như bạn yêu cầu (nhưng tên người Việt thường gọi bằng tên cuối)
-          // Code dưới đây lấy tên cuối cùng (Last Word) cho tự nhiên.
-          String firstName = fullName.trim().split(' ').last;
+      final profile = await _userService.getUserProfile();
+      if (profile == null) return;
 
-          // Lưu vào cache
-          await prefs.setString('user_firstname', firstName);
-          if (avatarUrl != null) {
-            await prefs.setString('user_avatar', avatarUrl);
-          }
+      // Lấy fullname từ API: "Nguyễn Văn Toàn" hoặc "Toàn"
+      String fullName = profile['fullname']?.toString() ?? 'User';
+      String? avatarUrl = profile['avatar_url']?.toString();
 
-          // Cập nhật UI
-          if (mounted) {
-            setState(() {
-              _userName = firstName;
-              _userAvatar = avatarUrl;
-            });
-          }
-        }
+      // Tách tên: Lấy từ cuối cùng (tên người Việt)
+      // "Nguyễn Văn Toàn" -> "Toàn"
+      String firstName = fullName.trim().contains(' ')
+          ? fullName.trim().split(' ').last
+          : fullName.trim();
+
+      // Lưu cache để lần sau load nhanh
+      await prefs.setString('user_firstname', firstName);
+      if (avatarUrl != null && avatarUrl.isNotEmpty) {
+        await prefs.setString('user_avatar', avatarUrl);
+      } else {
+        await prefs.remove('user_avatar');
+      }
+
+      // Cập nhật UI
+      if (mounted) {
+        setState(() {
+          _userName = firstName;
+          _userAvatar = avatarUrl;
+        });
       }
     } catch (e) {
-      print('Lỗi load user info: $e');
+      print('❌ Lỗi load user info: $e');
     }
+  }
+
+  // === THÊM MỚI: Hàm refresh cho pull-to-refresh ===
+  Future<void> _handleRefresh() async {
+    await _loadUserInfo();
+    // Có thể thêm các refresh khác nếu cần (ví dụ: refresh danh sách điểm đến)
+    await Future.delayed(const Duration(milliseconds: 500)); // Thêm delay nhỏ cho mượt
   }
 
   // --- LOGIC AUTO POPUP ---
@@ -243,33 +254,38 @@ class _HomePageState extends State<HomePage> {
                     avatarUrl: _userAvatar,
                   ),
                   Expanded(
-                    child: ListView(
-                      padding: EdgeInsets.zero,
-                      children: [
-                        Padding(
-                          padding: const EdgeInsets.all(20.0),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            children: [
-                              Text(
-                                "top_destinations".tr(),
-                                style: const TextStyle(
-                                  color: Color(0xFFFFFFFF),
-                                  fontSize: 19,
-                                  fontFamily: 'Alegreya',
-                                  fontWeight: FontWeight.w900,
+                    child: RefreshIndicator(
+                      color: const Color(0xFF8A724C),
+                      backgroundColor: Colors.white,
+                      onRefresh: _handleRefresh,
+                      child: ListView(
+                        padding: EdgeInsets.zero,
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.all(20.0),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                Text(
+                                  "top_destinations".tr(),
+                                  style: const TextStyle(
+                                    color: Color(0xFFFFFFFF),
+                                    fontSize: 19,
+                                    fontFamily: 'Alegreya',
+                                    fontWeight: FontWeight.w900,
+                                  ),
                                 ),
-                              ),
-                              const SizedBox(height: 20),
-                              ...top5.map((dest) => _RecommendedCard(
-                                destination: dest,
-                                onTap: widget.onDestinationTap,
-                              )).toList(),
-                              SizedBox(height: MediaQuery.of(context).padding.bottom + 100),
-                            ],
+                                const SizedBox(height: 20),
+                                ...top5.map((dest) => _RecommendedCard(
+                                  destination: dest,
+                                  onTap: widget.onDestinationTap,
+                                )).toList(),
+                                SizedBox(height: MediaQuery.of(context).padding.bottom + 100),
+                              ],
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
                 ],

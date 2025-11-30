@@ -4,12 +4,16 @@
 import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 import 'home_page.dart';
 import 'messages_screen.dart';
 import '../widgets/custom_bottom_nav_bar.dart';
 import '../widgets/notification_permission_dialog.dart';
 import '../services/background_notification_service.dart';
 import '../services/notification_service.dart'; // Import service để xử lý badge
+import '../services/auth_service.dart'; // === THÊM MỚI: Import auth service ===
+import '../config/api_config.dart'; // === THÊM MỚI: Import API config ===
 import '../models/destination.dart';
 import 'destination_detail_screen.dart';
 import 'destination_explore_screen.dart';
@@ -52,12 +56,43 @@ class _MainAppScreenState extends State<MainAppScreen> {
   bool _showTravelPlan = false;
   String? _groupDestinationName;
 
+  // === THÊM MỚI: Loading state cho pre-load ===
+  bool _isPreLoading = false;
+
+  // === THÊM MỚI: Cache profile data để Settings/Profile load nhanh ===
+  Map<String, dynamic>? _cachedProfileData;
+
   @override
   void initState() {
     super.initState();
     _selectedIndex = widget.initialIndex;
     _startBackgroundNotificationService();
     _requestNotificationPermission();
+    _preloadProfileData(); // === THÊM MỚI: Pre-load data ngay khi app start ===
+  }
+
+  // === THÊM MỚI: Pre-load profile data ngay từ đầu ===
+  Future<void> _preloadProfileData() async {
+    try {
+      final token = await AuthService.getValidAccessToken();
+      if (token == null) return;
+
+      final url = ApiConfig.getUri(ApiConfig.userProfile);
+      final response = await http.get(
+        url,
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer $token",
+        },
+      );
+
+      if (response.statusCode == 200) {
+        _cachedProfileData = jsonDecode(utf8.decode(response.bodyBytes));
+        debugPrint('✅ Profile data pre-loaded successfully');
+      }
+    } catch (e) {
+      debugPrint('⚠️ Error pre-loading profile data: $e');
+    }
   }
 
   Future<void> _startBackgroundNotificationService() async {
@@ -168,23 +203,25 @@ class _MainAppScreenState extends State<MainAppScreen> {
     });
   }
 
-  void _closeAllScreens() {
-    setState(() {
-      _showDetail = false;
-      _showExplore = false;
-      _showBeforeGroup = false;
-      _showGroupCreating = false;
-      _showSettings = false;
-      _showProfile = false;
-      _showGroupState = false;
-      _showTravelPlan = false;
-      _showJoinGroup = false;
-      _selectedIndex = 0;
-    });
-  }
 
-  void _openSettings() {
+  // === SỬA MỚI: Pre-load data THỰC SỰ trước khi mở Settings ===
+  Future<void> _openSettings() async {
+    // Hiện loading ngay lập tức
+    setState(() => _isPreLoading = true);
+
+    // Load data nếu chưa có cache hoặc cache cũ
+    if (_cachedProfileData == null) {
+      await _preloadProfileData();
+    }
+
+    // Delay nhỏ để đảm bảo loading animation hiện (tối thiểu 400ms)
+    await Future.delayed(const Duration(milliseconds: 400));
+
+    if (!mounted) return;
+
+    // Ẩn loading và hiện Settings với data đã sẵn sàng
     setState(() {
+      _isPreLoading = false;
       _showDetail = false;
       _showExplore = false;
       _showBeforeGroup = false;
@@ -193,6 +230,13 @@ class _MainAppScreenState extends State<MainAppScreen> {
       _showProfile = false;
       _selectedIndex = -1;
     });
+  }
+
+  // === THÊM MỚI: Callback khi quay từ Profile về Settings ===
+  Future<void> _onProfileBack() async {
+    // Refresh cache trước khi quay về Settings
+    await _preloadProfileData();
+    _openSettings();
   }
 
   void _openGroupState() {
@@ -224,8 +268,71 @@ class _MainAppScreenState extends State<MainAppScreen> {
     });
   }
 
-  void _openProfile() {
+  void _closeAllScreens() {
     setState(() {
+      _showDetail = false;
+      _showExplore = false;
+      _showBeforeGroup = false;
+      _showGroupCreating = false;
+      _showSettings = false;
+      _showProfile = false;
+      _showJoinGroup = false;
+      _showGroupState = false;
+      _showTravelPlan = false;
+      _selectedIndex = 0;
+    });
+
+    // === THÊM MỚI: Update cache trong HomePage sau khi đóng Settings ===
+    _updateHomePageCache();
+  }
+
+  // === THÊM MỚI: Update cache để HomePage hiển thị ngay data mới ===
+  Future<void> _updateHomePageCache() async {
+    if (_cachedProfileData == null) return;
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+
+      // Lấy fullname và tách tên
+      String fullName = _cachedProfileData!['fullname']?.toString() ?? 'User';
+      String firstName = fullName.trim().contains(' ')
+          ? fullName.trim().split(' ').last
+          : fullName.trim();
+
+      String? avatarUrl = _cachedProfileData!['avatar_url']?.toString();
+
+      // Update cache trong SharedPreferences
+      await prefs.setString('user_firstname', firstName);
+      if (avatarUrl != null && avatarUrl.isNotEmpty) {
+        await prefs.setString('user_avatar', avatarUrl);
+      } else {
+        await prefs.remove('user_avatar');
+      }
+
+      debugPrint('✅ HomePage cache updated: $firstName, $avatarUrl');
+    } catch (e) {
+      debugPrint('❌ Error updating HomePage cache: $e');
+    }
+  }
+
+  // === SỬA MỚI: Pre-load data THỰC SỰ trước khi mở Profile ===
+  Future<void> _openProfile() async {
+    // Hiện loading ngay lập tức
+    setState(() => _isPreLoading = true);
+
+    // Load data nếu chưa có cache hoặc cache cũ
+    if (_cachedProfileData == null) {
+      await _preloadProfileData();
+    }
+
+    // Delay nhỏ để đảm bảo loading animation hiện (tối thiểu 400ms)
+    await Future.delayed(const Duration(milliseconds: 400));
+
+    if (!mounted) return;
+
+    // Ẩn loading và hiện Profile với data đã sẵn sàng
+    setState(() {
+      _isPreLoading = false;
       _showDetail = false;
       _showExplore = false;
       _showBeforeGroup = false;
@@ -363,11 +470,15 @@ class _MainAppScreenState extends State<MainAppScreen> {
         },
       );
     } else if (_showProfile) {
-      mainContent = ProfilePage(onBack: _openSettings);
+      mainContent = ProfilePage(
+        onBack: _onProfileBack, // === SỬA: Dùng callback đặc biệt để refresh cache ===
+        cachedData: _cachedProfileData, // === THÊM MỚI: Truyền cached data ===
+      );
     } else if (_showSettings) {
       mainContent = SettingsScreen(
         onBack: _closeAllScreens,
         onProfileTap: _openProfile,
+        cachedData: _cachedProfileData, // === THÊM MỚI: Truyền cached data ===
       );
     } else if (_showGroupCreating) {
       mainContent = GroupCreatingScreen(
@@ -444,6 +555,16 @@ class _MainAppScreenState extends State<MainAppScreen> {
                 onTap: _onItemTapped,
               ),
             ),
+            // === THÊM MỚI: Loading overlay khi pre-load data ===
+            if (_isPreLoading)
+              Container(
+                color: Colors.black.withValues(alpha: 0.5),
+                child: const Center(
+                  child: CircularProgressIndicator(
+                    valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFB99668)),
+                  ),
+                ),
+              ),
           ],
         ),
       ),
