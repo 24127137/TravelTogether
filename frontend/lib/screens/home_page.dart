@@ -1,186 +1,31 @@
+/// File: home_page.dart
+/// Mô tả: Widget nội dung cho tab Trang chủ. Đã dịch sang tiếng Việt.
+
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:easy_localization/easy_localization.dart';
-import 'package:shared_preferences/shared_preferences.dart'; // Cần để lưu trạng thái đã xem
 import '../data/mock_destinations.dart';
 import '../models/destination.dart';
 import '../widgets/destination_search_modal.dart';
 import '../widgets/calendar_card.dart';
 import 'group_matcing_announcement_screen.dart';
-import '../services/user_service.dart'; // Import UserService
-import '../services/auth_service.dart'; // Import AuthService
 
 class HomePage extends StatefulWidget {
   final void Function(Destination)? onDestinationTap;
   final VoidCallback? onSettingsTap;
-  final void Function(int index)? onTabChangeRequest;
-  const HomePage({Key? key, this.onDestinationTap, this.onSettingsTap, this.onTabChangeRequest,}) : super(key: key);
+  const HomePage({Key? key, this.onDestinationTap, this.onSettingsTap}) : super(key: key);
 
   @override
   _HomePageState createState() => _HomePageState();
 }
 
 class _HomePageState extends State<HomePage> {
+  // Trạng thái cho bộ chọn ngày
   bool _isCalendarVisible = false;
   DateTime? _rangeStart;
   DateTime? _rangeEnd;
   DateTime _focusedDay = DateTime.now();
 
-  final UserService _userService = UserService(); // Init Service
-
-  String _userName = 'User'; // Mặc định
-  String? _userAvatar;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadUserInfo();
-    // Tự động kiểm tra xem có cần popup thông báo vào nhóm không
-    _checkNewGroupAcceptance();
-  }
-
-  Future<void> _loadUserInfo() async {
-    final prefs = await SharedPreferences.getInstance();
-
-    // 1. Load từ cache trước để hiển thị ngay (tránh UI trống)
-    setState(() {
-      _userName = prefs.getString('user_firstname') ?? 'User';
-      _userAvatar = prefs.getString('user_avatar');
-    });
-
-    // 2. Gọi API để lấy dữ liệu mới nhất
-    try {
-      final token = await AuthService.getValidAccessToken();
-      if (token == null) return;
-
-      final profile = await _userService.getUserProfile();
-      if (profile == null) return;
-
-      // Lấy fullname từ API: "Nguyễn Văn Toàn" hoặc "Toàn"
-      String fullName = profile['fullname']?.toString() ?? 'User';
-      String? avatarUrl = profile['avatar_url']?.toString();
-
-      // Tách tên: Lấy từ cuối cùng (tên người Việt)
-      // "Nguyễn Văn Toàn" -> "Toàn"
-      String firstName = fullName.trim().contains(' ')
-          ? fullName.trim().split(' ').last
-          : fullName.trim();
-
-      // Lưu cache để lần sau load nhanh
-      await prefs.setString('user_firstname', firstName);
-      if (avatarUrl != null && avatarUrl.isNotEmpty) {
-        await prefs.setString('user_avatar', avatarUrl);
-      } else {
-        await prefs.remove('user_avatar');
-      }
-
-      // Cập nhật UI
-      if (mounted) {
-        setState(() {
-          _userName = firstName;
-          _userAvatar = avatarUrl;
-        });
-      }
-    } catch (e) {
-      print('❌ Lỗi load user info: $e');
-    }
-  }
-
-  // === THÊM MỚI: Hàm refresh cho pull-to-refresh ===
-  Future<void> _handleRefresh() async {
-    await _loadUserInfo();
-    // Có thể thêm các refresh khác nếu cần (ví dụ: refresh danh sách điểm đến)
-    await Future.delayed(const Duration(milliseconds: 500)); // Thêm delay nhỏ cho mượt
-  }
-
-  // --- LOGIC AUTO POPUP ---
-  Future<void> _checkNewGroupAcceptance() async {
-    // 1. Kiểm tra token
-    final token = await AuthService.getValidAccessToken();
-    if (token == null) return;
-
-    // 2. Lấy thông tin user
-    final profile = await _userService.getUserProfile();
-    if (profile == null) return;
-
-    // 3. Kiểm tra xem có đang ở trong nhóm với vai trò MEMBER không (joined_groups)
-    List joined = profile['joined_groups'] ?? [];
-
-    if (joined.isNotEmpty) {
-      // User đang ở trong một nhóm
-      var group = joined[0]; // Lấy nhóm đầu tiên (theo logic 1 user 1 nhóm)
-      String groupName = group['name'] ?? "Nhóm của bạn";
-      int groupId = group['group_id'];
-
-      // 4. Kiểm tra SharedPreferences xem đã hiện thông báo cho nhóm này chưa
-      final prefs = await SharedPreferences.getInstance();
-      String key = 'seen_announcement_group_$groupId';
-      bool hasSeen = prefs.getBool(key) ?? false;
-
-      if (!hasSeen) {
-        // Nếu CHƯA xem -> Hiện Popup
-        if (!mounted) return;
-
-        // Đánh dấu là đã xem ngay để không hiện lại lần sau
-        await prefs.setBool(key, true);
-
-        Navigator.of(context).push(MaterialPageRoute(
-          builder: (_) => GroupMatchingAnnouncementScreen(
-            groupName: groupName,
-            groupId: groupId.toString(),
-            onBack: () => Navigator.of(context).pop(),
-          ),
-        ));
-      }
-    }
-  }
-
-  // --- LOGIC NÚT LOA (THỦ CÔNG) ---
-  // --- LOGIC NÚT LOA (ĐÃ ĐIỀN ĐỦ THAM SỐ) ---
-  void _handleAnnouncementTap() async {
-    final token = await AuthService.getValidAccessToken();
-    if (token == null) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Vui lòng đăng nhập'.tr())));
-      return;
-    }
-
-    final profile = await _userService.getUserProfile();
-    if (profile == null) return;
-
-    List joined = profile['joined_groups'] ?? [];
-
-    if (joined.isNotEmpty) {
-      // Lấy thông tin nhóm
-      var group = joined[0];
-
-      Navigator.of(context).push(MaterialPageRoute(
-        builder: (_) => GroupMatchingAnnouncementScreen(
-          // 1. THAM SỐ BẮT BUỘC (Phải có dòng này mới hết gạch đỏ)
-          groupName: group['name'] ?? "Nhóm",
-
-          // 2. Các tham số khác
-          groupId: group['group_id'].toString(),
-
-          onBack: () => Navigator.of(context).pop(),
-
-          // 3. Callback chuyển tab chat
-          onGoToChat: () {
-            Navigator.of(context).pop(); // Đóng popup Announcement trước
-            if (widget.onTabChangeRequest != null) {
-              widget.onTabChangeRequest!(2); // Yêu cầu MainApp chuyển sang Tab 2 (Messages)
-            }
-          },
-        ),
-      ));
-    } else {
-      // Nếu không có nhóm -> Thông báo
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Bạn chưa tham gia nhóm nào hoặc là Host.'.tr())),
-      );
-    }
-  }
-
-  // ... (Các hàm lịch và duration giữ nguyên)
   String get _durationText {
     if (_rangeStart == null) return 'travel_time'.tr();
     final format = DateFormat('dd/MM');
@@ -206,6 +51,7 @@ class _HomePageState extends State<HomePage> {
   }
 
   void _openDestinationScreen() {
+    print('Opening destination modal...');
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -217,6 +63,7 @@ class _HomePageState extends State<HomePage> {
           height: MediaQuery.of(context).size.height * 0.85,
           child: DestinationSearchModal(
             onSelect: (Destination dest) {
+              print('Destination selected: ${dest.name}');
               Navigator.of(ctx).pop();
               if (widget.onDestinationTap != null) {
                 widget.onDestinationTap!(dest);
@@ -230,66 +77,52 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
+    // Lấy 5 thành phố có rating cao nhất
     final top5Cities = List<Destination>.from(mockDestinations)
       ..sort((a, b) => b.rating.compareTo(a.rating));
     final top5 = top5Cities.take(5).toList();
 
+    // 1. Loại bỏ Scaffold và BottomNavigationBar
+    // 2. Wrap nội dung chính bằng Container có màu nền Scaffold cũ
     return Container(
-      color: const Color(0xFFB99668),
+      color: const Color(0xFFB99668), // Màu nền Scaffold cũ
       child: ClipRRect(
         borderRadius: BorderRadius.circular(30),
         child: Stack(
           children: [
-            Positioned.fill(
-              child: Column(
-                children: [
-                  _TopSection(
-                    durationText: _durationText,
-                    onDestinationTap: _openDestinationScreen,
-                    onDurationTap: _showCalendar,
-                    onSettingsTap: widget.onSettingsTap,
-                    // Truyền hàm xử lý nút Loa xuống dưới
-                    onAnnouncementTap: _handleAnnouncementTap,
-                    userName: _userName,
-                    avatarUrl: _userAvatar,
-                  ),
-                  Expanded(
-                    child: RefreshIndicator(
-                      color: const Color(0xFF8A724C),
-                      backgroundColor: Colors.white,
-                      onRefresh: _handleRefresh,
-                      child: ListView(
-                        padding: EdgeInsets.zero,
-                        children: [
-                          Padding(
-                            padding: const EdgeInsets.all(20.0),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.center,
-                              children: [
-                                Text(
-                                  "top_destinations".tr(),
-                                  style: const TextStyle(
-                                    color: Color(0xFFFFFFFF),
-                                    fontSize: 19,
-                                    fontFamily: 'Alegreya',
-                                    fontWeight: FontWeight.w900,
-                                  ),
-                                ),
-                                const SizedBox(height: 20),
-                                ...top5.map((dest) => _RecommendedCard(
-                                  destination: dest,
-                                  onTap: widget.onDestinationTap,
-                                )).toList(),
-                                SizedBox(height: MediaQuery.of(context).padding.bottom + 100),
-                              ],
-                            ),
-                          ),
-                        ],
+            // Dùng ListView để nội dung cuộn được.
+            ListView(
+              padding: EdgeInsets.zero,
+              children: [
+                _TopSection(
+                  durationText: _durationText,
+                  onDestinationTap: _openDestinationScreen,
+                  onDurationTap: _showCalendar,
+                  onSettingsTap: widget.onSettingsTap,
+                ),
+                // Hiển thị 5 thẻ thành phố rating cao nhất
+                Padding(
+                  padding: const EdgeInsets.all(20.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Text(
+                        "top_destinations".tr(),
+                        style: const TextStyle(
+                          color: Color(0xFFFFFFFF),
+                          fontSize: 19,
+                          fontFamily: 'Alegreya',
+                          fontWeight: FontWeight.w900,
+                        ),
                       ),
-                    ),
+                      const SizedBox(height: 20),
+                      ...top5.map((dest) => _RecommendedCard(destination: dest, onTap: widget.onDestinationTap)).toList(),
+                    ],
                   ),
-                ],
-              ),
+                ),
+                // Padding cuối cùng để tránh bị BottomNavigationBar bên ngoài che.
+                SizedBox(height: MediaQuery.of(context).padding.bottom + 100),
+              ],
             ),
             if (_isCalendarVisible)
               _CalendarOverlay(
@@ -307,44 +140,34 @@ class _HomePageState extends State<HomePage> {
   }
 }
 
-// --- Top Section Widgets (Đã cập nhật callback) ---
+// --- Top Section Widgets ---
 class _TopSection extends StatelessWidget {
   final String durationText;
   final VoidCallback onDestinationTap;
   final VoidCallback onDurationTap;
   final VoidCallback? onSettingsTap;
-  final VoidCallback onAnnouncementTap;
-  final String userName;
-  final String? avatarUrl;
 
   const _TopSection({
     required this.durationText,
     required this.onDestinationTap,
     required this.onDurationTap,
     this.onSettingsTap,
-    required this.onAnnouncementTap, // Required
-    required this.userName,
-    this.avatarUrl,
   });
 
   @override
   Widget build(BuildContext context) {
     return Container(
+      // Thêm padding top an toàn cho notch/status bar.
       padding: EdgeInsets.fromLTRB(20, MediaQuery.of(context).padding.top + 20, 20, 20),
       decoration: const BoxDecoration(
-          color: Color(0xFFEDE2CC),
+          color: Color(0xFFEDE2CC), // Cream color for the top section
           borderRadius: BorderRadius.only(
             bottomLeft: Radius.circular(30),
             bottomRight: Radius.circular(30),
           )),
       child: Column(
         children: [
-          _CustomAppBar(
-            onSettingsTap: onSettingsTap,
-            onAnnouncementTap: onAnnouncementTap, // Truyền tiếp
-            userName: userName,
-            avatarUrl: avatarUrl,
-          ),
+          _CustomAppBar(onSettingsTap: onSettingsTap),
           const SizedBox(height: 24),
           _SelectionButton(
             hint: 'destination'.tr(),
@@ -365,52 +188,49 @@ class _TopSection extends StatelessWidget {
 
 class _CustomAppBar extends StatelessWidget {
   final VoidCallback? onSettingsTap;
-  final VoidCallback onAnnouncementTap; // Callback mới
-  final String userName;      // Thêm
-  final String? avatarUrl;
 
-  const _CustomAppBar({
-    this.onSettingsTap,
-    required this.onAnnouncementTap,
-    required this.userName,   // Thêm
-    this.avatarUrl,
-  });
+  const _CustomAppBar({this.onSettingsTap});
 
   @override
   Widget build(BuildContext context) {
     return Row(
       children: [
-        // AVATAR ĐỘNG
         Container(
-          decoration: const ShapeDecoration(
+          decoration: ShapeDecoration(
             shape: OvalBorder(
               side: BorderSide(
                 width: 2,
                 strokeAlign: BorderSide.strokeAlignCenter,
-                color: Color(0xFFF7F3E8),
+                color: const Color(0xFFF7F3E8),
               ),
             ),
           ),
-          child: CircleAvatar(
+          child: const CircleAvatar(
+            // Cần đảm bảo asset này tồn tại
+            // Thay thế bằng NetworkImage nếu cần
+            backgroundImage: AssetImage('assets/images/avatar.jpg'),
             radius: 18,
-            backgroundColor: Colors.grey[300], // Màu nền khi chưa có ảnh
-            backgroundImage: (avatarUrl != null && avatarUrl!.isNotEmpty)
-                ? NetworkImage(avatarUrl!) as ImageProvider
-                : const AssetImage('assets/images/avatar.jpg'), // Ảnh mặc định
           ),
         ),
         const SizedBox(width: 12),
-
-        // TÊN ĐỘNG
         Text(
-          'hello_user'.tr(args: [userName]), // Dùng tham số dịch: "Xin chào, {name}"
+          'hello_user'.tr(),
           style: const TextStyle(
               fontFamily: 'Poppins', fontSize: 16, fontWeight: FontWeight.w600),
         ),
         const Spacer(),
-        // NÚT LOA (CAMPAIGN)
+        // Announcement button (new) - opens GroupMatchingAnnouncementScreen
         GestureDetector(
-          onTap: onAnnouncementTap, // Gọi hàm từ HomePage
+          onTap: () {
+            Navigator.of(context).push(MaterialPageRoute(
+              builder: (_) => GroupMatchingAnnouncementScreen(
+                groupName: '1 tháng 2 lần',
+                onBack: () {
+                  Navigator.of(context).pop();
+                },
+              ),
+            ));
+          },
           child: Container(
             width: 36,
             height: 36,
@@ -431,7 +251,7 @@ class _CustomAppBar extends StatelessWidget {
               color: Color(0xFFF7F3E8),
               shape: OvalBorder(),
             ),
-            child: const Icon(Icons.settings, size: 20, color: Color(0xFF3E3322)),
+            child: const Icon(Icons.settings, size: 20, color: Color(0xFF3E3322),),
           ),
         ),
       ],
@@ -439,7 +259,6 @@ class _CustomAppBar extends StatelessWidget {
   }
 }
 
-// ... (Các widget _SelectionButton, _RecommendedCard, _CalendarOverlay giữ nguyên)
 class _SelectionButton extends StatelessWidget {
   final String hint;
   final IconData icon;
@@ -451,6 +270,7 @@ class _SelectionButton extends StatelessWidget {
   Widget build(BuildContext context) {
     const accentColor = Color(0xFFA15C20);
 
+    // Detect if the hint contains a date (e.g. "dd/MM" or a date range with '-').
     final isDateHint = RegExp(r'\d{2}/\d{2}').hasMatch(hint);
     final isDefaultHint = hint == 'destination'.tr() || hint == 'travel_time'.tr();
 
@@ -464,6 +284,8 @@ class _SelectionButton extends StatelessWidget {
       child: InkWell(
         borderRadius: BorderRadius.circular(10),
         onTap: () {
+          // debug print to confirm tap
+          // ignore: avoid_print
           print('SelectionButton tapped: $hint');
           onTap();
         },
@@ -491,6 +313,7 @@ class _SelectionButton extends StatelessWidget {
   }
 }
 
+// --- Recommended Section (Không thay đổi) ---
 class _RecommendedCard extends StatelessWidget {
   final Destination destination;
   final void Function(Destination)? onTap;
@@ -498,6 +321,7 @@ class _RecommendedCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // removed rating percent display from the card
     return GestureDetector(
       onTap: () {
         if (onTap != null) onTap!(destination);
@@ -553,6 +377,7 @@ class _RecommendedCard extends StatelessWidget {
                       ),
                     ),
                   ),
+                  // rating pill removed per request
                 ],
               ),
             );
@@ -563,6 +388,7 @@ class _RecommendedCard extends StatelessWidget {
   }
 }
 
+// --- Calendar Overlay (Không thay đổi) ---
 class _CalendarOverlay extends StatelessWidget {
   final DateTime focusedDay;
   final DateTime? rangeStart;

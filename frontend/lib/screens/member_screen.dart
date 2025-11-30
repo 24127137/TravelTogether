@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../widgets/out_group_dialog.dart';
+import '../services/auth_service.dart';
 
 class MemberScreenMember extends StatefulWidget {
   final String groupName;
@@ -114,10 +115,22 @@ class _MemberScreenMemberState extends State<MemberScreenMember> {
 
           // Exit button
           GestureDetector(
-            onTap: () => OutGroupDialog.show(context, () {
-              // Logic rời nhóm ở đây
-              Navigator.of(context).pop(); // Quay về màn hình trước
-            }, isHost: false),
+            onTap: () {
+              OutGroupDialog.show(
+                context,
+                isHost: false,
+                onSuccess: () {
+                  Navigator.of(context).pop(); 
+                  Navigator.of(context).pop(); 
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Đã rời nhóm thành công'),
+                      backgroundColor: Colors.green,
+                    ),
+                  );
+                },
+              );
+            },
             child: Container(
               width: 44,
               height: 44,

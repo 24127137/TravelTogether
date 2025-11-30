@@ -10,7 +10,7 @@ import 'password_changing.dart';
 import 'security.dart';
 import 'emergency_pin.dart';
 import '../services/auth_service.dart';
-import 'onboarding.dart';
+import 'welcome.dart';
 import 'list_group_feedback.dart';
 // Networking and storage
 import 'package:http/http.dart' as http;
@@ -21,14 +21,8 @@ import '../config/api_config.dart';
 class SettingsScreen extends StatefulWidget {
   final VoidCallback onBack;
   final VoidCallback? onProfileTap;
-  final Map<String, dynamic>? cachedData; // === THÊM MỚI: Cached profile data ===
 
-  const SettingsScreen({
-    Key? key,
-    required this.onBack,
-    this.onProfileTap,
-    this.cachedData, // === THÊM MỚI ===
-  }) : super(key: key);
+  const SettingsScreen({Key? key, required this.onBack, this.onProfileTap}) : super(key: key);
 
   @override
   State<SettingsScreen> createState() => _SettingsScreenState();
@@ -47,59 +41,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
   String? _profileAvatarUrl;
   String? _accessToken;
 
-  // === THÊM MỚI: Loading state ===
-  bool _isLoading = false;
-
   @override
   void initState() {
     super.initState();
     _loadProfile();
   }
 
-  // === THÊM MỚI: Helper function để navigate với loading ===
-  Future<void> _navigateWithLoading(Widget destination) async {
-    setState(() => _isLoading = true);
-
-    // Delay nhỏ để hiển thị loading (giống như đang load data)
-    await Future.delayed(const Duration(milliseconds: 300));
-
-    if (!mounted) return;
-
-    await Navigator.push(
-      context,
-      PageRouteBuilder(
-        pageBuilder: (context, animation, secondaryAnimation) => destination,
-        transitionsBuilder: (context, animation, secondaryAnimation, child) {
-          const begin = Offset(1.0, 0.0);
-          const end = Offset.zero;
-          const curve = Curves.easeInOut;
-          var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
-          var offsetAnimation = animation.drive(tween);
-          return SlideTransition(position: offsetAnimation, child: child);
-        },
-      ),
-    );
-
-    if (mounted) {
-      setState(() => _isLoading = false);
-    }
-  }
-
   Future<void> _loadProfile() async {
-    // === THÊM MỚI: Sử dụng cached data nếu có ===
-    if (widget.cachedData != null) {
-      setState(() {
-        final data = widget.cachedData!;
-        _profileFullname = (data['fullname'] as String?)?.trim() ?? (data['email'] as String?) ?? 'User';
-        _profileEmail = (data['email'] as String?) ?? '';
-        final avatar = (data['avatar_url'] as String?);
-        _profileAvatarUrl = (avatar != null && avatar.isNotEmpty) ? avatar : null;
-      });
-      debugPrint('✅ Profile loaded from cache');
-      return;
-    }
-
-    // === Fallback: Load từ API nếu không có cache ===
     try {
       final prefs = await SharedPreferences.getInstance();
       _accessToken = prefs.getString('access_token');
@@ -120,6 +68,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           _profileAvatarUrl = (avatar != null && avatar.isNotEmpty) ? avatar : null;
         });
       } else {
+        // optional: print status for debugging
         debugPrint('Failed to load profile: ${resp.statusCode}');
       }
     } catch (e) {
@@ -129,18 +78,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      children: [
-        Container(
-          decoration: const BoxDecoration(
-            image: DecorationImage(
-              image: AssetImage('assets/images/Settings.png'),
-              fit: BoxFit.cover,
-            ),
-          ),
-          child: SafeArea(
-            child: LayoutBuilder(
-              builder: (context, constraints) {
+    return Container(
+      decoration: const BoxDecoration(
+        image: DecorationImage(
+          image: AssetImage('assets/images/Settings.png'),
+          fit: BoxFit.cover,
+        ),
+      ),
+      child: SafeArea(
+        child: LayoutBuilder(
+          builder: (context, constraints) {
             // Responsive scaling dựa trên chiều cao màn hình
             final screenHeight = constraints.maxHeight;
 
@@ -214,16 +161,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         SizedBox(height: 30 * scaleFactor),
                         // Phần thông tin người dùng
                         GestureDetector(
-                          onTap: () async {
-                            if (widget.onProfileTap != null) {
-                              setState(() => _isLoading = true);
-                              await Future.delayed(const Duration(milliseconds: 300));
-                              widget.onProfileTap!();
-                              if (mounted) {
-                                setState(() => _isLoading = false);
-                              }
-                            }
-                          },
+                          onTap: widget.onProfileTap,
                           child: Row(
                             children: [
                               // Avatar với viền cam
@@ -303,14 +241,50 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   _buildSettingTile(
                     icon: Icons.chat_bubble_outline,
                     title: _showGroupFeedback ? 'group_feedback'.tr() : 'reputation'.tr(),
-                    onTap: () async {
+                    onTap: () {
                       // Navigate dựa vào trạng thái hiện tại
                       if (_showGroupFeedback) {
                         // Đang hiển thị "Phản hồi nhóm" → sang FeedbackScreen
-                        await _navigateWithLoading(const ListGroupFeedbackScreen());
+                        Navigator.push(
+                          context,
+                          PageRouteBuilder(
+                            pageBuilder: (context, animation, secondaryAnimation) => const ListGroupFeedbackScreen(),
+                            transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                              const begin = Offset(1.0, 0.0);
+                              const end = Offset.zero;
+                              const curve = Curves.easeInOut;
+
+                              var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+                              var offsetAnimation = animation.drive(tween);
+
+                              return SlideTransition(
+                                position: offsetAnimation,
+                                child: child,
+                              );
+                            },
+                          ),
+                        );
                       } else {
                         // Đang hiển thị "Uy tín" → sang ReputationScreen
-                        await _navigateWithLoading(const ReputationScreen());
+                        Navigator.push(
+                          context,
+                          PageRouteBuilder(
+                            pageBuilder: (context, animation, secondaryAnimation) => const ReputationScreen(),
+                            transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                              const begin = Offset(1.0, 0.0);
+                              const end = Offset.zero;
+                              const curve = Curves.easeInOut;
+
+                              var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+                              var offsetAnimation = animation.drive(tween);
+
+                              return SlideTransition(
+                                position: offsetAnimation,
+                                child: child,
+                              );
+                            },
+                          ),
+                        );
                       }
                     },
                     onLeftTap: () {
@@ -442,17 +416,65 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
                           // Nếu người dùng xác nhận đăng xuất
                           if (shouldLogout == true && mounted) {
-                            // Xóa token và dữ liệu xác thực
-                            await AuthService.clearTokens();
-
-                            // Chuyển về màn hình Onboarding và xóa toàn bộ stack
-                            if (mounted) {
-                              Navigator.of(context).pushAndRemoveUntil(
-                                MaterialPageRoute(
-                                  builder: (context) => const OnboardingScreen(),
+                            showDialog(
+                              context: context,
+                              barrierDismissible: false,
+                              builder: (context) => const Center(
+                                child: CircularProgressIndicator(
+                                  color: Color(0xFFB99668),
                                 ),
-                                (route) => false, // Xóa toàn bộ route stack
-                              );
+                              ),
+                            );
+
+                            try {
+                              final accessToken = await AuthService.getValidAccessToken();
+                              
+                              if (accessToken != null) {
+                                final url = ApiConfig.getUri(ApiConfig.authSignout);
+                                
+                                print('🔄 Calling POST /auth/signout');
+                                
+                                final response = await http.post(
+                                  url,
+                                  headers: {
+                                    'Content-Type': 'application/json',
+                                    'Authorization': 'Bearer $accessToken',
+                                  },
+                                ).timeout(const Duration(seconds: 10));
+
+                                print('📥 Response status: ${response.statusCode}');
+                                print('📥 Response body: ${response.body}');
+                              }
+
+                              await AuthService.clearTokens();
+
+                              if (mounted) {
+                                // Đóng loading dialog
+                                Navigator.of(context).pop();
+                                
+                                // Chuyển về màn hình Welcome và xóa toàn bộ stack
+                                Navigator.of(context).pushAndRemoveUntil(
+                                  MaterialPageRoute(
+                                    builder: (context) => const WelcomeScreen(),
+                                  ),
+                                  (route) => false, // Xóa toàn bộ route stack
+                                );
+                              }
+                            } catch (e) {
+                              print('❌ Error during signout: $e');
+
+                              await AuthService.clearTokens();
+                              
+                              if (mounted) {
+                                Navigator.of(context).pop();
+
+                                Navigator.of(context).pushAndRemoveUntil(
+                                  MaterialPageRoute(
+                                    builder: (context) => const WelcomeScreen(),
+                                  ),
+                                  (route) => false,
+                                );
+                              }
                             }
                           }
                         },
@@ -484,18 +506,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
           },
         ),
       ),
-        ),
-        // === THÊM MỚI: Loading overlay ===
-        if (_isLoading)
-          Container(
-            color: Colors.black.withValues(alpha: 0.3),
-            child: const Center(
-              child: CircularProgressIndicator(
-                valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFB99668)),
-              ),
-            ),
-          ),
-      ],
     );
   }
 

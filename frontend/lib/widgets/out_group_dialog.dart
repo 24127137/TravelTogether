@@ -1,22 +1,82 @@
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 import 'enter_bar.dart';
+import '../config/api_config.dart';
+import '../services/auth_service.dart';
 
 class OutGroupDialog extends StatelessWidget {
-  final VoidCallback onConfirm;
+  final VoidCallback? onConfirm;
   final bool isHost;
 
   const OutGroupDialog({
     super.key,
-    required this.onConfirm,
+    this.onConfirm,
     this.isHost = false,
   });
 
-  static void show(BuildContext context, VoidCallback onConfirm, {bool isHost = false}) {
+  static void show(
+    BuildContext context, {
+    bool isHost = false,
+    VoidCallback? onSuccess,
+  }) {
     showDialog(
       context: context,
       barrierDismissible: true,
-      builder: (context) => OutGroupDialog(onConfirm: onConfirm, isHost: isHost),
+      builder: (dialogContext) => OutGroupDialog(
+        isHost: isHost,
+        onConfirm: onSuccess,
+      ),
     );
+  }
+
+  Future<void> _handleConfirm(BuildContext context) async {
+    Navigator.of(context).pop();
+
+    try {
+      final accessToken = await AuthService.getValidAccessToken();
+      final endpoint = isHost ? '/groups/dissolve' : '/groups/leave';
+      final url = Uri.parse('${ApiConfig.baseUrl}$endpoint');
+
+      print('🔄 Calling $endpoint');
+
+      final response = await http.post(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $accessToken',
+        },
+      ).timeout(const Duration(seconds: 10));
+
+      print('📥 Response status: ${response.statusCode}');
+      print('📥 Response body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        print('✅ Success!');
+
+        if (onConfirm != null) {
+          onConfirm!();
+        }
+      } else {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Lỗi: ${response.statusCode}'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      print('❌ Error: $e');
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Lỗi: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   @override
@@ -85,9 +145,9 @@ class OutGroupDialog extends StatelessWidget {
             // Ảnh background che khung text (nằm phía trước)
             Positioned.fill(
               child: Padding(
-                padding: const EdgeInsets.all(3), // Tránh đè lên border
+                padding: const EdgeInsets.all(3),
                 child: ClipRRect(
-                  borderRadius: BorderRadius.circular(27), // Nhỏ hơn border một chút
+                  borderRadius: BorderRadius.circular(27),
                   child: Image.asset(
                     'assets/images/outgroup.png',
                     fit: BoxFit.cover,
@@ -101,10 +161,7 @@ class OutGroupDialog extends StatelessWidget {
               bottom: dialogHeight * 0.08,
               left: (dialogWidth - 243) / 2,
               child: EnterButton(
-                onConfirm: () {
-                  Navigator.of(context).pop();
-                  onConfirm();
-                },
+                onConfirm: () => _handleConfirm(context),
               ),
             ),
           ],

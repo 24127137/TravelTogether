@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:confetti/confetti.dart';
 import 'package:easy_localization/easy_localization.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import '../services/auth_service.dart';
+import '../config/api_config.dart';
 
 
 void main() {
@@ -36,54 +40,54 @@ class JoinGroupScreen extends StatefulWidget {
 class _JoinGroupScreenState extends State<JoinGroupScreen> {
   late PageController _pageController;
   int _currentPage = 1;
+  int? _expandedIndex;
 
-  final List<GroupData> _groups = [
-    GroupData(
-      name: 'Khám phá Hà Nội',
-      compatibility: 85,
-      members: 8,
-      maxMembers: 10,
-      imageUrl: 'assets/images/saigon_art.jpg',
-      tags: ['Ẩm thực', 'Văn hóa', 'Lịch sử', 'Nhiếp ảnh'],
-      destinations: ['Hồ Hoàn Kiếm', 'Phố cổ', 'Văn Miếu', 'Tháp Rùa'],
-    ),
-    GroupData(
-      name: 'Sài Gòn về đêm',
-      compatibility: 92,
-      members: 6,
-      maxMembers: 8,
-      imageUrl: 'assets/images/sapa.jpg',
-      tags: ['Nightlife', 'Ẩm thực', 'Cafe', 'Shopping'],
-      destinations: ['Chợ Bến Thành', 'Đường sách', 'Phố Bùi Viện', 'Bitexco'],
-    ),
-    GroupData(
-      name: 'Đà Nẵng chill',
-      compatibility: 78,
-      members: 5,
-      maxMembers: 10,
-      imageUrl: 'assets/images/travel_plan.png',
-      tags: ['Biển', 'Thư giãn', 'Resort', 'Hải sản'],
-      destinations: ['Bãi Mỹ Khê', 'Bà Nà Hills', 'Cầu Rồng', 'Hội An'],
-    ),
-    GroupData(
-      name: 'Saigon đẹp lắm',
-      compatibility: 78,
-      members: 5,
-      maxMembers: 10,
-      imageUrl: 'assets/images/saigon.jpg',
-      tags: ['Biển', 'Thư giãn', 'Resort', 'Hải sản'],
-      destinations: ['Bãi Mỹ Khê', 'Bà Nà Hills', 'Cầu Rồng', 'Hội An'],
-    ),
-    GroupData(
-      name: 'Saigon chill',
-      compatibility: 78,
-      members: 5,
-      maxMembers: 10,
-      imageUrl: 'assets/images/canhan.jpg',
-      tags: ['Biển', 'Thư giãn', 'Resort', 'Hải sản'],
-      destinations: ['Bãi Mỹ Khê', 'Bà Nà Hills', 'Cầu Rồng', 'Hội An'],
-    ),
-  ];
+  final List<GroupData> _groups = [];
+  bool _isLoadingSuggestions = true;
+
+  Future<GroupData> _enrichWithPublicPlan(GroupData g) async {
+    if (g.id == null) return g;
+    try {
+      final planUrl = ApiConfig.getUri('${ApiConfig.baseUrl}/groups/${g.id}/public-plan');
+      final accessToken = await AuthService.getValidAccessToken();
+      final planResp = await http.get(
+        planUrl,
+        headers: {
+          'Content-Type': 'application/json',
+          if (accessToken != null) 'Authorization': 'Bearer $accessToken',
+        },
+      );
+      if (planResp.statusCode == 200) {
+        final data = jsonDecode(utf8.decode(planResp.bodyBytes));
+        final String preferredCity = (data['preferred_city'] ?? '')?.toString() ?? '';
+        final String travelDates = (data['travel_dates'] ?? '')?.toString() ?? '';
+        final Map<String, dynamic>? itinerary = (data['itinerary'] as Map<String, dynamic>?);
+        final List<String> destinations = itinerary != null
+            ? itinerary.values.map((v) => v?.toString() ?? '').where((s) => s.isNotEmpty).toList()
+            : g.destinations;
+        final List<dynamic>? rawInterests = data['interests'] as List<dynamic>?;
+        final List<String> interests = rawInterests != null
+            ? rawInterests.map((e) => e?.toString() ?? '').where((s) => s.isNotEmpty).toList()
+            : g.tags;
+
+        return GroupData(
+          id: g.id,
+          name: g.name,
+          compatibility: g.compatibility,
+          members: g.members,
+          maxMembers: g.maxMembers,
+          imageUrl: g.imageUrl,
+          tags: interests,
+          destinations: destinations,
+          preferredCity: preferredCity,
+          travelDates: travelDates,
+        );
+      }
+    } catch (e) {
+      print('Error enriching group ${g.id}: $e');
+    }
+    return g;
+  }
 
   @override
   void initState() {
@@ -95,6 +99,94 @@ class _JoinGroupScreenState extends State<JoinGroupScreen> {
       initialPage: centerIndex + _currentPage,
       viewportFraction: 0.75,
     );
+
+    _loadSuggestedGroups();
+  }
+
+  Future<void> _loadSuggestedGroups() async {
+    if (!mounted) return;
+    setState(() => _isLoadingSuggestions = true);
+    try {
+      final accessToken = await AuthService.getValidAccessToken();
+      final url = ApiConfig.getUri('${ApiConfig.baseUrl}/groups/suggest');
+
+      final response = await http.get(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          if (accessToken != null) 'Authorization': 'Bearer $accessToken',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final List<dynamic> jsonList = jsonDecode(utf8.decode(response.bodyBytes));
+        final List<GroupData> loaded = jsonList.map((e) {
+          final String imageUrl = (e['group_image_url'] ?? '').toString();
+          final num rawScore = (e['score'] is num)
+              ? e['score'] as num
+              : num.tryParse(e['score']?.toString() ?? '') ?? 0;
+          final double scoreDouble = rawScore.toDouble();
+          final int compatibility = (scoreDouble <= 1.0) ? (scoreDouble * 100).round() : scoreDouble.round();
+          return GroupData(
+            id: (e['group_id'] is int) ? e['group_id'] as int : int.tryParse(e['group_id']?.toString() ?? ''),
+            name: e['name'] ?? 'Unnamed',
+            compatibility: compatibility,
+            members: (e['member_count'] is int) ? e['member_count'] as int : int.tryParse(e['member_count']?.toString() ?? '') ?? 0,
+            maxMembers: (e['max_members'] is int) ? e['max_members'] as int : int.tryParse(e['max_members']?.toString() ?? '') ?? 0,
+            imageUrl: imageUrl.isNotEmpty ? imageUrl : 'assets/images/travel_plan.png',
+            tags: [],
+            destinations: [],
+          );
+        }).toList();
+
+        final futures = loaded.map((g) => _enrichWithPublicPlan(g)).toList();
+        final List<GroupData> enriched = await Future.wait(futures);
+
+        if (mounted) {
+          setState(() {
+            _groups.clear();
+            _groups.addAll(enriched);
+            _isLoadingSuggestions = false;
+            final int multiplier = 1000;
+            final int centerIndex = multiplier * (_groups.isEmpty ? 1 : _groups.length) ~/ 2;
+            _pageController.jumpToPage(centerIndex + _currentPage);
+          });
+        }
+      } else {
+        print('Failed to load suggestions: ${response.statusCode}');
+        if (mounted) setState(() => _isLoadingSuggestions = false);
+      }
+    } catch (e) {
+      print('Error loading group suggestions: $e');
+      if (mounted) setState(() => _isLoadingSuggestions = false);
+    }
+  }
+
+  String _two(int v) => v.toString().padLeft(2, '0');
+
+  String _formatTravelDates(String raw) {
+    if (raw.trim().isEmpty) return '';
+    String s = raw.trim();
+    if ((s.startsWith('[') || s.startsWith('(')) && (s.endsWith(']') || s.endsWith(')'))) {
+      s = s.substring(1, s.length - 1);
+    }
+    final parts = s.split(',');
+    if (parts.isEmpty) return raw;
+    final startStr = parts[0].trim();
+    final endStr = parts.length > 1 ? parts[1].trim() : '';
+    DateTime? start = DateTime.tryParse(startStr);
+    DateTime? end = DateTime.tryParse(endStr);
+
+    String fmt(DateTime d) => '${_two(d.day)}/${_two(d.month)}/${d.year}';
+
+    if (start == null && end == null) return raw;
+    if (start != null && end == null) return fmt(start);
+    if (start == null && end != null) return fmt(end);
+    if (start != null && end != null) {
+      if (start.year == end.year && start.month == end.month && start.day == end.day) return fmt(start);
+      return '${fmt(start)} - ${fmt(end)}';
+    }
+    return raw;
   }
 
 
@@ -105,16 +197,78 @@ class _JoinGroupScreenState extends State<JoinGroupScreen> {
   }
 
   void _showGroupDetails(GroupData group) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      isDismissible: true,
-      // Cho phép đóng khi tap ra ngoài
-      enableDrag: true,
-      // Cho phép kéo xuống để đóng
-      builder: (context) => GroupDetailsSheet(group: group),
-    );
+    () async {
+      List<String> destinations = group.destinations;
+      try {
+        if (group.id != null) {
+          final planUrl = ApiConfig.getUri('${ApiConfig.baseUrl}/groups/${group.id}/public-plan');
+          final accessToken = await AuthService.getValidAccessToken();
+          final planResp = await http.get(
+            planUrl,
+            headers: {
+              'Content-Type': 'application/json',
+              if (accessToken != null) 'Authorization': 'Bearer $accessToken',
+            },
+          );
+          if (planResp.statusCode == 200) {
+            final data = jsonDecode(utf8.decode(planResp.bodyBytes));
+            final Map<String, dynamic> itinerary = (data['itinerary'] as Map<String, dynamic>?) ?? {};
+            destinations = itinerary.values.map((v) => v?.toString() ?? '').where((s) => s.isNotEmpty).toList();
+          }
+        }
+      } catch (e) {
+        print('Error fetching public plan for group ${group.id}: $e');
+      }
+
+      List<String> interests = group.tags;
+      try {
+        if (group.id != null) {
+          final planUrl = ApiConfig.getUri('${ApiConfig.baseUrl}/groups/${group.id}/public-plan');
+          final accessToken = await AuthService.getValidAccessToken();
+          final planResp = await http.get(
+            planUrl,
+            headers: {
+              'Content-Type': 'application/json',
+              if (accessToken != null) 'Authorization': 'Bearer $accessToken',
+            },
+          );
+          if (planResp.statusCode == 200) {
+            final data = jsonDecode(utf8.decode(planResp.bodyBytes));
+            final Map<String, dynamic> itinerary = (data['itinerary'] as Map<String, dynamic>?) ?? {};
+            destinations = itinerary.values.map((v) => v?.toString() ?? '').where((s) => s.isNotEmpty).toList();
+
+            final List<dynamic>? rawInterests = data['interests'] as List<dynamic>?;
+            if (rawInterests != null) {
+              interests = rawInterests.map((e) => e?.toString() ?? '').where((s) => s.isNotEmpty).toList();
+            }
+          }
+        }
+      } catch (e) {
+        
+      }
+
+      final GroupData groupWithPlan = GroupData(
+        id: group.id,
+        name: group.name,
+        compatibility: group.compatibility,
+        members: group.members,
+        maxMembers: group.maxMembers,
+        imageUrl: group.imageUrl,
+        tags: interests,
+        destinations: destinations,
+      );
+
+      showModalBottomSheet(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: Colors.transparent,
+        isDismissible: true,
+        // Cho phép đóng khi tap ra ngoài
+        enableDrag: true,
+        // Cho phép kéo xuống để đóng
+        builder: (context) => GroupDetailsSheet(group: groupWithPlan),
+      );
+    }();
   }
 
   @override
@@ -139,9 +293,15 @@ class _JoinGroupScreenState extends State<JoinGroupScreen> {
               children: [
                 const SizedBox(height: 70),
                 const SizedBox(height: 30),
-                Expanded(
-                  child: _buildCarousel(),
-                ),
+                _isLoadingSuggestions
+                    ? const Expanded(
+                        child: Center(
+                          child: CircularProgressIndicator(),
+                        ),
+                      )
+                    : Expanded(
+                        child: _buildCarousel(),
+                      ),
               ],
             ),
           ),
@@ -229,79 +389,237 @@ class _JoinGroupScreenState extends State<JoinGroupScreen> {
                 );
               },
               child: GestureDetector(
-                onTap: () => _showGroupDetails(group),
-                child: _buildGroupCard(group),
-              ),
+                  onTap: () => _showGroupDetails(group),
+                  onLongPress: () {
+                    setState(() {
+                      _expandedIndex = (_expandedIndex == actualIndex) ? null : actualIndex;
+                    });
+                  },
+                  child: _buildGroupCard(group, actualIndex),
+                ),
             );
           },
         ),
       ),
     );
   }
-}
 
-  Widget _buildGroupCard(GroupData group) {
+  Image imageWidget(String url) {
+    final bool validUrl = url.startsWith('http');
+
+    ImageProvider provider;
+
+    if (validUrl) {
+      provider = NetworkImage(url);
+    } else if (url.isNotEmpty) {
+      provider = NetworkImage(ApiConfig.supabaseStoragePublic(url));
+    } else {
+      provider = const AssetImage('assets/images/travel_plan.png');
+    }
+
+    return Image(
+      image: provider,
+      fit: BoxFit.cover,
+      errorBuilder: (context, error, stackTrace) {
+        return Image.asset(
+          'assets/images/travel_plan.png',
+          fit: BoxFit.cover,
+        );
+      },
+    );
+  }
+
+  Widget _buildGroupCard(GroupData group, int index) {
+    final bool hasImage = group.imageUrl.isNotEmpty;
+    final String resolvedImageUrl = hasImage
+        ? (group.imageUrl.startsWith('http') || group.imageUrl.contains('supabase.co')
+            ? group.imageUrl
+            : ApiConfig.supabaseStoragePublic(group.imageUrl))
+        : '';
+
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 5),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(8),
-        image: DecorationImage(
-          image: AssetImage(group.imageUrl),
-          fit: BoxFit.cover,
-        ),
       ),
-      child: Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(8),
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [Colors.transparent, Colors.black.withOpacity(0.8)],
-          ),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.end,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                group.name,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 18,
-                  fontFamily: 'Inter',
-                  fontWeight: FontWeight.w700,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(8),
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            imageWidget(resolvedImageUrl),
+
+            // Overlay Gradient + Content
+            Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Colors.transparent,
+                    Colors.black.withOpacity(0.8),
+                  ],
                 ),
               ),
-              const SizedBox(height: 8),
-              Text(
-                '${'compatibility'.tr()}: ${group.compatibility}%',
-                style: TextStyle(
-                  color: Colors.white.withOpacity(0.8),
-                  fontSize: 14,
-                  fontFamily: 'Inter',
-                  fontWeight: FontWeight.w400,
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            group.name,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 18,
+                              fontFamily: 'WorkSans',
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                      ],
+                    ),
+
+                    const SizedBox(height: 8),
+
+                    Row(
+                      children: [
+                        const Icon(Icons.location_on, color: Colors.white70, size: 12),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            group.preferredCity.isNotEmpty ? group.preferredCity : '—',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: Color(0xFFD9CBB3),
+                              fontSize: 12,
+                              fontFamily: 'WorkSans',
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 8),
+
+                    if (_expandedIndex == index) ...[
+                      if (group.travelDates.isNotEmpty) ...[
+                        const SizedBox(height: 6),
+                        Row(
+                          children: [
+                            const Icon(Icons.calendar_today, color: Colors.white70, size: 12),
+                            const SizedBox(width: 6),
+                            Expanded(
+                              child: Text(
+                                _formatTravelDates(group.travelDates),
+                                style: const TextStyle(
+                                  color: Color(0xFFD9CBB3),
+                                  fontSize: 12,
+                                  fontFamily: 'WorkSans',
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+
+                      if (group.tags.isNotEmpty) ...[
+                        const SizedBox(height: 6),
+                        Wrap(
+                          spacing: 6,
+                          runSpacing: 6,
+                          children: group.tags
+                              .map(
+                                (t) => Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withOpacity(0.12),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Text(
+                                    t,
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 12,
+                                      fontFamily: 'WorkSans',
+                                    ),
+                                  ),
+                                ),
+                              )
+                              .toList(),
+                        ),
+                      ],
+
+                      if (group.destinations.isNotEmpty) ...[
+                        const SizedBox(height: 8),
+                        Wrap(
+                          spacing: 6,
+                          runSpacing: 6,
+                          children: group.destinations
+                              .map(
+                                (d) => Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withOpacity(0.12),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Text(
+                                    d,
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 12,
+                                      fontFamily: 'WorkSans',
+                                    ),
+                                  ),
+                                ),
+                              )
+                              .toList(),
+                        ),
+                      ],
+                    ],
+
+                    const SizedBox(height: 8),
+
+                    Text(
+                      '${'compatibility'.tr()}: ${group.compatibility}%',
+                      style: TextStyle(
+                        color: Colors.white.withOpacity(0.8),
+                        fontSize: 14,
+                        fontFamily: 'Inter',
+                        fontWeight: FontWeight.w400,
+                      ),
+                    ),
+
+                    Text(
+                      '${'quantity'.tr()}: ${group.members}/${group.maxMembers}',
+                      style: TextStyle(
+                        color: Colors.white.withOpacity(0.8),
+                        fontSize: 14,
+                        fontFamily: 'Inter',
+                        fontWeight: FontWeight.w400,
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              Text(
-                '${'quantity'.tr()}: ${group.members}/${group.maxMembers}',
-                style: TextStyle(
-                  color: Colors.white.withOpacity(0.8),
-                  fontSize: 14,
-                  fontFamily: 'Inter',
-                  fontWeight: FontWeight.w400,
-                ),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
   }
-
+}
 
 class GroupData {
+  final int? id;
   final String name;
   final int compatibility;
   final int members;
@@ -309,8 +627,11 @@ class GroupData {
   final String imageUrl;
   final List<String> tags;
   final List<String> destinations;
+  final String preferredCity;
+  final String travelDates;
 
   GroupData({
+    this.id,
     required this.name,
     required this.compatibility,
     required this.members,
@@ -318,6 +639,8 @@ class GroupData {
     required this.imageUrl,
     required this.tags,
     required this.destinations,
+    this.preferredCity = '',
+    this.travelDates = '',
   });
 }
 
@@ -361,16 +684,48 @@ class _GroupDetailsSheetState extends State<GroupDetailsSheet>
     setState(() => _buttonState = ButtonState.loading);
     _animationController.repeat();
 
-    await Future.delayed(const Duration(seconds: 2));
+    final url = ApiConfig.getUri(ApiConfig.joinGroup);
+    final accessToken = await AuthService.getValidAccessToken();
 
-    if (mounted) {
-      setState(() => _buttonState = ButtonState.success);
-      _animationController.stop();
-      _confettiController.play();
+    try {
+      final response = await http.post(
+        url,
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer $accessToken",
+        },
+        body: jsonEncode({
+          "group_id": widget.group.id,
+        }),
+      );
 
-      Future.delayed(const Duration(seconds: 3), () {
-        if (mounted) Navigator.pop(context);
-      });
+      if (response.statusCode == 200) {
+        if (mounted) {
+          setState(() => _buttonState = ButtonState.success);
+          _animationController.stop();
+          _confettiController.play();
+
+          Future.delayed(const Duration(seconds: 3), () {
+            if (mounted) Navigator.pop(context);
+          });
+        }
+      } else {
+        final msg = jsonDecode(response.body)["detail"] ?? "Unknown error";
+
+        if (mounted) {
+          _animationController.stop();
+          setState(() => _buttonState = ButtonState.idle);
+        }
+
+        print("Join request failed: $msg");
+      }
+    } catch (e) {
+      if (mounted) {
+        _animationController.stop();
+        setState(() => _buttonState = ButtonState.idle);
+      }
+
+      print("Network error: $e");
     }
   }
 
@@ -389,10 +744,10 @@ class _GroupDetailsSheetState extends State<GroupDetailsSheet>
     // Chiều cao động: mỗi địa điểm ~40px
     final double destinationsHeight = widget.group.destinations.length * 40.0;
 
-    // Tổng chiều cao nội dung
+    // Tổng chiều cao nội dung (include interests section)
     final double totalContentHeight =
-        dragHandle + title + interestsSection + routeTitle +
-            destinationsHeight + button + padding;
+      dragHandle + title + interestsSection + routeTitle +
+        destinationsHeight + button + padding;
 
     // Chuyển sang tỷ lệ % màn hình, giới hạn 0.5 - 0.95
     final double maxSize = (totalContentHeight / screenHeight).clamp(0.5, 0.95);
