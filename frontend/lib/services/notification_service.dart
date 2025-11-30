@@ -10,26 +10,35 @@ import '../screens/chatbox_screen.dart'; // === THÊM MỚI: Import màn hình c
 import '../screens/ai_chatbot_screen.dart'; // === THÊM MỚI: Import màn hình AI chat ===
 import '../screens/notification_screen.dart'; // === THÊM MỚI: Import màn hình notification ===
 
+<<<<<<< HEAD
 // === IMPORT để access isInChatScreen ===
 // Sử dụng: _ChatboxScreenState.isInChatScreen (không thể access vì private)
 // Giải pháp: Tạo getter public trong ChatboxScreen
 
+=======
+>>>>>>> 3ee7efe (done all groupapis)
 /// Service quản lý Local Notifications
 /// Hỗ trợ cả Android và iOS
 class NotificationService {
   static final NotificationService _instance = NotificationService._internal();
+<<<<<<< HEAD
   final ValueNotifier<bool> showBadgeNotifier = ValueNotifier(false);
+=======
+>>>>>>> 3ee7efe (done all groupapis)
   factory NotificationService() => _instance;
   NotificationService._internal();
 
   final FlutterLocalNotificationsPlugin _notifications = FlutterLocalNotificationsPlugin();
   bool _initialized = false;
 
+<<<<<<< HEAD
   // === THÊM MỚI: Hàm xóa chấm đỏ (gọi khi user vào màn hình thông báo) ===
   void clearBadge() {
     showBadgeNotifier.value = false;
   }
 
+=======
+>>>>>>> 3ee7efe (done all groupapis)
   /// Khởi tạo notification service
   /// Phải gọi hàm này trước khi sử dụng
   Future<void> initialize() async {
@@ -254,8 +263,11 @@ class NotificationService {
     required int unreadCount,
     String? groupId, // === THÊM MỚI: ID của nhóm để navigate chính xác ===
   }) async {
+<<<<<<< HEAD
     // === THÊM MỚI: Bật chấm đỏ lên khi có tin nhắn ===
     showBadgeNotifier.value = true;
+=======
+>>>>>>> 3ee7efe (done all groupapis)
     // Tạo payload JSON để lưu thêm thông tin
     final payloadData = {
       'type': 'message',
@@ -280,7 +292,10 @@ class NotificationService {
     required String groupName,
     String? groupId, // === THÊM MỚI: ID của nhóm ===
   }) async {
+<<<<<<< HEAD
     showBadgeNotifier.value = true;
+=======
+>>>>>>> 3ee7efe (done all groupapis)
     // Tạo payload JSON
     final payloadData = {
       'type': 'group_request',

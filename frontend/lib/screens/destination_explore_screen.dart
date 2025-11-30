@@ -1,12 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 import '../data/mock_explore_items.dart';
 import '../models/destination_explore_item.dart';
 import '../widgets/enter_bar.dart';
+<<<<<<< HEAD
 import '../services/recommendation_service.dart';
 import '../services/user_service.dart';
 import 'destination_search_screen.dart';
 import 'before_group_screen.dart';
+=======
+import '../config/api_config.dart';
+import '../services/auth_service.dart';
+>>>>>>> 3ee7efe (done all groupapis)
 
 class DestinationExploreScreen extends StatefulWidget {
   final String cityId;
@@ -18,6 +25,7 @@ class DestinationExploreScreen extends StatefulWidget {
   final VoidCallback? onBeforeGroup;
   final VoidCallback? onSearchPlace;
 
+<<<<<<< HEAD
   const DestinationExploreScreen({
     Key? key,
     required this.cityId,
@@ -29,11 +37,14 @@ class DestinationExploreScreen extends StatefulWidget {
     this.onSearchPlace,
   }) : super(key: key);
 
+=======
+>>>>>>> 3ee7efe (done all groupapis)
   @override
   State<DestinationExploreScreen> createState() => _DestinationExploreScreenState();
 }
 
 class _DestinationExploreScreenState extends State<DestinationExploreScreen> {
+<<<<<<< HEAD
   final RecommendationService _recommendService = RecommendationService();
   final UserService _userService = UserService();
 
@@ -56,6 +67,34 @@ class _DestinationExploreScreenState extends State<DestinationExploreScreen> {
     // 1. Reset trạng thái tim của mock data về false trước khi load để tránh lưu cache sai
     for (var item in mockExploreItems) {
       if (item.cityId == widget.cityId) item.isFavorite = false;
+=======
+  final Set<String> _selectedPlaceNames = {};
+
+  void _triggerSearchCallback() {
+    if (widget.onSearchPlace != null) widget.onSearchPlace!();
+  }
+
+  Future<void> _handleConfirm() async {
+    // Build itinerary map like {"1": "Place A", "2": "Place B"}
+    if (_selectedPlaceNames.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('no_places_selected'.tr())));
+      return;
+    }
+
+    final itineraryMap = <String, String>{};
+    int i = 1;
+    for (final name in _selectedPlaceNames) {
+      itineraryMap['$i'] = name;
+      i++;
+    }
+
+    final ok = await _updateItineraryAPI(itineraryMap);
+    if (ok) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('itinerary_saved'.tr())));
+      if (widget.onBeforeGroup != null) widget.onBeforeGroup!();
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('save_itinerary_failed'.tr())));
+>>>>>>> 3ee7efe (done all groupapis)
     }
 
     // 2. Khởi tạo list hiển thị
@@ -236,22 +275,54 @@ class _DestinationExploreScreenState extends State<DestinationExploreScreen> {
 
   @override
   Widget build(BuildContext context) {
+<<<<<<< HEAD
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, result) {
         if (didPop) return;
         _handleBack();
+=======
+    // Lọc các địa điểm theo cityId
+    final cityItems = mockExploreItems.where((item) => item.cityId == widget.cityId).toList();
+
+    return PopScope(
+      canPop: widget.onBack == null, // Cho phép pop nếu không có callback
+      onPopInvokedWithResult: (didPop, result) {
+        // Khi người dùng vuốt để quay lại, gọi callback onBack giống như nút back
+        if (!didPop && widget.onBack != null) {
+          widget.onBack!();
+        }
+>>>>>>> 3ee7efe (done all groupapis)
       },
       child: Scaffold(
         extendBodyBehindAppBar: true,
         extendBody: true,
         appBar: AppBar(
+<<<<<<< HEAD
           backgroundColor: Colors.transparent,
           elevation: 0,
           leading: Container(
             margin: const EdgeInsets.all(8),
             decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
             child: IconButton(icon: const Icon(Icons.arrow_back, color: Colors.black), onPressed: _handleBack),
+=======
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: Container(
+          margin: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            shape: BoxShape.circle,
+          ),
+          child: IconButton(
+            icon: const Icon(Icons.arrow_back, color: Colors.black),
+            onPressed: () {
+              // Quay về destination detail screen
+              if (widget.onBack != null) {
+                widget.onBack!();
+              }
+            },
+>>>>>>> 3ee7efe (done all groupapis)
           ),
           actions: [ // Bỏ const để dùng biến động
             Padding(
@@ -316,6 +387,7 @@ class _DestinationExploreScreenState extends State<DestinationExploreScreen> {
                           },
                         ),
                       ),
+<<<<<<< HEAD
                       SizedBox(height: 25 * scaleFactor),
                     ],
                   ),
@@ -330,6 +402,44 @@ class _DestinationExploreScreenState extends State<DestinationExploreScreen> {
                   onValidation: _validateSelection,
                   onConfirm: _handleEnter,
                 ),
+=======
+                    ),
+                    SizedBox(height: spacing2),
+                    SizedBox(
+                      height: cardHeight,
+                      child: ListView.separated(
+                        scrollDirection: Axis.horizontal,
+                        itemCount: cityItems.length,
+                        separatorBuilder: (_, __) => SizedBox(width: 30 * scaleFactor),
+                        itemBuilder: (context, index) {
+                          final item = cityItems[index];
+                          return _buildPlaceCard(
+                            item.imageUrl,
+                            item.name,
+                            '', // Không dùng namePart2
+                            item.getSubtitle(context.locale.languageCode), // Dịch subtitle
+                            cardWidth,
+                            scaleFactor,
+                            item.name,
+                          );
+                        },
+                      ),
+                    ),
+                    SizedBox(height: spacing3),
+                  ],
+                ),
+              );
+            },
+          ),
+          // EnterButton cố định ở vị trí giống destination_detail_screen
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: kBottomNavigationBarHeight + 35,
+            child: Center(
+              child: EnterButton(
+                onConfirm: _handleConfirm,
+>>>>>>> 3ee7efe (done all groupapis)
               ),
             ),
           ],
@@ -338,6 +448,7 @@ class _DestinationExploreScreenState extends State<DestinationExploreScreen> {
     );
   }
 
+<<<<<<< HEAD
   Widget _buildPlaceCard(DestinationExploreItem item, double cardWidth, double scaleFactor) {
     final score = _getScore(item.name);
     return GestureDetector(
@@ -385,6 +496,170 @@ class _DestinationExploreScreenState extends State<DestinationExploreScreen> {
           ],
         ),
       ),
+=======
+  Widget _buildPlaceCard(
+      String imageUrl,
+      String namePart1,
+      String namePart2,
+      String subtitle,
+      double cardWidth,
+      double scaleFactor,
+      String placeName,
+      ) {
+    return StatefulBuilder(
+      builder: (context, setState) {
+        final isSelected = _selectedPlaceNames.contains(placeName);
+        return GestureDetector(
+          onTap: () {
+            setState(() {
+              if (_selectedPlaceNames.contains(placeName)) {
+                _selectedPlaceNames.remove(placeName);
+              } else {
+                _selectedPlaceNames.add(placeName);
+              }
+            });
+          },
+          child: Container(
+            width: cardWidth,
+            height: 180 * scaleFactor,
+            margin: EdgeInsets.only(right: 8 * scaleFactor),
+            decoration: BoxDecoration(
+              color: const Color(0xFFD9D9D9),
+              borderRadius: BorderRadius.circular(30),
+              border: isSelected ? Border.all(color: const Color(0xFFB99668), width: 3) : null,
+            ),
+            child: Stack(
+              children: [
+                Positioned.fill(
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(30),
+                    child: Image.asset(imageUrl, fit: BoxFit.cover),
+                  ),
+                ),
+                // Heart selection button in corner
+                Positioned(
+                  right: 16 * scaleFactor,
+                  top: 16 * scaleFactor,
+                  child: GestureDetector(
+                    onTap: () {
+                      setState(() {
+                        if (_selectedPlaceNames.contains(placeName)) {
+                          _selectedPlaceNames.remove(placeName);
+                        } else {
+                          _selectedPlaceNames.add(placeName);
+                        }
+                      });
+                    },
+                    child: Container(
+                      width: 32 * scaleFactor,
+                      height: 32 * scaleFactor,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16 * scaleFactor),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.08),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: Icon(
+                        Icons.favorite,
+                        color: isSelected ? Colors.red : Colors.black.withValues(alpha: 0.2),
+                        size: 22 * scaleFactor,
+                      ),
+                    ),
+                  ),
+                ),
+                // Nội dung tên, subtitle
+                Positioned(
+                  left: 20 * scaleFactor,
+                  bottom: 20 * scaleFactor,
+                  right: 20 * scaleFactor,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        namePart1,
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 16 * scaleFactor,
+                          fontFamily: 'Roboto',
+                          fontWeight: FontWeight.w600,
+                          shadows: const [Shadow(color: Colors.black26, blurRadius: 2)],
+                        ),
+                      ),
+                      SizedBox(height: 4 * scaleFactor),
+                      Text(
+                        subtitle,
+                        style: TextStyle(
+                          color: const Color(0xFFC9C8C8),
+                          fontSize: 13 * scaleFactor,
+                          fontFamily: 'Roboto',
+                          fontWeight: FontWeight.w400,
+                          shadows: const [Shadow(color: Colors.black12, blurRadius: 1)],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+>>>>>>> 3ee7efe (done all groupapis)
     );
+  }
+
+  // Update itinerary on user profile
+  Future<bool> _updateItineraryAPI(Map<String, String> itinerary) async {
+    try {
+      final token = await AuthService.getValidAccessToken();
+      if (token == null) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('session_expired'.tr())));
+        return false;
+      }
+
+      final url = ApiConfig.getUri(ApiConfig.userProfile);
+      // fetch current user data to preserve fields
+      final resp = await http.get(url, headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      });
+
+      if (resp.statusCode != 200) {
+        debugPrint('Failed to fetch user data: ${resp.statusCode} ${resp.body}');
+        return false;
+      }
+
+      final data = jsonDecode(resp.body) as Map<String, dynamic>;
+
+      final body = {
+        'fullname': data['fullname'] ?? '',
+        'email': data['email'] ?? '',
+        'gender': data['gender'] ?? '',
+        'birth_date': data['birth_date'] ?? '',
+        'description': data['description'] ?? '',
+        'interests': data['interests'] ?? [],
+        'itinerary': itinerary,
+      };
+
+      final patchResp = await http.patch(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode(body),
+      );
+
+      debugPrint('Update itinerary status: ${patchResp.statusCode} body: ${patchResp.body}');
+      return patchResp.statusCode == 200 || patchResp.statusCode == 201;
+    } catch (e) {
+      debugPrint('Error updating itinerary: $e');
+      return false;
+    }
   }
 }

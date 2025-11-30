@@ -242,83 +242,86 @@ class _ProfilePageState extends State<ProfilePage> {
 
                     const SizedBox(height: 20),
 
-                    Expanded(
-                      child: SingleChildScrollView(
-                        padding: const EdgeInsets.symmetric(horizontal: 30),
-                        child: Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 20),
-                          decoration: BoxDecoration(
-                            color: const Color.fromARGB(220, 138, 114, 76),
-                            borderRadius: BorderRadius.circular(36),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const SizedBox(height: 50),
-                              buildDisplayBox("full_name".tr(), fullName),
-                              Row(
-                                children: [
-                                  Expanded(
-                                      child:
-                                      buildDisplayBox("birth_date".tr(), birthDate)),
-                                  const SizedBox(width: 48),
-                                  Expanded(
-                                      child: buildDisplayBox("gender".tr(), gender)),
-                                ],
-                              ),
-                              buildDisplayBox("email".tr(), email),
-
-                              const SizedBox(height: 10),
-                              Text(
-                                "travel_interests".tr(),
-                                style: TextStyle(
-                                  fontFamily: 'WorkSans',
-                                  fontWeight: FontWeight.w500,
-                                  fontSize: 15,
-                                  color: labelColor,
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 12, vertical: 12),
-                                decoration: BoxDecoration(
-                                  color: boxColor,
-                                  borderRadius: BorderRadius.circular(16),
-                                ),
-                                child: Column(
+                    SizedBox(
+                      height: 550,
+                      child: Expanded(
+                        child: SingleChildScrollView(
+                          padding: const EdgeInsets.symmetric(horizontal: 30),
+                          child: Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 16, vertical: 20),
+                            decoration: BoxDecoration(
+                              color: const Color.fromARGB(220, 138, 114, 76),
+                              borderRadius: BorderRadius.circular(36),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const SizedBox(height: 50),
+                                buildDisplayBox("full_name".tr(), fullName),
+                                Row(
                                   children: [
-                                    for (int i = 0; i < interests.length; i += 2)
-                                      Padding(
-                                        padding: EdgeInsets.only(
-                                            bottom:
-                                            i + 2 < interests.length ? 18 : 0),
-                                        child: Row(
-                                          mainAxisAlignment:
-                                          MainAxisAlignment.spaceBetween,
-                                          children: [
-                                            buildInterestBox(interests[i]),
-                                            if (i + 1 < interests.length)
-                                              buildInterestBox(interests[i + 1]),
-                                          ],
-                                        ),
-                                      ),
+                                    Expanded(
+                                        child:
+                                        buildDisplayBox("birth_date".tr(), birthDate)),
+                                    const SizedBox(width: 48),
+                                    Expanded(
+                                        child: buildDisplayBox("gender".tr(), gender)),
                                   ],
                                 ),
-                              ),
+                                buildDisplayBox("email".tr(), email),
 
-                              const SizedBox(height: 15),
-                              buildDisplayBox("self_description".tr(), description,
-                                  maxLines: 3),
-                              const SizedBox(height: 30),
-                            ],
+                                const SizedBox(height: 10),
+                                Text(
+                                  "travel_interests".tr(),
+                                  style: TextStyle(
+                                    fontFamily: 'WorkSans',
+                                    fontWeight: FontWeight.w500,
+                                    fontSize: 15,
+                                    color: labelColor,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 12, vertical: 12),
+                                  decoration: BoxDecoration(
+                                    color: boxColor,
+                                    borderRadius: BorderRadius.circular(16),
+                                  ),
+                                  child: Column(
+                                    children: [
+                                      for (int i = 0; i < interests.length; i += 2)
+                                        Padding(
+                                          padding: EdgeInsets.only(
+                                              bottom:
+                                              i + 2 < interests.length ? 18 : 0),
+                                          child: Row(
+                                            mainAxisAlignment:
+                                            MainAxisAlignment.spaceBetween,
+                                            children: [
+                                              buildInterestBox(interests[i]),
+                                              if (i + 1 < interests.length)
+                                                buildInterestBox(interests[i + 1]),
+                                            ],
+                                          ),
+                                        ),
+                                    ],
+                                  ),
+                                ),
+
+                                const SizedBox(height: 15),
+                                buildDisplayBox("self_description".tr(), description,
+                                    maxLines: 3),
+                                const SizedBox(height: 30),
+                              ],
+                            ),
                           ),
                         ),
                       ),
-                    ),
+                    )
                   ],
                 ),
 
@@ -459,25 +462,6 @@ class _ProfilePageState extends State<ProfilePage> {
     // === Fallback: Load từ API nếu không có cache ===
     try {
       String? accessToken = await AuthService.getValidAccessToken();
-
-      if (accessToken == null) {
-        final prefs = await SharedPreferences.getInstance();
-        final refreshToken = prefs.getString('refresh_token');
-
-        if (refreshToken == null || refreshToken.isEmpty) {
-          print("User phải login lại");
-          return;
-        }
-
-        accessToken = await AuthService.refreshAccessToken(refreshToken);
-
-        if (accessToken == null) {
-          print("User phải login lại");
-          return;
-        }
-
-        await prefs.setString('access_token', accessToken);
-      }
 
       final url = ApiConfig.getUri(ApiConfig.userProfile);
 

@@ -4,6 +4,7 @@
 import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+<<<<<<< HEAD
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'home_page.dart';
@@ -14,6 +15,14 @@ import '../services/background_notification_service.dart';
 import '../services/notification_service.dart'; // Import service để xử lý badge
 import '../services/auth_service.dart'; // === THÊM MỚI: Import auth service ===
 import '../config/api_config.dart'; // === THÊM MỚI: Import API config ===
+=======
+import 'home_page.dart';
+import 'messages_screen.dart';
+import '../widgets/custom_bottom_nav_bar.dart';
+import '../widgets/notification_permission_dialog.dart'; // === THÊM MỚI ===
+import '../services/background_notification_service.dart'; // === THÊM MỚI: Background WebSocket ===
+import '../services/notification_service.dart'; // === THÊM MỚI: Notification Service ===
+>>>>>>> 3ee7efe (done all groupapis)
 import '../models/destination.dart';
 import 'destination_detail_screen.dart';
 import 'destination_explore_screen.dart';
@@ -66,6 +75,7 @@ class _MainAppScreenState extends State<MainAppScreen> {
   void initState() {
     super.initState();
     _selectedIndex = widget.initialIndex;
+<<<<<<< HEAD
     _startBackgroundNotificationService();
     _requestNotificationPermission();
     _preloadProfileData(); // === THÊM MỚI: Pre-load data ngay khi app start ===
@@ -95,6 +105,15 @@ class _MainAppScreenState extends State<MainAppScreen> {
     }
   }
 
+=======
+    // === THÊM MỚI: Khởi động background notification service ===
+    _startBackgroundNotificationService();
+    // === THÊM MỚI: Xin quyền thông báo sau khi UI load xong ===
+    _requestNotificationPermission();
+  }
+
+  /// Khởi động WebSocket listener ở background
+>>>>>>> 3ee7efe (done all groupapis)
   Future<void> _startBackgroundNotificationService() async {
     try {
       await BackgroundNotificationService().start();
@@ -104,15 +123,33 @@ class _MainAppScreenState extends State<MainAppScreen> {
     }
   }
 
+<<<<<<< HEAD
   Future<void> _requestNotificationPermission() async {
+=======
+  /// Xin quyền thông báo lần đầu
+  Future<void> _requestNotificationPermission() async {
+    // Delay một chút để UI load xong
+>>>>>>> 3ee7efe (done all groupapis)
     await Future.delayed(const Duration(milliseconds: 1000));
 
     if (!mounted) return;
 
+<<<<<<< HEAD
     final hasPermission = await NotificationService().checkPermission();
 
     if (!hasPermission) {
       final granted = await NotificationPermissionDialog.show(context);
+=======
+    // === SỬA MỚI: Kiểm tra permission thực tế thay vì chỉ dựa vào flag ===
+    // Điều này đảm bảo dialog hiện lại nếu permission bị revoke (test)
+    final hasPermission = await NotificationService().checkPermission();
+
+    if (!hasPermission) {
+      // Chưa có permission → hiển thị dialog giải thích
+      final granted = await NotificationPermissionDialog.show(context);
+
+      // Lưu trạng thái để không hỏi lại (trừ khi user revoke)
+>>>>>>> 3ee7efe (done all groupapis)
       if (granted) {
         final prefs = await SharedPreferences.getInstance();
         await prefs.setBool('notification_permission_asked', true);
@@ -512,7 +549,11 @@ class _MainAppScreenState extends State<MainAppScreen> {
           onDestinationTap: _openDestinationDetail,
           onSettingsTap: _openSettings,
           onTabChangeRequest: (index) {
+<<<<<<< HEAD
             _onItemTapped(index);
+=======
+            _onItemTapped(index); // Gọi hàm chuyển tab của MainAppScreen
+>>>>>>> 3ee7efe (done all groupapis)
           },
         ),
         NotificationScreen(),

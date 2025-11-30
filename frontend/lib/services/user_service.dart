@@ -13,8 +13,12 @@ class UserService {
     'sapa': 'Sa Pa', 'halong': 'Hạ Long',
   };
 
+<<<<<<< HEAD
   // ... (Giữ nguyên getPreferredCity, updatePreferredCityRaw, updatePreferredCity) ...
   // ... (Giữ nguyên getPreferredCity, updatePreferredCityRaw, updatePreferredCity) ...
+=======
+  // Lấy thành phố yêu thích
+>>>>>>> 3ee7efe (done all groupapis)
   Future<String?> getPreferredCity() async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('access_token');
@@ -48,8 +52,12 @@ class UserService {
   }
 
   // ===============================================================
+<<<<<<< HEAD
   // FIX: LƯU ITINERARY THEO THÀNH PHỐ HIỆN TẠI
   // FIX: LƯU ITINERARY THEO THÀNH PHỐ HIỆN TẠI
+=======
+  // FIX LỖI 422: CHUYỂN LIST THÀNH MAP {"1": "A", "2": "B"}
+>>>>>>> 3ee7efe (done all groupapis)
   // ===============================================================
   Future<bool> toggleItineraryItem(String placeName, bool isAdding) async {
     final prefs = await SharedPreferences.getInstance();
@@ -59,8 +67,12 @@ class UserService {
     try {
       final url = Uri.parse('$baseUrl/users/me');
 
+<<<<<<< HEAD
       // 1. GET DỮ LIỆU
       // 1. GET DỮ LIỆU
+=======
+      // --- BƯỚC 1: LẤY DỮ LIỆU CŨ TỪ SERVER ---
+>>>>>>> 3ee7efe (done all groupapis)
       final getResponse = await http.get(
         url,
         headers: {'Authorization': 'Bearer $token'},
@@ -69,6 +81,7 @@ class UserService {
       if (getResponse.statusCode != 200) return false;
 
       final data = jsonDecode(utf8.decode(getResponse.bodyBytes));
+<<<<<<< HEAD
       var profileData = data['profile'] ?? data;
 
       // Lấy tên thành phố đang chọn (Ví dụ: "Đà Nẵng")
@@ -160,6 +173,55 @@ class UserService {
 
       // 5. GỬI ĐI
       // 5. GỬI ĐI
+=======
+      List<String> currentItineraryList = []; // Dùng List để dễ thêm/xóa
+
+      var profileData = data['profile'] ?? data;
+      var rawItinerary = profileData['itinerary'];
+
+      // LOGIC GIẢI MÃ: Chuyển mọi định dạng (Map hoặc List) về List<String> để xử lý
+      if (rawItinerary != null) {
+        if (rawItinerary is List) {
+          // Trường hợp 1: Là List ["A", "B"]
+          currentItineraryList = List<String>.from(rawItinerary.map((e) => e.toString()));
+        } else if (rawItinerary is Map) {
+          // Trường hợp 2: Là Map
+          if (rawItinerary.containsKey('places') && rawItinerary['places'] is List) {
+            // Dạng cũ: {"places": ["A", "B"]}
+            var list = rawItinerary['places'] as List;
+            currentItineraryList = list.map((e) => e.toString()).toList();
+          } else {
+            // Dạng chuẩn Backend: {"1": "A", "2": "B"}
+            // Lấy values ra và cho vào List
+            for (var val in rawItinerary.values) {
+              currentItineraryList.add(val.toString());
+            }
+          }
+        }
+      }
+
+      // --- BƯỚC 2: THỰC HIỆN THÊM / XÓA ---
+      if (isAdding) {
+        if (!currentItineraryList.contains(placeName)) {
+          currentItineraryList.add(placeName);
+        }
+      } else {
+        currentItineraryList.remove(placeName);
+      }
+
+      // --- BƯỚC 3: ĐÓNG GÓI LẠI THÀNH MAP SỐ THỨ TỰ (QUAN TRỌNG) ---
+      // Backend yêu cầu Dict[str, str] nên ta phải chuyển List -> Map
+      // Ví dụ: ["A", "B"] -> {"1": "A", "2": "B"}
+      Map<String, String> payloadMap = {};
+      for (int i = 0; i < currentItineraryList.length; i++) {
+        // Key là số thứ tự dạng chuỗi ("1", "2"...)
+        payloadMap[(i + 1).toString()] = currentItineraryList[i];
+      }
+
+      print("📝 Payload gửi đi (Map chuẩn): {'itinerary': $payloadMap}");
+
+      // --- BƯỚC 4: GỬI PATCH ---
+>>>>>>> 3ee7efe (done all groupapis)
       final patchResponse = await http.patch(
         url,
         headers: {
@@ -167,6 +229,7 @@ class UserService {
           'Authorization': 'Bearer $token',
         },
         body: jsonEncode({
+<<<<<<< HEAD
           'itinerary': finalPayload,
           'itinerary': finalPayload,
         }),
@@ -174,6 +237,19 @@ class UserService {
 
       return (patchResponse.statusCode == 200 || patchResponse.statusCode == 204);
       return (patchResponse.statusCode == 200 || patchResponse.statusCode == 204);
+=======
+          'itinerary': payloadMap, // Gửi Map { "1": "..." } thay vì List
+        }),
+      );
+
+      if (patchResponse.statusCode == 200 || patchResponse.statusCode == 204) {
+        print("✅ [UserService] Lưu Itinerary thành công!");
+        return true;
+      } else {
+        print("❌ [UserService] Lỗi server: ${patchResponse.statusCode} - ${patchResponse.body}");
+        return false;
+      }
+>>>>>>> 3ee7efe (done all groupapis)
 
     } catch (e) {
       print('❌ [UserService] Exception: $e');
@@ -181,6 +257,7 @@ class UserService {
     }
   }
 
+<<<<<<< HEAD
   // Hàm này trả về danh sách tên địa điểm đã lưu: ["Cầu Rồng", "Bà Nà Hills"]
   Future<List<String>> getSavedItineraryNames() async {
     final prefs = await SharedPreferences.getInstance();
@@ -266,19 +343,42 @@ class UserService {
   }
 
   // ... (Hàm getUserProfile giữ nguyên) ...
+=======
+  // Lấy profile đầy đủ
+>>>>>>> 3ee7efe (done all groupapis)
   Future<Map<String, dynamic>?> getUserProfile() async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('access_token');
     if (token == null) return null;
+<<<<<<< HEAD
     try {
       final url = Uri.parse('$baseUrl/users/me');
       final response = await http.get(url, headers: {'Content-Type': 'application/json', 'Authorization': 'Bearer $token'});
+=======
+
+    try {
+      final url = Uri.parse('$baseUrl/users/me');
+      final response = await http.get(
+          url,
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer $token'
+          }
+      );
+
+>>>>>>> 3ee7efe (done all groupapis)
       if (response.statusCode == 200) {
         final data = jsonDecode(utf8.decode(response.bodyBytes));
         return data['profile'] ?? data;
       }
+<<<<<<< HEAD
     } catch (e) { print('❌ $e'); }
     } catch (e) { print('❌ $e'); }
+=======
+    } catch (e) {
+      print('❌ Lỗi lấy profile: $e');
+    }
+>>>>>>> 3ee7efe (done all groupapis)
     return null;
   }
 }

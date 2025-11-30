@@ -5,6 +5,16 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="fc62ebc6-5fea-4dae-abc1-b5859c194cd0" name="Changes" comment="">
+      <change afterPath="$PROJECT_DIR$/DEBUG_REALTIME_NOTIFICATIONS.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/LOCAL_NOTIFICATIONS_GUIDE.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/NOTIFICATION_NAVIGATION_GUIDE.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/NOTIFICATION_TAP_FIX_SUMMARY.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/REALTIME_NOTIFICATIONS_AND_BRANDING.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/TESTING_NOTIFICATION_NAVIGATION.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/frontend/lib/services/background_notification_service.dart" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/frontend/lib/services/notification_service.dart" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/frontend/lib/widgets/notification_permission_dialog.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/libraries/Dart_Packages.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/libraries/Dart_Packages.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/frontend/lib/config/api_config.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/lib/config/api_config.dart" afterDir="false" />
     </list>
