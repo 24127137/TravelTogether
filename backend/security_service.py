@@ -4,6 +4,7 @@ from typing import Optional, Dict, Any
 from sqlmodel import Session, select
 from sqlalchemy import Column, text
 from sqlalchemy.dialects.postgresql import UUID, JSONB, TEXT, TIME # Import đúng kiểu dữ liệu PG
+from sqlalchemy import or_
 
 # Giả sử các model đã được import đúng từ file model
 from db_tables import UserSecurity, SecurityLocations 
@@ -151,3 +152,38 @@ class SecurityService:
             return True
 
         return False
+    def scan_overdue_users(self, session: Session) -> int:
+        """
+        Quét tất cả user có last_confirmation_ts quá 36h 
+        và chưa set status='overdue'.
+        Returns: Số lượng user bị update.
+        """
+        # 1. Tính mốc thời gian giới hạn (Hiện tại - 36 tiếng)
+        # Lưu ý: Luôn dùng UTC
+        limit_time = datetime.now(timezone.utc) - timedelta(hours=36)
+
+        # 2. Query tìm các nạn nhân
+        # Điều kiện: (last_confirmation < limit_time) VÀ (status != 'overdue')
+        statement = select(UserSecurity).where(
+            UserSecurity.last_confirmation_ts < limit_time,
+            UserSecurity.status != "overdue"
+        )
+        
+        results = session.exec(statement).all()
+        count = 0
+
+        # 3. Update từng user
+        for sec in results:
+            sec.status = "overdue"
+            sec.updated_at = datetime.now(timezone.utc)
+            
+            # Lưu log location (Không có toạ độ vì chạy ngầm)
+            self.save_location(session, sec.user_id, reason="timeout", location=None)
+            count += 1
+        
+        # Commit một lần cho tất cả thay đổi
+        if count > 0:
+            session.commit()
+            print(f"[Scheduler] Đã update {count} user sang trạng thái OVERDUE.")
+        
+        return count
