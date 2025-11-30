@@ -24,7 +24,7 @@ conf = ConnectionConfig(
 class EmailService:
     
     @staticmethod
-    async def send_security_alert(email_to: List[str], user_name: str, alert_type: str):
+    async def send_security_alert(email_to: List[str], user_name: str, alert_type: str, map_link: str = None):
         """
         Gửi email cảnh báo khẩn cấp.
         alert_type: "overdue" | "danger"
@@ -33,20 +33,29 @@ class EmailService:
         subject = ""
         body = ""
 
+        location_html = ""
+        if map_link:
+            location_html = f"""
+            <p>📍 <b>Vị trí ghi nhận:</b> <a href="{map_link}" style="background-color: #007bff; color: white; padding: 10px 15px; text-decoration: none; border-radius: 5px;">Xem trên Google Maps</a></p>
+            <p><small>(Link: {map_link})</small></p>
+            """
+        else:
+            location_html = "<p>📍 <i>Không có dữ liệu vị trí GPS.</i></p>"
+
+        # Chèn location_html vào body
         if alert_type == "overdue":
-            subject = f"⚠️ CẢNH BÁO: Người thân {user_name} đã mất liên lạc!"
             body = f"""
-            <h3>Hệ thống Travel Security thông báo</h3>
-            <p>Người dùng <b>{user_name}</b> đã không xác nhận an toàn trong hơn 36 giờ.</p>
-            <p>Vị trí cuối cùng đã được ghi nhận vào hệ thống.</p>
+            ... (các thẻ html cũ) ...
             <p>Vui lòng liên hệ với người dùng ngay lập tức.</p>
+            {location_html} 
+            ...
             """
         elif alert_type == "danger":
-            subject = f"🆘 KHẨN CẤP: {user_name} báo động nguy hiểm!"
-            body = f"""
-            <h3>CẢNH BÁO KHẨN CẤP</h3>
-            <p>Người dùng <b>{user_name}</b> vừa kích hoạt mã PIN nguy hiểm hoặc nhập sai nhiều lần.</p>
-            <p>Hệ thống đang theo dõi vị trí.</p>
+             body = f"""
+            ... (các thẻ html cũ) ...
+            <p>Hệ thống đang bí mật theo dõi vị trí.</p>
+            {location_html}
+            ...
             """
 
         message = MessageSchema(
