@@ -87,6 +87,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
         final currentUserId = prefs.getString('user_id');
         final lastSeenMessageId = prefs.getString('last_seen_message_id'); // === THÊM MỚI: Lấy ID tin nhắn cuối đã seen ===
 
+<<<<<<< HEAD
         final url = ApiConfig.getUri(ApiConfig.chatHistory);
         final response = await http.get(
           url,
@@ -146,6 +147,108 @@ class _MessagesScreenState extends State<MessagesScreen> {
               isAiChat: false,
               hasUnseenMessages: hasUnseen, // === THÊM MỚI ===
             ));
+=======
+        // === THÊM MỚI: Lấy thông tin group (name, image) ===
+        String groupName = 'chat_title'.tr();
+        String? groupImageUrl;
+        bool hasGroup = false;
+        
+        try {
+          final myGroupUrl = ApiConfig.getUri(ApiConfig.myGroup);
+          final myGroupResponse = await http.get(
+            myGroupUrl,
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": "Bearer $_accessToken",
+            },
+          );
+          
+          if (myGroupResponse.statusCode == 200) {
+            final groupData = jsonDecode(utf8.decode(myGroupResponse.bodyBytes));
+            groupName = groupData['name'] ?? groupName;
+            groupImageUrl = groupData['group_image_url'];
+            hasGroup = true;
+            print('✅ User in group: $groupName, image: $groupImageUrl');
+          }
+        } catch (e) {
+          print('❌ Error checking group: $e');
+          hasGroup = false;
+        }
+
+        if (hasGroup) {
+          final url = ApiConfig.getUri(ApiConfig.chatHistory);
+          final response = await http.get(
+            url,
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": "Bearer $_accessToken",
+            },
+          );
+
+          if (response.statusCode == 200) {
+            final List<dynamic> messages = jsonDecode(utf8.decode(response.bodyBytes));
+
+            if (messages.isNotEmpty) {
+              final lastMsg = messages.last;
+              final createdAtUtc = DateTime.parse(lastMsg['created_at']);
+              final createdAtLocal = createdAtUtc.toLocal();
+
+              // === THÊM MỚI: Format time - nếu hôm nay hiện giờ, nếu không hiện ngày ===
+              final now = DateTime.now();
+              final isToday = createdAtLocal.year == now.year &&
+                             createdAtLocal.month == now.month &&
+                             createdAtLocal.day == now.day;
+
+              final timeStr = isToday
+                  ? DateFormat('HH:mm').format(createdAtLocal)
+                  : DateFormat('d \'thg\' M').format(createdAtLocal);
+
+              // === THÊM MỚI: Format message preview ===
+              final messageType = lastMsg['message_type'] ?? 'text';
+              final senderId = lastMsg['sender_id']?.toString() ?? '';
+              final isMyMessage = (currentUserId != null && senderId == currentUserId);
+
+              String messagePreview;
+              if (messageType == 'image') {
+                messagePreview = isMyMessage ? 'Bạn đã gửi một ảnh' : 'Đã gửi một ảnh';
+              } else {
+                final content = lastMsg['content'] ?? '';
+                messagePreview = isMyMessage ? 'Bạn: $content' : content;
+              }
+
+              // === THÊM MỚI: Kiểm tra có tin nhắn chưa seen không ===
+              bool hasUnseen = false;
+              if (!isMyMessage) {
+                // Tin nhắn cuối là của người khác
+                final lastMessageId = lastMsg['id']?.toString() ?? '';
+                // Nếu ID tin nhắn cuối khác với ID đã seen, hoặc chưa có ID đã seen
+                hasUnseen = (lastSeenMessageId == null || lastSeenMessageId != lastMessageId);
+              }
+
+              print('📬 Group chat - lastMessageId: ${lastMsg['id']}, lastSeenId: $lastSeenMessageId, hasUnseen: $hasUnseen');
+
+              conversations.add(ConversationItem(
+                sender: groupName,
+                message: messagePreview,
+                time: timeStr,
+                isOnline: true,
+                isAiChat: false,
+                hasUnseenMessages: hasUnseen,
+                groupImageUrl: groupImageUrl, // === THÊM MỚI: Truyền ảnh group ===
+              ));
+            } else {
+              // === Nếu có group nhưng chưa có message, hiển thị group với message mặc định ===
+              conversations.add(ConversationItem(
+                sender: groupName,
+                message: 'Bắt đầu cuộc trò chuyện',
+                time: '',
+                isOnline: true,
+                isAiChat: false,
+                hasUnseenMessages: false,
+                groupImageUrl: groupImageUrl, // === THÊM MỚI: Truyền ảnh group ===
+              ));
+            }
+>>>>>>> 3ee7efe (done all groupapis)
           }
         }
       } catch (e) {
@@ -266,6 +369,10 @@ class _MessagesScreenState extends State<MessagesScreen> {
                                       isOnline: conv.isOnline,
                                       isAiChat: conv.isAiChat, // Pass isAiChat
                                       hasUnseenMessages: conv.hasUnseenMessages, // === THÊM MỚI: Pass unseen status ===
+<<<<<<< HEAD
+=======
+                                      groupImageUrl: conv.groupImageUrl, // === THÊM MỚI: Pass group image ===
+>>>>>>> 3ee7efe (done all groupapis)
                                       scaleFactor: scaleFactor,
                                     );
                                   },
@@ -330,6 +437,10 @@ class _MessageTile extends StatelessWidget {
   final bool isOnline;
   final bool isAiChat; // Thêm parameter
   final bool hasUnseenMessages; // === THÊM MỚI: Có tin nhắn chưa seen không ===
+<<<<<<< HEAD
+=======
+  final String? groupImageUrl; // === THÊM MỚI: URL ảnh group ===
+>>>>>>> 3ee7efe (done all groupapis)
   final double scaleFactor;
 
   const _MessageTile({
@@ -339,6 +450,10 @@ class _MessageTile extends StatelessWidget {
     required this.isOnline,
     required this.isAiChat, // Thêm required
     this.hasUnseenMessages = false, // === THÊM MỚI ===
+<<<<<<< HEAD
+=======
+    this.groupImageUrl, // === THÊM MỚI ===
+>>>>>>> 3ee7efe (done all groupapis)
     this.scaleFactor = 1.0,
     Key? key,
   }) : super(key: key);
@@ -391,11 +506,25 @@ class _MessageTile extends StatelessWidget {
                       ),
                     ),
                   )
+<<<<<<< HEAD
                 : CircleAvatar(
                     radius: 32 * scaleFactor,
                     backgroundColor: const Color(0xFFD9CBB3),
                     child: Icon(Icons.person, size: 32 * scaleFactor, color: Colors.white),
                   ),
+=======
+                : // === THÊM MỚI: Hiển thị ảnh group nếu có, nếu không dùng default avatar ===
+                  (groupImageUrl != null && groupImageUrl!.isNotEmpty)
+                    ? CircleAvatar(
+                        radius: 32 * scaleFactor,
+                        backgroundImage: NetworkImage(groupImageUrl!),
+                      )
+                    : CircleAvatar(
+                        radius: 32 * scaleFactor,
+                        backgroundColor: const Color(0xFFD9CBB3),
+                        child: Icon(Icons.people, size: 32 * scaleFactor, color: Colors.white),
+                      ),
+>>>>>>> 3ee7efe (done all groupapis)
               // Removed the small online indicator dot per request
             ],
           ),
@@ -455,6 +584,10 @@ class ConversationItem {
   final bool isOnline;
   final bool isAiChat; // Thêm flag để phân biệt AI chat vs Group chat
   final bool hasUnseenMessages; // === THÊM MỚI: Có tin nhắn chưa đọc không ===
+<<<<<<< HEAD
+=======
+  final String? groupImageUrl; // === THÊM MỚI: URL ảnh group ===
+>>>>>>> 3ee7efe (done all groupapis)
 
   ConversationItem({
     required this.sender,
@@ -463,5 +596,9 @@ class ConversationItem {
     this.isOnline = false,
     this.isAiChat = false, // Default là group chat
     this.hasUnseenMessages = false, // === THÊM MỚI: Mặc định là đã seen ===
+<<<<<<< HEAD
+=======
+    this.groupImageUrl, // === THÊM MỚI ===
+>>>>>>> 3ee7efe (done all groupapis)
   });
 }

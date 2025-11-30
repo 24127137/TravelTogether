@@ -28,6 +28,7 @@ class _HomePageState extends State<HomePage> {
 
   final UserService _userService = UserService(); // Init Service
 
+<<<<<<< HEAD
   String _userName = 'User'; // Mặc định
   String? _userAvatar;
 
@@ -35,10 +36,16 @@ class _HomePageState extends State<HomePage> {
   void initState() {
     super.initState();
     _loadUserInfo();
+=======
+  @override
+  void initState() {
+    super.initState();
+>>>>>>> 3ee7efe (done all groupapis)
     // Tự động kiểm tra xem có cần popup thông báo vào nhóm không
     _checkNewGroupAcceptance();
   }
 
+<<<<<<< HEAD
   Future<void> _loadUserInfo() async {
     final prefs = await SharedPreferences.getInstance();
 
@@ -93,6 +100,8 @@ class _HomePageState extends State<HomePage> {
     await Future.delayed(const Duration(milliseconds: 500)); // Thêm delay nhỏ cho mượt
   }
 
+=======
+>>>>>>> 3ee7efe (done all groupapis)
   // --- LOGIC AUTO POPUP ---
   Future<void> _checkNewGroupAcceptance() async {
     // 1. Kiểm tra token
@@ -250,6 +259,7 @@ class _HomePageState extends State<HomePage> {
                     onSettingsTap: widget.onSettingsTap,
                     // Truyền hàm xử lý nút Loa xuống dưới
                     onAnnouncementTap: _handleAnnouncementTap,
+<<<<<<< HEAD
                     userName: _userName,
                     avatarUrl: _userAvatar,
                   ),
@@ -286,6 +296,37 @@ class _HomePageState extends State<HomePage> {
                           ),
                         ],
                       ),
+=======
+                  ),
+                  Expanded(
+                    child: ListView(
+                      padding: EdgeInsets.zero,
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.all(20.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              Text(
+                                "top_destinations".tr(),
+                                style: const TextStyle(
+                                  color: Color(0xFFFFFFFF),
+                                  fontSize: 19,
+                                  fontFamily: 'Alegreya',
+                                  fontWeight: FontWeight.w900,
+                                ),
+                              ),
+                              const SizedBox(height: 20),
+                              ...top5.map((dest) => _RecommendedCard(
+                                destination: dest,
+                                onTap: widget.onDestinationTap,
+                              )).toList(),
+                              SizedBox(height: MediaQuery.of(context).padding.bottom + 100),
+                            ],
+                          ),
+                        ),
+                      ],
+>>>>>>> 3ee7efe (done all groupapis)
                     ),
                   ),
                 ],
@@ -313,9 +354,13 @@ class _TopSection extends StatelessWidget {
   final VoidCallback onDestinationTap;
   final VoidCallback onDurationTap;
   final VoidCallback? onSettingsTap;
+<<<<<<< HEAD
   final VoidCallback onAnnouncementTap;
   final String userName;
   final String? avatarUrl;
+=======
+  final VoidCallback onAnnouncementTap; // Callback mới
+>>>>>>> 3ee7efe (done all groupapis)
 
   const _TopSection({
     required this.durationText,
@@ -323,8 +368,11 @@ class _TopSection extends StatelessWidget {
     required this.onDurationTap,
     this.onSettingsTap,
     required this.onAnnouncementTap, // Required
+<<<<<<< HEAD
     required this.userName,
     this.avatarUrl,
+=======
+>>>>>>> 3ee7efe (done all groupapis)
   });
 
   @override
@@ -342,8 +390,11 @@ class _TopSection extends StatelessWidget {
           _CustomAppBar(
             onSettingsTap: onSettingsTap,
             onAnnouncementTap: onAnnouncementTap, // Truyền tiếp
+<<<<<<< HEAD
             userName: userName,
             avatarUrl: avatarUrl,
+=======
+>>>>>>> 3ee7efe (done all groupapis)
           ),
           const SizedBox(height: 24),
           _SelectionButton(
@@ -366,14 +417,20 @@ class _TopSection extends StatelessWidget {
 class _CustomAppBar extends StatelessWidget {
   final VoidCallback? onSettingsTap;
   final VoidCallback onAnnouncementTap; // Callback mới
+<<<<<<< HEAD
   final String userName;      // Thêm
   final String? avatarUrl;
+=======
+>>>>>>> 3ee7efe (done all groupapis)
 
   const _CustomAppBar({
     this.onSettingsTap,
     required this.onAnnouncementTap,
+<<<<<<< HEAD
     required this.userName,   // Thêm
     this.avatarUrl,
+=======
+>>>>>>> 3ee7efe (done all groupapis)
   });
 
   @override
@@ -391,7 +448,12 @@ class _CustomAppBar extends StatelessWidget {
               ),
             ),
           ),
+<<<<<<< HEAD
           child: CircleAvatar(
+=======
+          child: const CircleAvatar(
+            backgroundImage: AssetImage('assets/images/avatar.jpg'),
+>>>>>>> 3ee7efe (done all groupapis)
             radius: 18,
             backgroundColor: Colors.grey[300], // Màu nền khi chưa có ảnh
             backgroundImage: (avatarUrl != null && avatarUrl!.isNotEmpty)

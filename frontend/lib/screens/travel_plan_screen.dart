@@ -53,6 +53,7 @@ class _TravelPlanScreenState extends State<TravelPlanScreen> {
       final profile = await _userService.getUserProfile();
       if (profile == null) throw Exception("Không lấy được thông tin cá nhân");
 
+<<<<<<< HEAD
       dynamic itineraryData; // Dữ liệu sẽ hiển thị
       _isMemberView = false; // Mặc định là xem cá nhân
 
@@ -125,19 +126,87 @@ class _TravelPlanScreenState extends State<TravelPlanScreen> {
               // Nếu đang xem Cá nhân: Chỉ lấy item thuộc CITY hiện tại
               // (Logic lọc theo prefix như đã thống nhất)
               if (strKey.startsWith(prefix)) {
+=======
+      dynamic itineraryData;
+
+      List owned = profile['owned_groups'] ?? [];
+      List joined = profile['joined_groups'] ?? [];
+
+      if (owned.isNotEmpty) {
+        print("👤 User là HOST");
+        _isMemberView = false;
+        itineraryData = profile['itinerary'];
+      }
+      else if (joined.isNotEmpty) {
+        print("👥 User là MEMBER -> Dùng kế hoạch 'Lách luật'");
+        _isMemberView = true;
+
+        // --- SỬA ĐOẠN NÀY: LẤY ID NHÓM RỒI GỌI API PUBLIC ---
+        try {
+          // 1. Lấy Group ID từ thông tin profile
+          var firstGroup = joined[0]; // {"group_id": 123, "name": "..."}
+          int groupId = firstGroup['group_id'];
+
+          // 2. Gọi API Public (Cái API không bị lỗi 500)
+          final groupPlan = await _groupService.getGroupPlanById(token, groupId);
+
+          if (groupPlan != null) {
+            itineraryData = groupPlan['itinerary'];
+          }
+        } catch (e) {
+          print("⚠️ Lỗi lấy plan: $e");
+          // Fallback nếu không lấy được
+          itineraryData = profile['itinerary'];
+        }
+        // -----------------------------------------------------
+      }
+      else {
+        print("👤 User SOLO");
+        _isMemberView = false;
+        itineraryData = profile['itinerary'];
+      }
+
+      // 2. Xử lý dữ liệu hiển thị (Safe Parsing)
+      List<String> rawNames = [];
+
+      if (itineraryData != null) {
+        if (itineraryData is Map) {
+          if (itineraryData.containsKey('places') && itineraryData['places'] is List) {
+            var listPlaces = itineraryData['places'] as List;
+            rawNames = listPlaces.map((e) => e.toString()).toList();
+          } else {
+            // Sort theo key "1", "2"...
+            var sortedKeys = itineraryData.keys.toList()
+              ..sort((a, b) {
+                int? iA = int.tryParse(a.toString());
+                int? iB = int.tryParse(b.toString());
+                if (iA != null && iB != null) return iA.compareTo(iB);
+                return a.toString().compareTo(b.toString());
+              });
+
+            for (var key in sortedKeys) {
+              if (itineraryData[key] != null) {
+>>>>>>> 3ee7efe (done all groupapis)
                 rawNames.add(itineraryData[key].toString());
               }
             }
           }
         }
         else if (itineraryData is List) {
+<<<<<<< HEAD
           // Fallback cho trường hợp dữ liệu cũ dạng List
+=======
+>>>>>>> 3ee7efe (done all groupapis)
           rawNames = (itineraryData as List).map((e) => e.toString()).toList();
         }
       }
 
+<<<<<<< HEAD
 
       // Map tên sang ảnh (giữ nguyên logic cũ)
+=======
+      // Map tên sang ảnh
+>>>>>>> 3ee7efe (done all groupapis)
       List<Map<String, String>> newPlaces = rawNames.map((name) {
         String imagePath = _findImageUrl(name);
         return {
@@ -155,7 +224,11 @@ class _TravelPlanScreenState extends State<TravelPlanScreen> {
       }
 
     } catch (e) {
+<<<<<<< HEAD
       print("❌ Lỗi load plan tổng: $e");
+=======
+      print("❌ Lỗi load plan: $e");
+>>>>>>> 3ee7efe (done all groupapis)
       if (mounted) setState(() { _error = 'Lỗi: $e'; _isLoading = false; });
     }
   }
@@ -173,6 +246,8 @@ class _TravelPlanScreenState extends State<TravelPlanScreen> {
   }
 }
 
+// ... (Phần _TravelPlanContent và _PlaceCard giữ nguyên như cũ) ...
+// Copy lại phần UI từ code trước của tôi để đảm bảo không thiếu sót
 class _TravelPlanContent extends StatelessWidget {
   final VoidCallback? onBack;
   final List<Map<String, String>> places;

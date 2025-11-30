@@ -10,7 +10,11 @@ import 'password_changing.dart';
 import 'security.dart';
 import 'emergency_pin.dart';
 import '../services/auth_service.dart';
+<<<<<<< HEAD
 import 'onboarding.dart';
+=======
+import 'welcome.dart';
+>>>>>>> 3ee7efe (done all groupapis)
 import 'list_group_feedback.dart';
 // Networking and storage
 import 'package:http/http.dart' as http;
@@ -47,15 +51,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
   String? _profileAvatarUrl;
   String? _accessToken;
 
+<<<<<<< HEAD
   // === THÊM MỚI: Loading state ===
   bool _isLoading = false;
 
+=======
+>>>>>>> 3ee7efe (done all groupapis)
   @override
   void initState() {
     super.initState();
     _loadProfile();
   }
 
+<<<<<<< HEAD
   // === THÊM MỚI: Helper function để navigate với loading ===
   Future<void> _navigateWithLoading(Widget destination) async {
     setState(() => _isLoading = true);
@@ -100,6 +108,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
 
     // === Fallback: Load từ API nếu không có cache ===
+=======
+  Future<void> _loadProfile() async {
+>>>>>>> 3ee7efe (done all groupapis)
     try {
       final prefs = await SharedPreferences.getInstance();
       _accessToken = prefs.getString('access_token');
@@ -120,6 +131,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
           _profileAvatarUrl = (avatar != null && avatar.isNotEmpty) ? avatar : null;
         });
       } else {
+<<<<<<< HEAD
+=======
+        // optional: print status for debugging
+>>>>>>> 3ee7efe (done all groupapis)
         debugPrint('Failed to load profile: ${resp.statusCode}');
       }
     } catch (e) {
@@ -307,7 +322,29 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       // Navigate dựa vào trạng thái hiện tại
                       if (_showGroupFeedback) {
                         // Đang hiển thị "Phản hồi nhóm" → sang FeedbackScreen
+<<<<<<< HEAD
                         await _navigateWithLoading(const ListGroupFeedbackScreen());
+=======
+                        Navigator.push(
+                          context,
+                          PageRouteBuilder(
+                            pageBuilder: (context, animation, secondaryAnimation) => const ListGroupFeedbackScreen(),
+                            transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                              const begin = Offset(1.0, 0.0);
+                              const end = Offset.zero;
+                              const curve = Curves.easeInOut;
+
+                              var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+                              var offsetAnimation = animation.drive(tween);
+
+                              return SlideTransition(
+                                position: offsetAnimation,
+                                child: child,
+                              );
+                            },
+                          ),
+                        );
+>>>>>>> 3ee7efe (done all groupapis)
                       } else {
                         // Đang hiển thị "Uy tín" → sang ReputationScreen
                         await _navigateWithLoading(const ReputationScreen());
@@ -442,6 +479,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
                           // Nếu người dùng xác nhận đăng xuất
                           if (shouldLogout == true && mounted) {
+<<<<<<< HEAD
                             // Xóa token và dữ liệu xác thực
                             await AuthService.clearTokens();
 
@@ -453,6 +491,67 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                 ),
                                 (route) => false, // Xóa toàn bộ route stack
                               );
+=======
+                            showDialog(
+                              context: context,
+                              barrierDismissible: false,
+                              builder: (context) => const Center(
+                                child: CircularProgressIndicator(
+                                  color: Color(0xFFB99668),
+                                ),
+                              ),
+                            );
+
+                            try {
+                              final accessToken = await AuthService.getValidAccessToken();
+                              
+                              if (accessToken != null) {
+                                final url = ApiConfig.getUri(ApiConfig.authSignout);
+                                
+                                print('🔄 Calling POST /auth/signout');
+                                
+                                final response = await http.post(
+                                  url,
+                                  headers: {
+                                    'Content-Type': 'application/json',
+                                    'Authorization': 'Bearer $accessToken',
+                                  },
+                                ).timeout(const Duration(seconds: 10));
+
+                                print('📥 Response status: ${response.statusCode}');
+                                print('📥 Response body: ${response.body}');
+                              }
+
+                              await AuthService.clearTokens();
+
+                              if (mounted) {
+                                // Đóng loading dialog
+                                Navigator.of(context).pop();
+                                
+                                // Chuyển về màn hình Welcome và xóa toàn bộ stack
+                                Navigator.of(context).pushAndRemoveUntil(
+                                  MaterialPageRoute(
+                                    builder: (context) => const WelcomeScreen(),
+                                  ),
+                                  (route) => false, // Xóa toàn bộ route stack
+                                );
+                              }
+                            } catch (e) {
+                              print('❌ Error during signout: $e');
+
+                              await AuthService.clearTokens();
+                              
+                              if (mounted) {
+                                Navigator.of(context).pop();
+
+                                Navigator.of(context).pushAndRemoveUntil(
+                                  MaterialPageRoute(
+                                    builder: (context) => const WelcomeScreen(),
+                                  ),
+                                  (route) => false,
+                                );
+                              }
+>>>>>>> 3ee7efe (done all groupapis)
                             }
                           }
                         },

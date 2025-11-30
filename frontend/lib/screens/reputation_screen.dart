@@ -3,9 +3,13 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/feedback_service.dart';
 import '../models/feedback_models.dart';
+<<<<<<< HEAD
 import '../services/user_service.dart';
 import '../services/group_service.dart'; // Import GroupService để lấy ảnh
 import '../services/auth_service.dart';  // Import AuthService để lấy token
+=======
+import '../services/user_service.dart'; // <--- 1. Import UserService
+>>>>>>> 3ee7efe (done all groupapis)
 
 class ReputationScreen extends StatefulWidget {
   const ReputationScreen({super.key});
@@ -16,13 +20,21 @@ class ReputationScreen extends StatefulWidget {
 
 class _ReputationScreenState extends State<ReputationScreen> {
   final FeedbackService _feedbackService = FeedbackService();
+<<<<<<< HEAD
   final UserService _userService = UserService();
+=======
+  final UserService _userService = UserService(); // <--- 2. Khởi tạo UserService
+>>>>>>> 3ee7efe (done all groupapis)
 
   bool _isLoading = true;
   MyReputationResponse? _reputationData;
 
+<<<<<<< HEAD
   // Biến lưu thông tin User
   String _userName = "User";
+=======
+  String _userName = "User"; // Mặc định
+>>>>>>> 3ee7efe (done all groupapis)
   String _userEmail = "";
   String? _userAvatar;
 
@@ -34,10 +46,19 @@ class _ReputationScreenState extends State<ReputationScreen> {
 
   Future<void> _loadData() async {
     final prefs = await SharedPreferences.getInstance();
+<<<<<<< HEAD
     final token = await AuthService.getValidAccessToken(); // Lấy token chuẩn
 
     if (token != null) {
       // Gọi song song 2 API: Lấy uy tín & Lấy thông tin cá nhân
+=======
+    final token = prefs.getString('access_token');
+
+    // Bước 1: Lấy thông tin User mới nhất từ API (để hiện Fullname chính xác)
+    // Gọi song song với lấy Reputation để tiết kiệm thời gian
+    if (token != null) {
+      // Chạy cả 2 API cùng lúc
+>>>>>>> 3ee7efe (done all groupapis)
       final results = await Future.wait([
         _feedbackService.getMyReputation(token), // index 0
         _userService.getUserProfile(),           // index 1
@@ -50,6 +71,7 @@ class _ReputationScreenState extends State<ReputationScreen> {
         setState(() {
           _reputationData = reputationData;
 
+<<<<<<< HEAD
           // Cập nhật thông tin User từ API
           if (profileData != null) {
             _userName = profileData['fullname'] ?? "User";
@@ -57,12 +79,25 @@ class _ReputationScreenState extends State<ReputationScreen> {
             _userAvatar = profileData['avatar_url'];
 
             // Cache lại để dùng cho lần sau
+=======
+          // Cập nhật thông tin User từ API /users/me
+          if (profileData != null) {
+            _userName = profileData['fullname'] ?? "User"; // Lấy fullname từ DB
+            _userEmail = profileData['email'] ?? "";
+            _userAvatar = profileData['avatar_url'];
+
+            // Lưu lại vào cache để lần sau mở app lên hiện nhanh hơn
+>>>>>>> 3ee7efe (done all groupapis)
             prefs.setString('user_fullname', _userName);
             if (_userAvatar != null) {
               prefs.setString('user_avatar', _userAvatar!);
             }
           } else {
+<<<<<<< HEAD
             // Fallback: Dùng cache cũ nếu API lỗi
+=======
+            // Nếu API lỗi thì dùng tạm cache cũ
+>>>>>>> 3ee7efe (done all groupapis)
             _userName = prefs.getString('user_fullname') ?? "User";
             _userEmail = prefs.getString('user_email') ?? "";
             _userAvatar = prefs.getString('user_avatar');
@@ -78,7 +113,12 @@ class _ReputationScreenState extends State<ReputationScreen> {
 
   @override
   Widget build(BuildContext context) {
+<<<<<<< HEAD
+=======
+    // ... (Phần UI giữ nguyên như cũ) ...
+>>>>>>> 3ee7efe (done all groupapis)
     return Scaffold(
+      // Copy y nguyên phần build cũ của bạn
       resizeToAvoidBottomInset: false,
       body: Stack(
         children: [
@@ -120,7 +160,11 @@ class _ReputationScreenState extends State<ReputationScreen> {
 
                 return Column(
                   children: [
+<<<<<<< HEAD
                     // Header (Back Button)
+=======
+                    // Header
+>>>>>>> 3ee7efe (done all groupapis)
                     Padding(
                       padding: EdgeInsets.symmetric(horizontal: 26, vertical: headerVerticalPadding),
                       child: Row(
@@ -143,7 +187,11 @@ class _ReputationScreenState extends State<ReputationScreen> {
                       child: Stack(
                         clipBehavior: Clip.none,
                         children: [
+<<<<<<< HEAD
                           // Card Nội dung chính
+=======
+                          // Card Nội dung
+>>>>>>> 3ee7efe (done all groupapis)
                           Positioned(
                             top: contentTopPosition,
                             left: 20, right: 20, bottom: 20 * scaleFactor,
@@ -158,9 +206,15 @@ class _ReputationScreenState extends State<ReputationScreen> {
                                   : ListView(
                                 padding: EdgeInsets.fromLTRB(listPaddingH, contentTopPadding, listPaddingH, 24 * scaleFactor),
                                 children: [
+<<<<<<< HEAD
                                   // 1. Thông tin User & Rating tổng
                                   _UserInfoCard(
                                       userName: _userName,
+=======
+                                  // 1. User Info & Overall Rating
+                                  _UserInfoCard(
+                                      userName: _userName, // <--- Giờ biến này đã chứa tên thật
+>>>>>>> 3ee7efe (done all groupapis)
                                       userEmail: _userEmail,
                                       avatarUrl: _userAvatar,
                                       userRating: _reputationData?.averageRating ?? 0.0,
@@ -170,11 +224,18 @@ class _ReputationScreenState extends State<ReputationScreen> {
 
                                   SizedBox(height: userCardGap),
 
+<<<<<<< HEAD
                                   // 2. Danh sách đánh giá các nhóm
                                   if (_reputationData != null && _reputationData!.groups.isNotEmpty)
                                     ..._reputationData!.groups.map((group) => Padding(
                                       padding: EdgeInsets.only(bottom: 16 * scaleFactor),
                                       // Sử dụng Widget mới có khả năng tự load ảnh
+=======
+                                  // 2. List Group Ratings
+                                  if (_reputationData != null && _reputationData!.groups.isNotEmpty)
+                                    ..._reputationData!.groups.map((group) => Padding(
+                                      padding: EdgeInsets.only(bottom: 16 * scaleFactor),
+>>>>>>> 3ee7efe (done all groupapis)
                                       child: _GroupRatingCard(groupData: group, scaleFactor: scaleFactor),
                                     ))
                                   else
@@ -189,7 +250,11 @@ class _ReputationScreenState extends State<ReputationScreen> {
                             ),
                           ),
 
+<<<<<<< HEAD
                           // Tiêu đề "UY TÍN" (Reputation)
+=======
+                          // Title UY TÍN
+>>>>>>> 3ee7efe (done all groupapis)
                           Positioned(
                             top: 0, left: 0, right: 0,
                             child: Transform.translate(
@@ -234,8 +299,14 @@ class _ReputationScreenState extends State<ReputationScreen> {
   }
 }
 
+<<<<<<< HEAD
 // Widget hiển thị thông tin User (Stateless)
 class _UserInfoCard extends StatelessWidget {
+=======
+// ... (Giữ nguyên các widget con _UserInfoCard và _GroupRatingCard ở dưới) ...
+class _UserInfoCard extends StatelessWidget {
+  // ... code cũ của bạn
+>>>>>>> 3ee7efe (done all groupapis)
   final String userName;
   final String userEmail;
   final String? avatarUrl;
@@ -252,10 +323,15 @@ class _UserInfoCard extends StatelessWidget {
     this.scaleFactor = 1.0
   });
 
+  // ... build method cũ ...
   @override
   Widget build(BuildContext context) {
     final avatarSize = 77.0 * scaleFactor;
+<<<<<<< HEAD
 
+=======
+    // ...
+>>>>>>> 3ee7efe (done all groupapis)
     return Column(
         children: [
           Row(
@@ -280,10 +356,18 @@ class _UserInfoCard extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
+<<<<<<< HEAD
                             userName,
                             style: TextStyle(color: Colors.white, fontSize: 24 * scaleFactor, fontFamily: 'Alegreya', fontWeight: FontWeight.w800),
                             maxLines: 1, overflow: TextOverflow.ellipsis,
                           ),
+=======
+                            userName, // Hiển thị tên thật
+                            style: TextStyle(color: Colors.white, fontSize: 24 * scaleFactor, fontFamily: 'Alegreya', fontWeight: FontWeight.w800),
+                            maxLines: 1, overflow: TextOverflow.ellipsis,
+                          ),
+                          // ... (phần còn lại giữ nguyên)
+>>>>>>> 3ee7efe (done all groupapis)
                           SizedBox(height: 4 * scaleFactor),
                           Text(
                             userEmail,
@@ -299,6 +383,10 @@ class _UserInfoCard extends StatelessWidget {
                 )
               ]
           ),
+<<<<<<< HEAD
+=======
+          // ... Star rating bar code ...
+>>>>>>> 3ee7efe (done all groupapis)
           SizedBox(height: 20 * scaleFactor),
           // Total Rating Bar
           Container(
@@ -336,12 +424,17 @@ class _UserInfoCard extends StatelessWidget {
   }
 }
 
+<<<<<<< HEAD
 // Widget hiển thị từng Nhóm đánh giá (Stateful để tự load ảnh)
 class _GroupRatingCard extends StatefulWidget {
+=======
+class _GroupRatingCard extends StatelessWidget {
+>>>>>>> 3ee7efe (done all groupapis)
   final GroupReputationSummary groupData;
   final double scaleFactor;
 
   const _GroupRatingCard({required this.groupData, this.scaleFactor = 1.0});
+<<<<<<< HEAD
 
   @override
   State<_GroupRatingCard> createState() => _GroupRatingCardState();
@@ -385,6 +478,12 @@ class _GroupRatingCardState extends State<_GroupRatingCard> {
     final displayImage = _fetchedImageUrl ?? groupData.groupImageUrl;
     final hasImage = displayImage != null && displayImage.isNotEmpty;
 
+=======
+
+  @override
+  Widget build(BuildContext context) {
+    // ... Copy code cũ của bạn vào đây, không thay đổi gì ...
+>>>>>>> 3ee7efe (done all groupapis)
     final containerHeight = 128.0 * scaleFactor;
     final avatarSize = 105.0 * scaleFactor;
     final nameFontSize = 15.0 * scaleFactor;
@@ -421,15 +520,23 @@ class _GroupRatingCardState extends State<_GroupRatingCard> {
       ),
       child: Row(
         children: [
+<<<<<<< HEAD
           // Ảnh nhóm
+=======
+>>>>>>> 3ee7efe (done all groupapis)
           Container(
             width: avatarSize,
             height: avatarSize,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(10),
               image: DecorationImage(
+<<<<<<< HEAD
                 image: hasImage
                     ? NetworkImage(displayImage!) as ImageProvider
+=======
+                image: (groupData.groupImageUrl != null && groupData.groupImageUrl!.isNotEmpty)
+                    ? NetworkImage(groupData.groupImageUrl!) as ImageProvider
+>>>>>>> 3ee7efe (done all groupapis)
                     : const AssetImage("assets/images/default_group.jpg"),
                 fit: BoxFit.cover,
                 onError: (_, __) {}, // Bắt lỗi load ảnh để không crash
@@ -495,7 +602,11 @@ class _GroupRatingCardState extends State<_GroupRatingCard> {
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Text(
+<<<<<<< HEAD
                           tag.tr(), // Dịch tag nếu cần
+=======
+                          tag.tr(),
+>>>>>>> 3ee7efe (done all groupapis)
                           style: TextStyle(
                             color: Colors.black87,
                             fontSize: tagFontSize,
