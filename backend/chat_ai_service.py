@@ -1,272 +1,142 @@
-import uuid
-import asyncio
 import logging
-from typing import Dict, List, Optional, Any
-from supabase import create_client, Client
+from typing import List, Optional
 from sqlmodel import Session, select
 from sqlalchemy import desc
-from datetime import datetime
+from datetime import datetime, timezone
 
 # Import Model và Config
 from chat_ai_model import gemini_client
-from config import settings
-from db_tables import AIMessages
-
-# ====================================================================
-# KHỞI TẠO SUPABASE CLIENT
-# ====================================================================
-try:
-    sb_client: Client = create_client(settings.SUPABASE_URL, settings.SUPABASE_KEY)
-    logging.info("Supabase client initialized successfully")
-except Exception as e:
-    logging.exception(f"Lỗi khởi tạo Supabase trong AI Service: {e}")
-    sb_client = None
+from db_tables import AIMessages # Đảm bảo file chứa class AIMessages tên là db_tables.py hoặc sửa lại cho đúng
 
 class ChatService:
     
-    def __init__(self, db_session: Session = None):
+    def __init__(self, db_session: Session):
+        """Inject db_session từ Dependency của FastAPI"""
         self.db = db_session
     
     # ====================================================================
-    # HELPER: THAO TÁC DATABASE (SUPABASE)
+    # 1. DATABASE OPERATIONS (Dùng SQLModel)
     # ====================================================================
-    def _get_session_by_user_id(self, user_id: str) -> Optional[Dict]:
-        """✅ FIXED: Tìm session theo user_id (vì user_id là UNIQUE)"""
-        if not sb_client: 
-            logging.warning("Supabase client not initialized")
-            return None
-        try:
-            response = sb_client.table("chat_sessions").select("*").eq("user_id", user_id).execute()
-            if response.data and len(response.data) > 0:
-                return response.data[0]
-            return None
-        except Exception as e:
-            logging.error(f"DB Error (Get Session by User): {e}")
-            return None
 
-    def _get_session_by_id(self, session_id: str) -> Optional[Dict]:
-        """✅ NEW: Tìm session theo session_id"""
-        if not sb_client: return None
+    def _get_user_messages(self, user_id: str, limit: int = 20) -> List[AIMessages]:
+        """Lấy lịch sử chat gần nhất để làm context cho AI"""
         try:
-            response = sb_client.table("chat_sessions").select("*").eq("session_id", session_id).execute()
-            if response.data and len(response.data) > 0:
-                return response.data[0]
-            return None
-        except Exception as e:
-            logging.error(f"DB Error (Get Session by ID): {e}")
-            return None
-
-    def _get_history_from_db(self, session_id: str) -> List[Dict]:
-        """Lấy lịch sử chat của 1 session"""
-        if not sb_client: return []
-        try:
-            response = sb_client.table("chat_sessions").select("history").eq("session_id", session_id).execute()
-            if response.data and len(response.data) > 0:
-                return response.data[0].get('history', [])
-            return []
-        except Exception as e:
-            logging.error(f"DB Error (Get History): {e}")
-            return []
-
-    def _save_session_to_db(self, session_id: str, history: List[Dict], user_id: str = None):
-        """✅ FIXED: Lưu hoặc cập nhật session vào Supabase"""
-        if not sb_client: 
-            logging.warning("Cannot save session: Supabase client not initialized")
-            return
-        try:
-            data = {
-                "session_id": session_id,
-                "history": history
-            }
-            if user_id:
-                data["user_id"] = user_id
-            
-            # Upsert: Nếu có rồi thì update, chưa có thì insert
-            sb_client.table("chat_sessions").upsert(data, on_conflict="session_id").execute()
-            logging.info(f"Session {session_id} saved successfully")
-        except Exception as e:
-            logging.error(f"DB Error (Save Session): {e}")
-
-    def _get_all_sessions_by_user(self, user_id: str) -> List[Dict]:
-        """Lấy tất cả sessions của user"""
-        if not sb_client: return []
-        try:
-            response = sb_client.table("chat_sessions").select("*").eq("user_id", user_id).execute()
-            return response.data if response.data else []
-        except Exception as e:
-            logging.error(f"DB Error (Get All Sessions): {e}")
-            return []
-
-    def _delete_session_from_db(self, session_id: str):
-        """Xóa session khỏi DB"""
-        if not sb_client: return
-        try:
-            sb_client.table("chat_sessions").delete().eq("session_id", session_id).execute()
-            logging.info(f"Session {session_id} deleted")
-        except Exception as e:
-            logging.error(f"DB Error (Delete Session): {e}")
-
-    def _get_user_messages(self, user_id: str, limit: int = 50) -> List[AIMessages]:
-        """Lấy lịch sử chat của user (mới nhất trước)"""
-        try:
+            # Lấy tin nhắn mới nhất, sau đó đảo ngược lại để đúng thứ tự thời gian (Cũ -> Mới)
             statement = select(AIMessages)\
                 .where(AIMessages.user_id == user_id)\
                 .order_by(desc(AIMessages.created_at))\
                 .limit(limit)
             
             messages = self.db.exec(statement).all()
-            return list(reversed(messages))  # Reverse để theo thứ tự cũ → mới
+            return list(reversed(messages)) 
         except Exception as e:
             logging.error(f"DB Error (Get User Messages): {e}")
             return []
 
-    def _save_message(self, user_id: str, role: str, content: str, message_type: str = "text", image_url: Optional[str] = None):
-        """Lưu tin nhắn vào DB"""
+    def _save_message(self, user_id: str, role: str, content: str, message_type: str = "text", image_url: Optional[str] = None) -> AIMessages:
+        """Lưu tin nhắn (User hoặc AI) vào DB"""
         try:
             message = AIMessages(
                 user_id=user_id,
-                role=role,
+                role=role, # 'user' hoặc 'model'
                 message_type=message_type,
                 content=content,
                 image_url=image_url,
-                created_at=datetime.utcnow()
+                created_at=datetime.now(timezone.utc)
             )
             self.db.add(message)
             self.db.commit()
             self.db.refresh(message)
-            logging.info(f"Message saved for user {user_id} with role {role}")
             return message
         except Exception as e:
             logging.error(f"DB Error (Save Message): {e}")
             self.db.rollback()
-            raise
+            raise e
 
-    def _clear_user_chat(self, user_id: str):
-        """Xóa tất cả tin nhắn của user"""
+    def get_chat_history(self, user_id: str, limit: int = 50) -> List[dict]:
+        """Lấy lịch sử trả về cho API (Format JSON)"""
+        messages = self._get_user_messages(user_id, limit)
+        return [
+            {
+                "id": msg.id,
+                "role": msg.role,
+                "content": msg.content,
+                "message_type": msg.message_type,
+                "image_url": msg.image_url,
+                "created_at": msg.created_at.isoformat() if msg.created_at else None
+            }
+            for msg in messages
+        ]
+
+    def delete_chat_history(self, user_id: str):
+        """Xóa toàn bộ chat của user"""
         try:
             statement = select(AIMessages).where(AIMessages.user_id == user_id)
             messages = self.db.exec(statement).all()
             for msg in messages:
                 self.db.delete(msg)
             self.db.commit()
-            logging.info(f"Chat cleared for user {user_id}")
         except Exception as e:
-            logging.error(f"DB Error (Clear Chat): {e}")
             self.db.rollback()
-            raise
-    
-    # ====================================================================
-    # LOGIC CHÍNH: XỬ LÝ SESSION & TIN NHẮN
-    # ====================================================================
-    def create_or_restore_session(self, user_id: str) -> Dict[str, Any]:
-        """
-        ✅ FIXED: Tạo session mới hoặc khôi phục session cũ.
-        - Nếu user_id đã có session → trả về session cũ
-        - Nếu chưa có → tạo mới và gắn user_id
-        
-        Returns: {"session_id": str, "is_restored": bool}
-        """
-        # 1. Cố gắng khôi phục session cũ
-        existing_session = self._get_session_by_user_id(user_id)
-        if existing_session:
-            logging.info(f"Restored session for user {user_id}")
-            return {
-                "session_id": existing_session['session_id'],
-                "is_restored": True
-            }
+            logging.error(f"Error clearing chat: {e}")
+            raise e
 
-        # 2. Tạo mới hoàn toàn
-        new_sid = uuid.uuid4().hex
-        logging.info(f"Created new session {new_sid} for user {user_id}")
-        
-        # 3. Lưu session rỗng vào DB để giữ chỗ
-        self._save_session_to_db(new_sid, [], user_id)
-        
-        return {
-            "session_id": new_sid,
-            "is_restored": False
-        }
+    # ====================================================================
+    # 2. CORE LOGIC: GỌI GEMINI & XỬ LÝ
+    # ====================================================================
 
-    def _build_prompt(self, history: List[Dict[str, str]], user_message: str) -> str:
-        """Helper: Tạo prompt cho Gemini"""
-        pieces = []
+    def _build_context_prompt(self, history: List[AIMessages], new_question: str) -> str:
+        """
+        Tạo prompt chứa lịch sử chat để Gemini hiểu ngữ cảnh.
+        Format:
+        User: ...
+        Model: ...
+        User: [Câu hỏi mới]
+        """
+        prompt_parts = [
+            "Bạn là trợ lý AI hữu ích. Hãy trả lời dựa trên lịch sử cuộc trò chuyện sau đây (nếu có):",
+            "--- Bắt đầu lịch sử ---"
+        ]
+
         for msg in history:
-            role = msg.get("role", "user")
-            text = msg.get("text", "")
-            pieces.append(f"{role.upper()}: {text}")
+            role_label = "User" if msg.role == "user" else "Model"
+            content = msg.content if msg.content else "[Hình ảnh]"
+            prompt_parts.append(f"{role_label}: {content}")
         
-        pieces.append(f"USER: {user_message}")
-        pieces.append("ASSISTANT:")
+        prompt_parts.append("--- Kết thúc lịch sử ---")
+        prompt_parts.append(f"User (Mới nhất): {new_question}")
+        prompt_parts.append("Model:")
         
-        system_instruction = "Bạn là một trợ lý du lịch thân thiện, trả lời ngắn gọn, rõ ràng và lịch sự."
-        return system_instruction + "\n\n" + "\n".join(pieces)
+        return "\n".join(prompt_parts)
 
-    async def process_message(self, session_id: str, message: str) -> str:
+    async def process_user_message(self, user_id: str, message: str) -> str:
         """
-        ✅ FIXED: Flow xử lý tin nhắn:
-        1. Kiểm tra session có tồn tại không
-        2. Lấy lịch sử từ DB
-        3. Gọi Gemini
-        4. Lưu cập nhật vào DB
+        Hàm chính được API gọi:
+        1. Lưu câu hỏi của User vào DB.
+        2. Lấy lịch sử cũ làm context.
+        3. Gọi Gemini.
+        4. Lưu câu trả lời của AI vào DB.
+        5. Trả về text.
         """
-        # 1. Kiểm tra session tồn tại
-        session = self._get_session_by_id(session_id)
-        if not session:
-            raise ValueError(f"Session {session_id} không tồn tại")
-        
-        # 2. Lấy lịch sử
-        history = session.get('history', [])
-        
-        # 3. Thêm tin nhắn user (KHÔNG thêm vào prompt build vì đã có trong _build_prompt)
-        history.append({"role": "user", "text": message})
+        # Bước 1: Lưu tin nhắn User
+        # Lưu ý: Nếu có ảnh thì cần logic xử lý ảnh ở đây, tạm thời ta xử lý text
+        self._save_message(user_id=user_id, role="user", content=message)
 
-        # 4. Tạo Prompt
-        prompt = self._build_prompt(history[:-1], message)  
+        # Bước 2: Lấy lịch sử (bao gồm cả câu vừa lưu)
+        # Lấy khoảng 10 tin gần nhất để tiết kiệm token
+        history_msgs = self._get_user_messages(user_id, limit=10)
 
-        # 5. Gọi Model
+        # Bước 3: Tạo prompt
+        full_prompt = self._build_context_prompt(history_msgs, message)
+
+        # Bước 4: Gọi Gemini
         try:
-            ai_response_text = await asyncio.wait_for(
-                gemini_client.generate_content(prompt), 
-                timeout=30.0
-            )
-        except asyncio.TimeoutError:
-            logging.error("Gemini API timeout")
-            raise TimeoutError("AI phản hồi quá lâu")
+            ai_response_text = await gemini_client.generate_content(full_prompt)
         except Exception as e:
-            logging.error(f"Gemini API error: {e}")
-            raise
-        
-        # 6. Thêm tin nhắn AI
-        history.append({"role": "assistant", "text": ai_response_text})
+            # Nếu lỗi API, có thể xóa tin nhắn user vừa lưu để tránh bị lẻ loi (tuỳ chọn)
+            raise e
 
-        # 7. Lưu xuống DB
-        user_id = session.get('user_id')
-        self._save_session_to_db(session_id, history, user_id)
+        # Bước 5: Lưu tin nhắn AI
+        self._save_message(user_id=user_id, role="model", content=ai_response_text)
 
         return ai_response_text
-
-    def get_chat_history(self, user_id: str, limit: int = 50) -> List[dict]:
-        """Lấy lịch sử chat của user"""
-        try:
-            messages = self._get_user_messages(user_id, limit=limit)
-            return [
-                {
-                    "id": msg.id,
-                    "role": msg.role,
-                    "content": msg.content,
-                    "message_type": msg.message_type,
-                    "image_url": msg.image_url,
-                    "created_at": msg.created_at.isoformat() if msg.created_at else None
-                }
-                for msg in messages
-            ]
-        except Exception as e:
-            logging.error(f"Error getting chat history: {e}")
-            return []
-    
-    def delete_chat_history(self, user_id: str):
-        """Xóa toàn bộ lịch sử chat của user"""
-        self._clear_user_chat(user_id)
-
-# Instance service
-chat_service = ChatService()
