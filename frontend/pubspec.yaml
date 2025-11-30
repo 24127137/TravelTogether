@@ -1,0 +1,158 @@
+name: my_travel_app
+description: "A new Flutter project."
+# The following line prevents the package from being accidentally published to
+# pub.dev using `flutter pub publish`. This is preferred for private packages.
+publish_to: 'none' # Remove this line if you wish to publish to pub.dev
+
+# The following defines the version and build number for your application.
+# A version number is three numbers separated by dots, like 1.2.43
+# followed by an optional build number separated by a +.
+# Both the version and the builder number may be overridden in flutter
+# build by specifying --build-name and --build-number, respectively.
+# In Android, build-name is used as versionName while build-number used as versionCode.
+# Read more about Android versioning at https://developer.android.com/studio/publish/versioning
+# In iOS, build-name is used as CFBundleShortVersionString while build-number is used as CFBundleVersion.
+# Read more about iOS versioning at
+# https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
+# In Windows, build-name is used as the major, minor, and patch parts
+# of the product and file versions while build-number is used as the build suffix.
+version: 1.0.0+1
+
+environment:
+  sdk: ">=3.0.0 <4.0.0"
+
+
+# Dependencies specify other packages that your package needs in order to work.
+# To automatically upgrade your package dependencies to the latest versions
+# consider running `flutter pub upgrade --major-versions`. Alternatively,
+# dependencies can be manually updated by changing the version numbers below to
+# the latest version available on pub.dev. To see which dependencies have newer
+# versions available, run `flutter pub outdated`.
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # Common packages used in the project
+  cupertino_icons: ^1.0.8
+  intl: ^0.20.2
+  table_calendar: ^3.0.9
+  easy_localization: ^3.0.8
+  http: ^1.2.0
+  shared_preferences: ^2.3.3
+  image_picker: ^1.0.7
+  web_socket_channel: ^3.0.3
+  supabase_flutter: 2.10.3
+  path_provider: ^2.1.2
+  path_provider_android: ^2.2.4
+  hive_flutter: ^1.1.0
+  sign_in_with_apple: ^6.1.2
+  confetti: ^0.7.0
+  flutter_local_notifications: ^19.5.0
+  timezone: ^0.10.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+  rename: ^3.1.0
+  flutter_launcher_icons: ^0.14.4
+
+# === THÊM MỚI: Cấu hình app icon ===
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/images/logo.png"
+  adaptive_icon_background: "#FFFFFF"
+  adaptive_icon_foreground: "assets/images/logo.png"
+
+# For information on the generic Dart part of this file, see the
+# following page: https://dart.dev/tools/pub/pubspec
+
+# The following section is specific to Flutter packages.
+flutter:
+
+  # The following line ensures that the Material Icons font is
+  # included with your application, so that you can use the icons in
+  # the material Icons class.
+  uses-material-design: true
+
+  assets:
+    - assets/images/
+    - assets/images/dia_diem/danang/
+    - assets/images/dia_diem/dalat/
+    - assets/images/dia_diem/hanoi/
+    - assets/images/dia_diem/hoian/
+    - assets/images/dia_diem/hue/
+    - assets/images/dia_diem/nhatrang/
+    - assets/images/dia_diem/phuquoc/
+    - assets/images/dia_diem/saigon/
+    - assets/images/dia_diem/sapa/
+    - assets/images/dia_diem/halong/
+    - assets/images/group_creating/
+    - assets/translations/
+    - assets/images/travel_plan.png
+    - assets/images/nen_canhantrang.png
+    - assets/images/onboarding/1.png
+    - assets/images/onboarding/2.png
+    - assets/images/onboarding/3.png
+    - assets/images/saigon.jpg
+    - assets/images/logo.png
+    - assets/images/profile_page_background.png
+    - assets/images/interests/culture.jpg
+    - assets/images/interests/food.jpg
+    - assets/images/interests/photo.jpg
+    - assets/images/interests/trekking.jpg
+    - assets/images/interests/beach.jpg
+    - assets/images/interests/shopping.jpg
+    - assets/images/interests/sightseeing.jpg
+    - assets/images/interests/resort.jpg
+    - assets/images/interests/festival.jpg
+    - assets/images/interests/cafe.jpg
+    - assets/images/interests/homestay.jpg
+    - assets/images/interests/view.jpg
+    - assets/images/interests/camping.jpg
+    - assets/images/interests/cruise.jpg
+    - assets/images/interests/animals.jpg
+    - assets/images/interests/thrilling.jpg
+    - assets/images/interests/backpacking.jpg
+    - assets/images/interests/specialty.jpg
+    - assets/images/interests/vlog.jpg
+    - assets/images/interests/rowing.jpg
+    - assets/images/arrow_initial.png
+    - assets/images/arrow_pressing.png
+    - assets/images/arrow_confirm.png
+    - assets/images/message.jpg
+    - assets/images/group_avatar.jpg
+    - assets/images/overlay.png
+
+  fonts:
+    - family: Poppins
+      fonts:
+        - asset: assets/fonts/Poppins-Regular.ttf
+    - family: Bangers
+      fonts:
+        - asset: assets/fonts/Bangers-Regular.ttf
+    - family: Montserrat
+      fonts:
+        - asset: assets/fonts/Poppins-Regular.ttf
+    - family: Alegreya
+      fonts:
+        - asset: assets/fonts/Alegreya-VariableFont.ttf
+    - family: AlumniSans
+      fonts:
+        - asset: assets/fonts/AlumniSans-Italic-VariableFont_wght.ttf
+    - family: DMSerifDisplay
+      fonts:
+        - asset: assets/fonts/DMSerifDisplay-Regular.ttf
+    - family: Inter
+      fonts:
+        - asset: assets/fonts/Inter-VariableFont_opsz,wght.ttf
+    - family: WorkSans
+      fonts:
+        - asset: assets/fonts/WorkSans/static/WorkSans-Regular.ttf
+        - asset: assets/fonts/WorkSans/static/WorkSans-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/WorkSans/static/WorkSans-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/WorkSans/static/WorkSans-Bold.ttf
+          weight: 700
