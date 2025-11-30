@@ -41,6 +41,7 @@ class _DestinationExploreScreenState extends State<DestinationExploreScreen> {
   Map<String, int> _compatibilityScores = {};
   bool _isLoading = true;
   bool _hasLoadedOnce = false;
+  String? _userAvatar;
 
   Key _enterButtonKey = UniqueKey();
 
@@ -64,6 +65,7 @@ class _DestinationExploreScreenState extends State<DestinationExploreScreen> {
 
     // 3. Gọi load dữ liệu
     _loadAllData();
+    _loadUserAvatar();
   }
 
   Future<void> _loadAllData() async {
@@ -130,6 +132,26 @@ class _DestinationExploreScreenState extends State<DestinationExploreScreen> {
     } catch (e) {
       print("⚠️ Lỗi load data: $e");
       if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _loadUserAvatar() async {
+    // 1. Thử lấy từ Cache trước cho nhanh
+    // (Giả sử HomePage đã lưu vào SharedPreferences key 'user_avatar')
+    // Nếu bạn muốn dùng chung cache thì import SharedPreferences
+    // final prefs = await SharedPreferences.getInstance();
+    // setState(() { _userAvatar = prefs.getString('user_avatar'); });
+
+    // 2. Gọi API lấy mới nhất (để chắc chắn)
+    try {
+      final profile = await _userService.getUserProfile();
+      if (profile != null && mounted) {
+        setState(() {
+          _userAvatar = profile['avatar_url'];
+        });
+      }
+    } catch (e) {
+      print("Lỗi load avatar: $e");
     }
   }
 
@@ -231,8 +253,18 @@ class _DestinationExploreScreenState extends State<DestinationExploreScreen> {
             decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
             child: IconButton(icon: const Icon(Icons.arrow_back, color: Colors.black), onPressed: _handleBack),
           ),
-          actions: const [
-            Padding(padding: EdgeInsets.only(right: 16), child: CircleAvatar(backgroundImage: AssetImage('assets/images/avatar.jpg'), radius: 18)),
+          actions: [ // Bỏ const để dùng biến động
+            Padding(
+              padding: const EdgeInsets.only(right: 16),
+              child: CircleAvatar(
+                radius: 18,
+                backgroundColor: Colors.grey[300], // Màu nền khi chưa có ảnh
+                // LOGIC HIỂN THỊ ẢNH ĐỘNG:
+                backgroundImage: (_userAvatar != null && _userAvatar!.isNotEmpty)
+                    ? NetworkImage(_userAvatar!) as ImageProvider
+                    : const AssetImage('assets/images/avatar.jpg'), // Ảnh mặc định local
+              ),
+            ),
           ],
         ),
         body: Stack(
