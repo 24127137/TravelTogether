@@ -5,14 +5,8 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="fc62ebc6-5fea-4dae-abc1-b5859c194cd0" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/UI_IMPROVEMENTS_SUMMARY.md" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/frontend/lib/config/api_config.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/lib/config/api_config.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/lib/main.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/lib/main.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/lib/screens/home_page.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/lib/screens/home_page.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/lib/screens/main_app_screen.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/lib/screens/main_app_screen.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/lib/screens/profile.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/lib/screens/profile.dart" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/lib/screens/settings_screen.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/lib/screens/settings_screen.dart" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
