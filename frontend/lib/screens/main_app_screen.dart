@@ -12,6 +12,8 @@ import '../widgets/custom_bottom_nav_bar.dart';
 import '../widgets/notification_permission_dialog.dart';
 import '../services/background_notification_service.dart';
 import '../services/notification_service.dart'; // Import service để xử lý badge
+import '../services/auth_service.dart'; // === THÊM MỚI: Import auth service ===
+import '../config/api_config.dart'; // === THÊM MỚI: Import API config ===
 import '../models/destination.dart';
 import 'destination_detail_screen.dart';
 import 'destination_explore_screen.dart';
@@ -201,20 +203,6 @@ class _MainAppScreenState extends State<MainAppScreen> {
     });
   }
 
-  void _closeAllScreens() {
-    setState(() {
-      _showDetail = false;
-      _showExplore = false;
-      _showBeforeGroup = false;
-      _showGroupCreating = false;
-      _showSettings = false;
-      _showProfile = false;
-      _showGroupState = false;
-      _showTravelPlan = false;
-      _showJoinGroup = false;
-      _selectedIndex = 0;
-    });
-  }
 
   // === SỬA MỚI: Pre-load data THỰC SỰ trước khi mở Settings ===
   Future<void> _openSettings() async {
