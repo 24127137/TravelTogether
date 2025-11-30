@@ -41,23 +41,33 @@ class EmailService:
             """
         else:
             location_html = "<p>📍 <i>Không có dữ liệu vị trí GPS.</i></p>"
-
-        # Chèn location_html vào body
         if alert_type == "overdue":
+            subject = f"⚠️ CẢNH BÁO: Người thân {user_name} đã mất liên lạc!"
             body = f"""
-            ... (các thẻ html cũ) ...
-            <p>Vui lòng liên hệ với người dùng ngay lập tức.</p>
-            {location_html} 
-            ...
+            <div style="font-family: Arial, sans-serif; padding: 20px; border: 1px solid #e0e0e0; border-radius: 5px;">
+                <h2 style="color: #d9534f;">Hệ thống Cảnh báo Du lịch</h2>
+                <p>Xin chào,</p>
+                <p>Hệ thống phát hiện người dùng <b>{user_name}</b> đã không xác nhận an toàn trong hơn 36 giờ.</p>
+                <p>Trạng thái hiện tại: <b style="color: red;">OVERDUE (QUÁ HẠN)</b></p>
+                <p>Vị trí cuối cùng đã được lưu vào hệ thống. Vui lòng thử liên lạc với người dùng ngay lập tức.</p>
+                {location_html}
+                <hr>
+                <small>Đây là email tự động, vui lòng không trả lời.</small>
+            </div>
             """
+            
+        # 2. Nội dung Email cho trường hợp Nguy hiểm (Danger PIN)
         elif alert_type == "danger":
-             body = f"""
-            ... (các thẻ html cũ) ...
-            <p>Hệ thống đang bí mật theo dõi vị trí.</p>
-            {location_html}
-            ...
+            subject = f"🆘 KHẨN CẤP: {user_name} báo động nguy hiểm!"
+            body = f"""
+            <div style="font-family: Arial, sans-serif; padding: 20px; border: 2px solid red; border-radius: 5px; background-color: #fff5f5;">
+                <h2 style="color: red;">CẢNH BÁO KHẨN CẤP</h2>
+                <p>Người dùng <b>{user_name}</b> vừa kích hoạt mã PIN nguy hiểm hoặc nhập sai PIN nhiều lần.</p>
+                <p>Hệ thống đang bí mật theo dõi vị trí.</p>
+                <p><b>Hành động khuyến nghị:</b> Kiểm tra vị trí và liên hệ khẩn cấp.</p>
+                {location_html}
+            </div>
             """
-
         message = MessageSchema(
             subject=subject,
             recipients=email_to,
