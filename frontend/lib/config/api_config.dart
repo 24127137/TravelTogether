@@ -37,9 +37,9 @@ class ApiConfig {
   static const String aiSend = '$baseUrl/ai/send';
 
   // Feedback endpoints
-  static const String feedbackBaseUrl = "http://192.168.1.11:8000/feedbacks";
+  // static const String feedbackBaseUrl = "http://192.168.1.11:8000/feedbacks";
 
-  // static const String feedbackBaseUrl = '$baseUrl/feedbacks';
+  static const String feedbackBaseUrl = '$baseUrl/feedbacks';
 
 
   // Helper method to parse URI
