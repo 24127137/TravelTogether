@@ -25,7 +25,7 @@ class MemberScreenHost extends StatefulWidget {
 }
 
 class _MemberScreenHostState extends State<MemberScreenHost> {
-  bool _showMembers = true;
+  late bool _showMembers;
   String _searchQuery = '';
   final Set<String> _selectedRequests = <String>{};
   late List<Member> _filteredMembers;
@@ -37,6 +37,8 @@ class _MemberScreenHostState extends State<MemberScreenHost> {
   @override
   void initState() {
     super.initState();
+    _showMembers = true;
+
     _updateFilteredLists();
     _loadAccessToken();
   }
@@ -212,6 +214,7 @@ class _MemberScreenHostState extends State<MemberScreenHost> {
           (request) => approvedRequests.any((approved) => approved.id == request.id),
         );
 
+        _fetchPendingRequests(); // Gọi lại API để làm mới list và xóa dot nếu hết request
         _selectedRequests.clear();
         _updateFilteredLists();
       });
@@ -460,6 +463,7 @@ class _MemberScreenHostState extends State<MemberScreenHost> {
     );
   }
 
+  // === ĐÂY LÀ PHẦN QUAN TRỌNG ĐỂ HIỂN THỊ DOT ===
   Widget _buildTabButtons() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
@@ -504,16 +508,35 @@ class _MemberScreenHostState extends State<MemberScreenHost> {
                     borderRadius: BorderRadius.circular(30),
                   ),
                 ),
-                child: const Center(
-                  child: Text(
-                    'Chờ xác nhận',
-                    style: TextStyle(
-                      color: Colors.black,
-                      fontSize: 18,
-                      fontFamily: 'Alumni Sans',
-                      fontWeight: FontWeight.w400,
+                child: Stack( // <--- Dùng Stack để đè chấm đỏ lên
+                  alignment: Alignment.center,
+                  children: [
+                    const Center(
+                      child: Text(
+                        'Chờ xác nhận',
+                        style: TextStyle(
+                          color: Colors.black,
+                          fontSize: 18,
+                          fontFamily: 'Alumni Sans',
+                          fontWeight: FontWeight.w400,
+                        ),
+                      ),
                     ),
-                  ),
+                    // Logic hiển thị Dot: Nếu có request và không đang ở tab này (hoặc kể cả đang ở tab này cũng hiện cho người dùng biết list có item)
+                    if (_pendingRequests.isNotEmpty)
+                      Positioned(
+                        right: 10, // Canh chỉnh vị trí chấm
+                        top: 5,
+                        child: Container(
+                          width: 10,
+                          height: 10,
+                          decoration: const BoxDecoration(
+                            color: Color(0xFFD84315),
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
               ),
             ),

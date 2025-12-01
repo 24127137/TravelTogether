@@ -6,8 +6,8 @@ import 'package:intl/intl.dart';
 import '../config/api_config.dart';
 import '../services/notification_service.dart';
 import 'chatbox_screen.dart';
-// Import UserService để lấy thông tin Host
 import '../services/user_service.dart';
+// Đã xóa import member_screen(Host).dart vì không cần chuyển trang nữa
 
 class NotificationScreen extends StatefulWidget {
   const NotificationScreen({super.key});
@@ -20,13 +20,13 @@ class _NotificationScreenState extends State<NotificationScreen> {
   List<NotificationData> _notifications = [];
   bool _isLoading = true;
   String? _accessToken;
-  final UserService _userService = UserService(); // Khởi tạo UserService
+  final UserService _userService = UserService();
 
   @override
   void initState() {
     super.initState();
     _loadNotifications();
-    // Xóa badge đỏ khi vào màn hình này
+    // Khi vào màn hình này thì clear badge ngay
     NotificationService().clearBadge();
   }
 
@@ -44,9 +44,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
     List<NotificationData> notifications = [];
 
     if (_accessToken != null) {
-      // ======================================================
-      // 1. LOAD THÔNG BÁO TIN NHẮN (Giữ nguyên logic cũ)
-      // ======================================================
+      // 1. LOAD THÔNG BÁO TIN NHẮN
       try {
         final url = ApiConfig.getUri(ApiConfig.chatHistory);
         final response = await http.get(
@@ -61,7 +59,6 @@ class _NotificationScreenState extends State<NotificationScreen> {
           final List<dynamic> messages = jsonDecode(utf8.decode(response.bodyBytes));
           int unreadCount = 0;
           String? lastMessageTime;
-          String? groupName;
 
           int lastSeenIndex = -1;
           if (lastSeenMessageId != null) {
@@ -72,29 +69,22 @@ class _NotificationScreenState extends State<NotificationScreen> {
               }
             }
           }
-
           for (int i = lastSeenIndex + 1; i < messages.length; i++) {
             final msg = messages[i];
             final senderId = msg['sender_id']?.toString() ?? '';
-            final isMyMessage = (currentUserId != null && senderId == currentUserId);
-
-            if (isMyMessage) continue;
-
+            if ((currentUserId != null && senderId == currentUserId)) continue;
             unreadCount++;
             final createdAtUtc = DateTime.parse(msg['created_at']);
             lastMessageTime = _formatTime(createdAtUtc.toLocal());
           }
 
-          // Load tên nhóm để hiển thị
-          groupName = prefs.getString('cached_group_name') ?? 'Nhóm chat';
+          final groupName = prefs.getString('cached_group_name') ?? 'Nhóm chat';
 
           if (unreadCount > 0) {
             notifications.add(NotificationData(
               icon: 'assets/images/message.jpg',
               title: groupName,
-              subtitle: unreadCount > 1
-                  ? ' - $unreadCount tin nhắn mới'
-                  : ' - 1 tin nhắn mới',
+              subtitle: unreadCount > 1 ? ' - $unreadCount tin nhắn mới' : ' - 1 tin nhắn mới',
               type: NotificationType.message,
               time: lastMessageTime,
               unreadCount: unreadCount,
@@ -105,20 +95,14 @@ class _NotificationScreenState extends State<NotificationScreen> {
         print('Error loading chat notifications: $e');
       }
 
-      // ======================================================
-      // 2. LOAD THÔNG BÁO YÊU CẦU GIA NHẬP (MỚI)
-      // ======================================================
+      // 2. LOAD THÔNG BÁO YÊU CẦU GIA NHẬP
       try {
-        // B1: Lấy Profile để check xem User có phải là Host không
         final userProfile = await _userService.getUserProfile();
 
         if (userProfile != null) {
           final List ownedGroups = userProfile['owned_groups'] ?? [];
 
-          // Nếu user đang làm chủ ít nhất 1 nhóm
           if (ownedGroups.isNotEmpty) {
-            // B2: Gọi API lấy danh sách yêu cầu pending
-            // Endpoint: /groups/manage/requests
             final requestUrl = ApiConfig.getUri(ApiConfig.groupManageRequests);
             final requestResponse = await http.get(
               requestUrl,
@@ -131,11 +115,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
             if (requestResponse.statusCode == 200) {
               final List<dynamic> requests = jsonDecode(utf8.decode(requestResponse.bodyBytes));
 
-              // B3: Duyệt danh sách yêu cầu và tạo NotificationData
               for (var req in requests) {
-                // Chỉ lấy những request đang chờ duyệt (status 'pending')
-                // Tùy vào API trả về, giả sử API trả về list requests
-
                 final String requesterName = req['user']?['fullname'] ?? 'Ai đó';
                 final String targetGroupName = req['group']?['name'] ?? 'nhóm của bạn';
                 final String createdAt = req['created_at'] ?? '';
@@ -146,12 +126,13 @@ class _NotificationScreenState extends State<NotificationScreen> {
                 }
 
                 notifications.add(NotificationData(
-                  // Icon placeholder (sẽ được xử lý trong UI)
                   icon: 'assets/images/user_add.png',
                   title: '$requesterName xin gia nhập nhóm $targetGroupName',
-                  subtitle: null, // Không cần subtitle
-                  type: NotificationType.groupRequest, // Loại mới
+                  subtitle: null,
+                  type: NotificationType.groupRequest,
                   time: timeDisplay,
+                  // groupId vẫn giữ để logic fetch không lỗi, nhưng không dùng để navigate
+                  groupId: null,
                 ));
               }
             }
@@ -162,33 +143,30 @@ class _NotificationScreenState extends State<NotificationScreen> {
       }
     }
 
-    setState(() {
-      _notifications = notifications;
-      _isLoading = false;
-    });
+    if (mounted) {
+      setState(() {
+        _notifications = notifications;
+        _isLoading = false;
+      });
+    }
   }
 
   String _formatTime(DateTime dateTime) {
     final now = DateTime.now();
     final difference = now.difference(dateTime);
-
-    if (difference.inMinutes < 1) {
-      return 'Vừa xong';
-    } else if (difference.inMinutes < 60) {
-      return '${difference.inMinutes} phút trước';
-    } else if (difference.inHours < 24) {
-      return '${difference.inHours} giờ trước';
-    } else if (difference.inDays < 7) {
-      return '${difference.inDays} ngày trước';
-    } else {
-      return DateFormat('d/M/yyyy').format(dateTime);
-    }
+    if (difference.inMinutes < 1) return 'Vừa xong';
+    else if (difference.inMinutes < 60) return '${difference.inMinutes} phút trước';
+    else if (difference.inHours < 24) return '${difference.inHours} giờ trước';
+    else if (difference.inDays < 7) return '${difference.inDays} ngày trước';
+    else return DateFormat('d/M/yyyy').format(dateTime);
   }
+
+  // ĐÃ XÓA HÀM _navigateToMemberScreen()
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         image: DecorationImage(
           image: AssetImage('assets/images/notification.png'),
           fit: BoxFit.cover,
@@ -197,8 +175,8 @@ class _NotificationScreenState extends State<NotificationScreen> {
       child: SafeArea(
         child: Column(
           children: [
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 20),
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 20),
               child: CircleAvatar(
                 radius: 72.5,
                 backgroundImage: AssetImage('assets/images/notification_logo.png'),
@@ -251,9 +229,10 @@ class _NotificationScreenState extends State<NotificationScreen> {
                               MaterialPageRoute(builder: (context) => const ChatboxScreen()),
                             );
                             _loadNotifications();
+                          } else if (notif.type == NotificationType.groupRequest) {
+                            // KHÔNG LÀM GÌ CẢ (Chỉ hiển thị)
+                            print("Đã nhấn vào thông báo yêu cầu tham gia (Chỉ hiển thị)");
                           }
-                          // Xử lý tap cho Group Request (nếu cần)
-                          // Ví dụ: Navigate sang màn hình Duyệt thành viên
                         },
                       );
                     },
@@ -268,7 +247,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
   }
 }
 
-// 1. CẬP NHẬT ENUM
+// Update Model
 enum NotificationType { matching, message, security, groupRequest }
 
 class NotificationData {
@@ -278,6 +257,7 @@ class NotificationData {
   final NotificationType type;
   final String? time;
   final int? unreadCount;
+  final String? groupId;
 
   NotificationData({
     required this.icon,
@@ -286,6 +266,7 @@ class NotificationData {
     required this.type,
     this.time,
     this.unreadCount,
+    this.groupId,
   });
 }
 
@@ -311,21 +292,19 @@ class NotificationItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Định nghĩa màu nền và icon cho từng loại
     Color iconBgColor;
     Widget iconWidget;
 
     switch (type) {
       case NotificationType.message:
-        iconBgColor = const Color(0xFFE0CEC0); // Màu nâu nhạt
+        iconBgColor = const Color(0xFFE0CEC0);
         iconWidget = const Icon(Icons.message, color: Colors.white, size: 28);
         break;
       case NotificationType.groupRequest:
-        iconBgColor = const Color(0xFF81C784); // Màu xanh lá cho Request
+        iconBgColor = const Color(0xFF81C784);
         iconWidget = const Icon(Icons.person_add, color: Colors.white, size: 28);
         break;
       default:
-      // Các loại khác dùng hình ảnh asset
         iconBgColor = Colors.transparent;
         iconWidget = Container(
           decoration: BoxDecoration(
@@ -349,7 +328,6 @@ class NotificationItem extends StatelessWidget {
         ),
         child: Row(
           children: [
-            // Icon section
             Stack(
               children: [
                 Container(
@@ -359,8 +337,6 @@ class NotificationItem extends StatelessWidget {
                     shape: BoxShape.circle,
                     color: iconBgColor,
                   ),
-                  // Nếu là default (ảnh) thì widget container ở trên đã có ảnh
-                  // Nếu là icon (message/request) thì hiển thị iconWidget
                   child: type == NotificationType.message || type == NotificationType.groupRequest
                       ? Center(child: iconWidget)
                       : iconWidget,
@@ -387,52 +363,20 @@ class NotificationItem extends StatelessWidget {
               ],
             ),
             const SizedBox(width: 16),
-
-            // Content section
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text.rich(
-                    TextSpan(
-                      children: [
-                        TextSpan(
-                          text: title,
-                          style: const TextStyle(
-                            color: Color(0xFFEDE2CC),
-                            fontSize: 18,
-                            fontFamily: 'Alegreya', // Font chữ của bạn
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                        if (subtitle != null)
-                          TextSpan(
-                            text: subtitle,
-                            style: const TextStyle(
-                              color: Color(0xFFEDE2CC),
-                              fontSize: 16,
-                              fontFamily: 'Alegreya',
-                              fontWeight: FontWeight.w400,
-                            ),
-                          ),
-                      ],
-                    ),
-                  ),
-                  if (time != null) ...[
-                    const SizedBox(height: 4),
-                    Text(
-                      time!,
-                      style: TextStyle(
-                        color: const Color(0xFFEDE2CC).withOpacity(0.7),
-                        fontSize: 12,
-                        fontFamily: 'Alegreya',
-                      ),
-                    ),
-                  ],
+                  Text(title, style: const TextStyle(color: Color(0xFFEDE2CC), fontSize: 18, fontFamily: 'Alegreya', fontWeight: FontWeight.w700)),
+                  if (subtitle != null) Text(subtitle!, style: const TextStyle(color: Color(0xFFEDE2CC), fontSize: 16, fontFamily: 'Alegreya', fontWeight: FontWeight.w400)),
+                  if (time != null) ...[const SizedBox(height: 4), Text(time!, style: TextStyle(color: const Color(0xFFEDE2CC).withOpacity(0.7), fontSize: 12, fontFamily: 'Alegreya'))],
                 ],
               ),
             ),
-            const Icon(Icons.arrow_forward_ios, color: Color(0xFFEDE2CC), size: 20),
+            // Giữ mũi tên chỉ để báo hiệu item này có thể tương tác (dù hiện tại groupRequest ko làm gì)
+            // Hoặc có thể ẩn đi nếu là groupRequest
+            if (type != NotificationType.groupRequest)
+              const Icon(Icons.arrow_forward_ios, color: Color(0xFFEDE2CC), size: 20),
           ],
         ),
       ),
