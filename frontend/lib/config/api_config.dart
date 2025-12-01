@@ -3,7 +3,7 @@
 class ApiConfig {
   // Base URL for the API
   // static const String baseUrl = 'https://ddl23gmg-8000.asse.devtunnels.ms';
-  // static const String baseUrl = 'http://192.168.1.11:8000'; // server local
+  // static const String baseUrl = 'http://10.132.240.17:8000'; // server local
   static const String baseUrl = 'http://10.132.240.17:8000'; // emulator local
 
   static const String supabaseUrl = 'https://meuqntvawakdzntewscp.supabase.co';
@@ -20,7 +20,7 @@ class ApiConfig {
 
   // Chat endpoints
   static const String chatHistory = '$baseUrl/chat/history';
-  // static const String chatWebSocket = 'ws://192.168.1.11:8000/chat/ws'; // WebSocket endpoint
+  // static const String chatWebSocket = 'ws://10.132.240.17:8000/chat/ws'; // WebSocket endpoint
   static const String chatWebSocket = 'ws://10.132.240.17:8000/chat/ws'; // emulator local
 
   // Group endpoints

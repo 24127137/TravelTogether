@@ -83,7 +83,7 @@ async def get_host_group_info(session: Session, current_user: Any) -> TravelGrou
 async def get_user_group_info(session: Session, auth_uuid: str) -> tuple[str, int, TravelGroup]:
     """Tìm nhóm của user (Dù là Host hay Member) - Dùng chung"""
     profile = session.exec(
-        select(Profiles.joined_groups, Profiles.owned_groups)
+        select(Profiles)
         .where(Profiles.auth_user_id == auth_uuid)
     ).first()
     

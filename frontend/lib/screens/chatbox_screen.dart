@@ -13,6 +13,7 @@ import '../config/api_config.dart';
 import '../models/message.dart';
 import 'host_member_screen.dart' as host;
 import 'member_screen.dart' as member;
+import 'map_route_screen.dart';
 
 //màn hình lúc chat
 class ChatboxScreen extends StatefulWidget {
@@ -1039,6 +1040,18 @@ class _ChatboxScreenState extends State<ChatboxScreen> with WidgetsBindingObserv
         centerTitle: true,
         toolbarHeight: 100,
         actions: [
+          IconButton(
+            icon: const Icon(Icons.map, color: Colors.white, size: 28),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const MapRouteScreen(),
+                ),
+              );
+            },
+            tooltip: 'Xem lộ trình',
+          ),
           IconButton(
             icon: const Icon(Icons.people_outline, color: Colors.white, size: 28),
             onPressed: _navigateToMembersScreen,
