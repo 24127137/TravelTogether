@@ -4,10 +4,10 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'dart:async';
-import 'dart:io'; // === THÊM MỚI: For File ===
+import 'dart:io';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:image_picker/image_picker.dart'; // === THÊM MỚI: For image selection ===
-import 'package:supabase_flutter/supabase_flutter.dart'; // === THÊM MỚI: For image upload ===
+import 'package:image_picker/image_picker.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../config/api_config.dart';
 import '../models/ai_message.dart';
 
@@ -23,16 +23,16 @@ class _AiChatbotScreenState extends State<AiChatbotScreen> {
   final TextEditingController _controller = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   final FocusNode _focusNode = FocusNode();
-  final ImagePicker _imagePicker = ImagePicker(); // === THÊM MỚI: ImagePicker ===
+  final ImagePicker _imagePicker = ImagePicker();
   List<AiMessage> _messages = [];
   bool _isLoading = true;
   bool _isSending = false;
-  bool _isUploading = false; // === THÊM MỚI: Trạng thái upload ảnh ===
-  String? _sessionId;
+  bool _isUploading = false;
+  String? _userId;
 
-  Map<int, GlobalKey> _messageKeys = {}; // === THÊM MỚI: keys per message for ensureVisible ===
-  bool _showScrollToBottom = false; // === THÊM MỚI: show centered button ===
-  bool _isAutoScrolling = false; // === THÊM MỚI: flag to avoid reacting to programmatic scroll ===
+  Map<int, GlobalKey> _messageKeys = {};
+  bool _showScrollToBottomButton = false;
+  bool _isAutoScrolling = false;
 
   @override
   void initState() {
@@ -40,7 +40,6 @@ class _AiChatbotScreenState extends State<AiChatbotScreen> {
     _initializeChat();
     _focusNode.addListener(() {
       if (_focusNode.hasFocus) {
-        // === SỬA: Thêm delay để đợi keyboard mở hoàn toàn ===
         Future.delayed(const Duration(milliseconds: 300), () {
           if (mounted) {
             _scrollToBottom();
@@ -49,7 +48,7 @@ class _AiChatbotScreenState extends State<AiChatbotScreen> {
       }
     });
 
-    // === THÊM MỚI: lắng nghe scroll để hiển thị nút scroll-to-bottom ===
+    // Lắng nghe scroll để hiển thị nút scroll-to-bottom
     _scrollController.addListener(() {
       if (!_scrollController.hasClients) return;
       final pos = _scrollController.position.pixels;
@@ -57,85 +56,108 @@ class _AiChatbotScreenState extends State<AiChatbotScreen> {
 
       // Nếu cách đáy > 200 show button
       final show = pos < (max - 200);
-      if (show != _showScrollToBottom && mounted) {
+      if (show != _showScrollToBottomButton && mounted) {
         setState(() {
-          _showScrollToBottom = show;
+          _showScrollToBottomButton = show;
         });
       }
     });
   }
 
   Future<void> _initializeChat() async {
-    // Load session từ SharedPreferences
-    final prefs = await SharedPreferences.getInstance();
-    final savedSessionId = prefs.getString('ai_chat_session_id');
-    final savedMessages = prefs.getString('ai_chat_messages');
-
-    if (savedSessionId != null && savedMessages != null) {
-      // Có session cũ, load lại
-      try {
-        final List<dynamic> messagesJson = jsonDecode(savedMessages);
-        setState(() {
-          _sessionId = savedSessionId;
-          _messages = messagesJson.map((m) => AiMessage.fromJson(m)).toList();
-          _isLoading = false;
-        });
-        _scrollToBottom();
-      } catch (e) {
-        // Nếu lỗi, tạo session mới
-        await _createNewSession();
-      }
-    } else {
-      // Chưa có session, tạo mới
-      await _createNewSession();
-    }
-  }
-
-  Future<void> _createNewSession() async {
     try {
-      final url = ApiConfig.getUri(ApiConfig.aiNewSession);
-      final response = await http.post(
-        url,
-        headers: {"Content-Type": "application/json"},
-      );
+      // Lấy user_id từ SharedPreferences (được lưu khi login/signup)
+      final prefs = await SharedPreferences.getInstance();
+      final userId = prefs.getString('user_id');
 
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        final sessionId = data['session_id'];
-
-        // Lưu session_id
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setString('ai_chat_session_id', sessionId);
-
-        setState(() {
-          _sessionId = sessionId;
-          _messages = [];
-          _isLoading = false;
-        });
-
-        print('✅ Created new AI session: $sessionId');
-      } else {
-        throw Exception('Failed to create AI session');
+      if (userId == null) {
+        throw Exception('User not authenticated');
       }
+
+      setState(() {
+        _userId = userId;
+      });
+
+      // Lấy lịch sử chat từ backend
+      await _loadChatHistory();
     } catch (e) {
-      print('❌ Error creating AI session: $e');
+      print('❌ Error initializing chat: $e');
       setState(() {
         _isLoading = false;
       });
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('ai_chat_error_create_session'.tr())),
+          SnackBar(content: Text('Lỗi khởi tạo chat: $e')),
         );
       }
     }
   }
 
+  Future<void> _loadChatHistory() async {
+    if (_userId == null) return;
+
+    try {
+      final url = Uri.parse('${ApiConfig.baseUrl}/ai/chat-history?user_id=$_userId&limit=50');
+
+      final response = await http.get(
+        url,
+        headers: {"Content-Type": "application/json"},
+      );
+
+      print('📜 Loading chat history: ${response.statusCode}');
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(utf8.decode(response.bodyBytes));
+        final messages = data['messages'] as List<dynamic>;
+
+        setState(() {
+          _messages = messages
+              .map((m) => AiMessage(
+                    role: m['role'] ?? 'user',
+                    text: m['content'] ?? '',
+                    time: _formatTime(m['created_at']),
+                    imageUrl: m['image_url'],
+                  ))
+              .toList();
+          _isLoading = false;
+        });
+
+        print('✅ Loaded ${_messages.length} messages from backend');
+        _scrollToBottom();
+      } else if (response.statusCode == 404) {
+        // Chưa có lịch sử, tạo mới
+        setState(() {
+          _messages = [];
+          _isLoading = false;
+        });
+        print('✅ No chat history found, starting fresh');
+      } else {
+        throw Exception('Failed to load chat history: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('❌ Error loading chat history: $e');
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+  String _formatTime(String? dateTimeString) {
+    if (dateTimeString == null) return '';
+    try {
+      final dt = DateTime.parse(dateTimeString);
+      return DateFormat('HH:mm').format(dt);
+    } catch (e) {
+      return DateFormat('HH:mm').format(DateTime.now());
+    }
+  }
+
   Future<void> _sendMessage() async {
     final text = _controller.text.trim();
-    if (text.isEmpty || _sessionId == null || _isSending) return;
+    if (text.isEmpty || _userId == null || _isSending) return;
 
     print('🚀 Sending AI message...');
-    print('  Session ID: $_sessionId');
+    print('  User ID: $_userId');
     print('  Message: $text');
 
     setState(() {
@@ -158,11 +180,10 @@ class _AiChatbotScreenState extends State<AiChatbotScreen> {
 
     // Gọi API
     try {
-      final url = ApiConfig.getUri(ApiConfig.aiSend);
+      final url = Uri.parse('${ApiConfig.baseUrl}/ai/send?user_id=$_userId');
       print('  API URL: $url');
 
       final requestBody = jsonEncode({
-        "session_id": _sessionId,
         "message": text,
       });
       print('  Request body: $requestBody');
@@ -194,9 +215,6 @@ class _AiChatbotScreenState extends State<AiChatbotScreen> {
           _isSending = false;
         });
 
-        // Lưu lịch sử chat
-        await _saveChatHistory();
-
         _scrollToBottom();
       } else {
         // Parse error response
@@ -224,13 +242,7 @@ class _AiChatbotScreenState extends State<AiChatbotScreen> {
 
       if (mounted) {
         String errorMessage = 'ai_chat_error_send'.tr();
-        if (e.toString().contains('Session_id không tồn tại')) {
-          errorMessage = 'Session expired. Creating new session...';
-          // Auto create new session
-          await _createNewSession();
-        } else {
-          errorMessage = '$errorMessage\n${e.toString()}';
-        }
+        errorMessage = '$errorMessage\n${e.toString()}';
 
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -242,11 +254,6 @@ class _AiChatbotScreenState extends State<AiChatbotScreen> {
     }
   }
 
-  Future<void> _saveChatHistory() async {
-    final prefs = await SharedPreferences.getInstance();
-    final messagesJson = _messages.map((m) => m.toJson()).toList();
-    await prefs.setString('ai_chat_messages', jsonEncode(messagesJson));
-  }
 
   void _scrollToBottom() {
     WidgetsBinding.instance.addPostFrameCallback((_) async {
@@ -265,7 +272,7 @@ class _AiChatbotScreenState extends State<AiChatbotScreen> {
         _isAutoScrolling = false;
         if (mounted) {
           setState(() {
-            _showScrollToBottom = false;
+            _showScrollToBottomButton = false;
           });
         }
       }
@@ -311,9 +318,9 @@ class _AiChatbotScreenState extends State<AiChatbotScreen> {
     );
   }
 
-  // === THÊM MỚI: Chọn và gửi ảnh ===
+  // Chọn và gửi ảnh
   Future<void> _pickAndSendImage(ImageSource source) async {
-    if (_isUploading || _sessionId == null) return;
+    if (_isUploading || _userId == null) return;
 
     try {
       // Chọn ảnh
@@ -336,11 +343,28 @@ class _AiChatbotScreenState extends State<AiChatbotScreen> {
       final supabase = Supabase.instance.client;
 
       print('📤 Uploading image to Supabase...');
-      await supabase.storage
-          .from('chat_images')
-          .upload(fileName, file);
+      print('  Bucket: chat_images');
+      print('  File: $fileName');
 
-      print('✅ Image uploaded: $fileName');
+      try {
+        await supabase.storage
+            .from('chat_images')
+            .upload(fileName, file);
+
+        print('✅ Image uploaded: $fileName');
+      } catch (uploadError) {
+        print('❌ Upload error: $uploadError');
+
+        // Handle RLS policy errors
+        if (uploadError.toString().contains('row-level security') ||
+            uploadError.toString().contains('Unauthorized')) {
+          throw Exception(
+            'Lỗi quyền truy cập bucket. Vui lòng liên hệ admin.\n'
+            'Chi tiết: ${uploadError.toString()}'
+          );
+        }
+        rethrow;
+      }
 
       // Lấy public URL
       final imageUrl = supabase.storage
@@ -354,8 +378,19 @@ class _AiChatbotScreenState extends State<AiChatbotScreen> {
     } catch (e) {
       print('❌ Error picking/uploading image: $e');
       if (mounted) {
+        String errorMessage = 'Lỗi upload ảnh';
+        if (e.toString().contains('row-level security') ||
+            e.toString().contains('Unauthorized')) {
+          errorMessage = 'Lỗi quyền truy cập bucket. Hãy kiểm tra cấu hình Supabase.';
+        } else if (e.toString().contains('StorageException')) {
+          errorMessage = 'Lỗi Storage: ${e.toString()}';
+        }
+
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Lỗi upload ảnh: $e')),
+          SnackBar(
+            content: Text(errorMessage),
+            duration: const Duration(seconds: 5),
+          ),
         );
       }
     } finally {
@@ -365,12 +400,12 @@ class _AiChatbotScreenState extends State<AiChatbotScreen> {
     }
   }
 
-  // === THÊM MỚI: Gửi tin nhắn ảnh ===
+  // Gửi tin nhắn ảnh
   Future<void> _sendImageMessage(String imageUrl) async {
-    if (_sessionId == null || _isSending) return;
+    if (_userId == null || _isSending) return;
 
     print('🚀 Sending AI image message...');
-    print('  Session ID: $_sessionId');
+    print('  User ID: $_userId');
     print('  Image URL: $imageUrl');
 
     setState(() {
@@ -391,14 +426,14 @@ class _AiChatbotScreenState extends State<AiChatbotScreen> {
 
     _scrollToBottom();
 
-    // Gọi API với image_url thay vì message
+    // Gọi API với message (text trống) và image_url
     try {
-      final url = ApiConfig.getUri(ApiConfig.aiSend);
+      final url = Uri.parse('${ApiConfig.baseUrl}/ai/send?user_id=$_userId');
       print('  API URL: $url');
 
       final requestBody = jsonEncode({
-        "session_id": _sessionId,
-        "image_url": imageUrl, // Gửi image_url thay vì message
+        "message": "",
+        "image_url": imageUrl,
       });
       print('  Request body: $requestBody');
 
@@ -413,35 +448,43 @@ class _AiChatbotScreenState extends State<AiChatbotScreen> {
 
       if (response.statusCode == 200) {
         final data = jsonDecode(utf8.decode(response.bodyBytes));
-        final aiReply = data['reply'];
+        final aiResponse = data['response'] ?? '';
 
         // Thêm tin nhắn AI vào UI
         final aiMessage = AiMessage(
           role: 'assistant',
-          text: aiReply,
+          text: aiResponse,
           time: DateFormat('HH:mm').format(DateTime.now()),
         );
 
         setState(() {
           _messages.add(aiMessage);
+          _isSending = false;
         });
 
         _scrollToBottom();
-        await _saveChatHistory();
       } else {
-        throw Exception('Failed to send AI message: ${response.statusCode}');
+        throw Exception('Failed to send AI image: ${response.statusCode}');
       }
     } catch (e) {
       print('❌ Error sending AI image: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('ai_chat_error_send'.tr())),
-        );
-      }
-    } finally {
+
+      // Remove user message if send failed
       setState(() {
+        if (_messages.isNotEmpty && _messages.last.imageUrl == imageUrl) {
+          _messages.removeLast();
+        }
         _isSending = false;
       });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Lỗi gửi ảnh: ${e.toString()}'),
+            duration: const Duration(seconds: 5),
+          ),
+        );
+      }
     }
   }
 
@@ -465,13 +508,35 @@ class _AiChatbotScreenState extends State<AiChatbotScreen> {
       ),
     );
 
-    if (confirmed == true) {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.remove('ai_chat_session_id');
-      await prefs.remove('ai_chat_messages');
+    if (confirmed == true && _userId != null) {
+      try {
+        final url = Uri.parse('${ApiConfig.baseUrl}/ai/clear-chat?user_id=$_userId');
 
-      // Tạo session mới
-      await _createNewSession();
+        final response = await http.delete(
+          url,
+          headers: {"Content-Type": "application/json"},
+        );
+
+        if (response.statusCode == 200) {
+          setState(() {
+            _messages = [];
+          });
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Lịch sử chat đã bị xóa')),
+            );
+          }
+        } else {
+          throw Exception('Failed to clear chat history');
+        }
+      } catch (e) {
+        print('❌ Error clearing chat: $e');
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Lỗi xóa lịch sử: $e')),
+          );
+        }
+      }
     }
   }
 
@@ -730,9 +795,11 @@ class _AiChatbotScreenState extends State<AiChatbotScreen> {
                   ],
                 ),
 
-                // === THÊM MỚI: Centered scroll-to-bottom button ===
-                if (_showScrollToBottom)
-                  Center(
+                // Nút scroll-to-bottom ở góc dưới phải (như trong chatbox_screen)
+                if (_showScrollToBottomButton)
+                  Positioned(
+                    bottom: 80,
+                    right: 16,
                     child: Material(
                       color: const Color(0xFFB99668),
                       elevation: 6,

@@ -40,6 +40,8 @@ class _ChatboxScreenState extends State<ChatboxScreen> with WidgetsBindingObserv
   WebSocketChannel? _channel; // === THÊM MỚI: WebSocket channel ===
   Map<String, String?> _userAvatars = {}; // === THÊM MỚI: Cache avatar của users ===
   String? _myAvatarUrl; // === THÊM MỚI: Avatar của mình ===
+  String? _groupAvatarUrl; // === THÊM MỚI: Avatar của nhóm ===
+  String? _groupName; // === THÊM MỚI: Tên nhóm ===
   Map<String, Map<String, dynamic>> _groupMembers = {}; // === THÊM MỚI: Lưu thông tin members từ group ===
   bool _isAutoScrolling = false; // === THÊM MỚI: Cờ để tránh mark seen khi auto scroll ===
   Map<int, GlobalKey> _messageKeys = {}; // === THÊM MỚI: keys per message for ensureVisible ===
@@ -368,6 +370,23 @@ class _ChatboxScreenState extends State<ChatboxScreen> with WidgetsBindingObserv
 
       if (response.statusCode == 200) {
         final data = jsonDecode(utf8.decode(response.bodyBytes));
+
+        // Lưu thông tin group (tên và avatar)
+        // Backend trả về 'group_image_url' chứ không phải 'avatar_url'
+        final groupName = data['name'] as String?;
+        final groupAvatar = data['group_image_url'] as String?; // ✅ Sửa key này
+
+        print('🏔️ ===== GROUP INFO DEBUG =====');
+        print('🏔️ Group Name: $groupName');
+        print('🏔️ Group Avatar URL: $groupAvatar');
+        print('🏔️ Full data keys: ${data.keys}');
+        print('🏔️ ============================');
+
+        setState(() {
+          _groupName = groupName;
+          _groupAvatarUrl = groupAvatar;
+        });
+
         final List<dynamic> members = data['members'] ?? [];
 
         // Cache avatar theo profile_uuid
@@ -380,6 +399,8 @@ class _ChatboxScreenState extends State<ChatboxScreen> with WidgetsBindingObserv
           }
         }
 
+        print('✅ Group info loaded: $_groupName');
+        print('✅ Group avatar: $_groupAvatarUrl');
         print('✅ Group members loaded: ${_groupMembers.length} members');
         print('✅ User avatars: $_userAvatars');
       }
@@ -519,7 +540,10 @@ class _ChatboxScreenState extends State<ChatboxScreen> with WidgetsBindingObserv
             print('🔍 =========================\n');
 
             // === THÊM MỚI: Lấy avatar của sender từ cache ===
+            // Lấy avatar CÁ NHÂN của người gửi (không phải group avatar)
             final senderAvatarUrl = isUser ? null : _userAvatars[senderId];
+
+            print('🖼️ Avatar Debug: isUser=$isUser, senderId=$senderId, senderAvatar=$senderAvatarUrl');
 
             return Message(
               sender: senderId,
@@ -636,7 +660,10 @@ class _ChatboxScreenState extends State<ChatboxScreen> with WidgetsBindingObserv
         _fetchUserAvatar(senderId);
       }
 
+      // Lấy avatar CÁ NHÂN của người gửi (không phải group avatar)
       final senderAvatarUrl = isUser ? null : _userAvatars[senderId];
+
+      print('🖼️ WebSocket Avatar Debug: isUser=$isUser, senderId=$senderId, senderAvatar=$senderAvatarUrl');
 
       final newMessage = Message(
         sender: senderId,
@@ -982,7 +1009,7 @@ class _ChatboxScreenState extends State<ChatboxScreen> with WidgetsBindingObserv
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
-              'chat_title'.tr(),
+              _groupName ?? 'chat_title'.tr(),
               style: const TextStyle(
                 color: Colors.white,
                 fontSize: 16,
@@ -996,10 +1023,15 @@ class _ChatboxScreenState extends State<ChatboxScreen> with WidgetsBindingObserv
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 border: Border.all(color: Colors.white, width: 2),
-                image: const DecorationImage(
-                  image: AssetImage('assets/images/chatbot_icon.png'),
-                  fit: BoxFit.cover,
-                ),
+                image: _groupAvatarUrl != null && _groupAvatarUrl!.isNotEmpty
+                    ? DecorationImage(
+                        image: NetworkImage(_groupAvatarUrl!),
+                        fit: BoxFit.cover,
+                      )
+                    : const DecorationImage(
+                        image: AssetImage('assets/images/chatbot_icon.png'),
+                        fit: BoxFit.cover,
+                      ),
               ),
             ),
           ],
