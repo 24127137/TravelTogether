@@ -8,7 +8,7 @@ import '../services/user_service.dart';
 import '../services/group_service.dart';
 import '../services/auth_service.dart';
 
-/// Màn hình hiển thị bản đồ và vẽ lộ trình
+/// Màn hình hiển thị bản đồ và vẽ lộ trình (Tối ưu Client-side + UI Gốc)
 class MapRouteScreen extends StatefulWidget {
   final int? groupId;
 
@@ -23,18 +23,23 @@ class _MapRouteScreenState extends State<MapRouteScreen> {
   final UserService _userService = UserService();
   final GroupService _groupService = GroupService();
 
-  // Danh sách các điểm được chọn (sẽ lấy từ API)
+  // Dùng để tính khoảng cách cho thuật toán Nearest Neighbor
+  final Distance _distanceCalculator = const Distance();
+
+  // Danh sách các điểm (Sẽ được sắp xếp lại bởi Nearest Neighbor)
   List<LatLng> _selectedPoints = [];
+  List<String> _locationNames = [];
 
   // Danh sách các điểm của lộ trình (sau khi giải mã polyline)
   List<LatLng> _routePoints = [];
 
-  // Tên các địa điểm
-  List<String> _locationNames = [];
-
   // Trạng thái tải dữ liệu
   bool _isLoading = true;
   String _errorMessage = '';
+
+  // Thông tin lộ trình
+  double _totalDistance = 0.0;
+  double _totalDuration = 0.0;
 
   @override
   void initState() {
@@ -50,11 +55,15 @@ class _MapRouteScreenState extends State<MapRouteScreen> {
     });
 
     try {
-      // Lấy thông tin kế hoạch từ API
+      // 1. Lấy thông tin kế hoạch từ API (Supabase)
       await _fetchGroupPlan();
 
-      // Nếu có ít nhất 2 điểm, vẽ lộ trình
+      // 2. Nếu có ít nhất 2 điểm, tiến hành tối ưu và vẽ
       if (_selectedPoints.length >= 2) {
+        // A. Chạy thuật toán tối ưu thứ tự (Client-side)
+        _optimizeRouteNearestNeighbor();
+
+        // B. Gọi API vẽ đường theo thứ tự đã tối ưu
         await _fetchRoute();
       }
     } catch (e) {
@@ -68,52 +77,37 @@ class _MapRouteScreenState extends State<MapRouteScreen> {
     }
   }
 
-  /// Lấy thông tin kế hoạch từ API - Logic giống travel_plan_screen
+  // ===============================================================
+  // PHẦN 1: LOGIC LẤY DỮ LIỆU (GIỮ NGUYÊN)
+  // ===============================================================
+
+  /// Lấy thông tin kế hoạch từ API
   Future<void> _fetchGroupPlan() async {
     try {
       final token = await AuthService.getValidAccessToken();
-      if (token == null) {
-        throw Exception('Vui lòng đăng nhập');
-      }
+      if (token == null) throw Exception('Vui lòng đăng nhập');
 
       final profile = await _userService.getUserProfile();
-      if (profile == null) {
-        throw Exception('Không lấy được thông tin cá nhân');
-      }
+      if (profile == null) throw Exception('Không lấy được thông tin cá nhân');
 
       dynamic itineraryData;
       int? groupId;
       String? preferredCity = profile['preferred_city'];
-
-      // === LOGIC GIỐNG TRAVEL_PLAN_SCREEN: CHECK STATUS TRƯỚC ===
       bool useGroupPlan = false;
 
-      // Nếu có groupId từ widget, ưu tiên dùng
+      // Logic check group (Giống code cũ)
       if (widget.groupId != null && widget.groupId! > 0) {
         groupId = widget.groupId;
-        print('📌 Sử dụng Group ID từ widget: $groupId');
       } else {
-        // Kiểm tra xem user có tham gia nhóm nào không
         List owned = profile['owned_groups'] ?? [];
         List joined = profile['joined_groups'] ?? [];
 
         if (owned.isNotEmpty || joined.isNotEmpty) {
-          // Có nhóm -> Gọi API check trạng thái nhóm
           try {
             final groupDetail = await _groupService.getMyGroupDetail(token);
-
-            if (groupDetail != null) {
+            if (groupDetail != null && groupDetail['status'] == 'open') {
               groupId = groupDetail['id'];
-              String status = groupDetail['status'] ?? 'closed';
-
-              print('🔍 Trạng thái nhóm (ID $groupId): $status');
-
-              if (status == 'open') {
-                useGroupPlan = true;
-                print('✅ Nhóm OPEN -> Load Group Plan');
-              } else {
-                print('⚠️ Nhóm $status -> Không sử dụng group plan');
-              }
+              useGroupPlan = true;
             }
           } catch (e) {
             print('❌ Lỗi check nhóm: $e');
@@ -121,26 +115,16 @@ class _MapRouteScreenState extends State<MapRouteScreen> {
         }
       }
 
-      // Nếu có groupId và quyết định dùng group plan
       if (groupId != null && (useGroupPlan || widget.groupId != null)) {
-        try {
-          final groupPlan = await _groupService.getGroupPlanById(token, groupId);
-          if (groupPlan != null) {
-            itineraryData = groupPlan['itinerary'];
-            preferredCity = groupPlan['preferred_city'] ?? preferredCity;
-            print('✅ Đã lấy Group Plan cho nhóm $groupId');
-          }
-        } catch (e) {
-          print('❌ Lỗi lấy group plan: $e');
-          throw Exception('Không thể lấy lịch trình nhóm: $e');
+        final groupPlan = await _groupService.getGroupPlanById(token, groupId);
+        if (groupPlan != null) {
+          itineraryData = groupPlan['itinerary'];
+          preferredCity = groupPlan['preferred_city'] ?? preferredCity;
         }
       } else {
-        // Dùng personal itinerary
         itineraryData = profile['itinerary'];
-        print('👤 Load Personal Itinerary');
       }
 
-      // Parse itinerary thành danh sách địa điểm
       await _parseItineraryData(itineraryData, preferredCity ?? 'Vietnam', useGroupPlan);
 
     } catch (e) {
@@ -149,245 +133,174 @@ class _MapRouteScreenState extends State<MapRouteScreen> {
     }
   }
 
-  /// Parse itinerary data thành danh sách địa điểm (Logic giống travel_plan_screen)
   Future<void> _parseItineraryData(dynamic itineraryData, String cityContext, bool isGroupPlan) async {
     List<LatLng> points = [];
     List<String> names = [];
-
-    if (itineraryData == null) {
-      throw Exception('Không có lịch trình (itinerary) để hiển thị');
-    }
-
     List<String> rawNames = [];
 
+    if (itineraryData == null) throw Exception('Không có lịch trình');
+
     if (itineraryData is Map) {
-      // Sort key để hiển thị đúng thứ tự
       var sortedKeys = itineraryData.keys.toList()..sort();
-
-      String currentCity = cityContext;
-      String prefix = "${currentCity}_";
-
+      String prefix = "${cityContext}_";
       for (var key in sortedKeys) {
         String strKey = key.toString();
-
-        if (isGroupPlan) {
-          // Nếu đang xem Group Plan: Lấy HẾT (vì plan nhóm là duy nhất)
-          if (itineraryData[key] != null) {
-            rawNames.add(itineraryData[key].toString());
-          }
-        } else {
-          // Nếu đang xem Cá nhân: Chỉ lấy item thuộc CITY hiện tại
-          if (strKey.startsWith(prefix)) {
-            rawNames.add(itineraryData[key].toString());
-          }
+        if (isGroupPlan || strKey.startsWith(prefix)) {
+          if (itineraryData[key] != null) rawNames.add(itineraryData[key].toString());
         }
       }
     } else if (itineraryData is List) {
-      // Fallback cho trường hợp dữ liệu cũ dạng List
       rawNames = itineraryData.map((e) => e.toString()).toList();
     }
 
-    if (rawNames.isEmpty) {
-      throw Exception('Không tìm thấy địa điểm nào trong lịch trình');
-    }
+    if (rawNames.isEmpty) throw Exception('Không tìm thấy địa điểm nào');
 
     print('🗺️ Đang geocode ${rawNames.length} địa điểm...');
 
-    // Geocode từng địa điểm
     for (String locationName in rawNames) {
       try {
         final coords = await _geocodeLocation(locationName, cityContext);
         if (coords != null) {
           points.add(coords);
           names.add(locationName);
-          print('✅ Geocoded: $locationName -> $coords');
-        } else {
-          print('⚠️ Không tìm thấy tọa độ cho: $locationName');
         }
       } catch (e) {
         print('❌ Lỗi geocoding $locationName: $e');
       }
     }
 
-    if (points.isEmpty) {
-      throw Exception('Không thể chuyển đổi địa điểm thành tọa độ. Vui lòng kiểm tra tên địa điểm.');
-    }
+    if (points.isEmpty) throw Exception('Không tìm thấy tọa độ địa điểm nào');
 
-    print('✅ Successfully parsed ${points.length} locations');
     setState(() {
       _selectedPoints = points;
       _locationNames = names;
     });
   }
 
-
-  /// Geocoding: Chuyển đổi tên địa điểm thành tọa độ
   Future<LatLng?> _geocodeLocation(String locationName, String cityContext) async {
     try {
-      // Thêm context thành phố để tăng độ chính xác
       final searchQuery = '$locationName, $cityContext';
-
       final locations = await locationFromAddress(searchQuery);
-
       if (locations.isNotEmpty) {
-        final location = locations.first;
-        return LatLng(location.latitude, location.longitude);
+        return LatLng(locations.first.latitude, locations.first.longitude);
       }
     } catch (e) {
-      print('❌ Geocoding error for $locationName: $e');
+      return null;
     }
     return null;
   }
 
+  // ===============================================================
+  // PHẦN 2: THUẬT TOÁN NEAREST NEIGHBOR (TỐI ƯU THỨ TỰ)
+  // ===============================================================
 
-  /// Cập nhật lại _selectedPoints và _locationNames theo thứ tự OSRM tối ưu hóa
-  void _updatePointsOrder(List optimizedWaypoints) {
-    if (optimizedWaypoints.isEmpty) {
-      print('⚠️ Danh sách waypoints rỗng. Bỏ qua cập nhật thứ tự.');
-      return;
-    }
+  /// Sắp xếp lại _selectedPoints và _locationNames theo thứ tự tối ưu
+  void _optimizeRouteNearestNeighbor() {
+    if (_selectedPoints.length < 3) return; // Không cần tối ưu nếu chỉ có 2 điểm
 
-    try {
-      List<LatLng> newPoints = [];
-      List<String> newNames = [];
+    List<LatLng> sortedPoints = [];
+    List<String> sortedNames = [];
+    List<int> unvisitedIndices = List.generate(_selectedPoints.length, (index) => index);
 
-      print('🔄 Reordering ${optimizedWaypoints.length} waypoints...');
+    // 1. Luôn giữ điểm đầu tiên cố định (Ví dụ: Chợ Bến Thành)
+    int currentIndex = 0;
+    sortedPoints.add(_selectedPoints[currentIndex]);
+    sortedNames.add(_locationNames[currentIndex]);
+    unvisitedIndices.remove(0);
 
-      // OSRM waypoints có cấu trúc:
-      // [
-      //   {"waypoint_index": 0, "trips_index": 0, "location": [lng, lat], ...},
-      //   {"waypoint_index": 2, "trips_index": 0, "location": [lng, lat], ...},
-      //   {"waypoint_index": 1, "trips_index": 0, "location": [lng, lat], ...}
-      // ]
-      // waypoint_index cho biết chỉ số gốc của điểm trong input
+    // 2. Vòng lặp tìm điểm gần nhất tiếp theo
+    while (unvisitedIndices.isNotEmpty) {
+      int nearestIndex = -1;
+      double minDistance = double.infinity;
 
-      for (int i = 0; i < optimizedWaypoints.length; i++) {
-        final waypoint = optimizedWaypoints[i];
-
-        if (waypoint is! Map<String, dynamic>) {
-          print('⚠️ Waypoint $i không phải Map, bỏ qua.');
-          continue;
-        }
-
-        // Lấy waypoint_index - chỉ số gốc của điểm trong danh sách input
-        int? originalIndex;
-
-        if (waypoint.containsKey('waypoint_index')) {
-          originalIndex = waypoint['waypoint_index'] as int?;
-        } else if (waypoint.containsKey('trips_index')) {
-          originalIndex = waypoint['trips_index'] as int?;
-        }
-
-        if (originalIndex == null) {
-          print('⚠️ Không tìm thấy index cho waypoint $i. Sử dụng thứ tự hiện tại.');
-          originalIndex = i;
-        }
-
-        if (originalIndex >= _selectedPoints.length) {
-          print('⚠️ Index vượt quá giới hạn: $originalIndex >= ${_selectedPoints.length}');
-          continue;
-        }
-
-        // Thêm điểm theo thứ tự mới
-        newPoints.add(_selectedPoints[originalIndex]);
-
-        if (_locationNames.isNotEmpty && originalIndex < _locationNames.length) {
-          newNames.add(_locationNames[originalIndex]);
-          print('  [$i] ${_locationNames[originalIndex]} (original index: $originalIndex)');
-        } else {
-          newNames.add('Điểm ${originalIndex + 1}');
+      for (int i in unvisitedIndices) {
+        double distance = _distanceCalculator.as(LengthUnit.Meter, _selectedPoints[currentIndex], _selectedPoints[i]);
+        if (distance < minDistance) {
+          minDistance = distance;
+          nearestIndex = i;
         }
       }
 
-      // Chỉ cập nhật nếu có đủ dữ liệu hợp lệ
-      if (newPoints.length >= 2) {
-        setState(() {
-          _selectedPoints = newPoints;
-          _locationNames = newNames;
-        });
-        print('✅ Đã sắp xếp lại ${newPoints.length} điểm theo OSRM optimization');
+      if (nearestIndex != -1) {
+        sortedPoints.add(_selectedPoints[nearestIndex]);
+        sortedNames.add(_locationNames[nearestIndex]);
+        currentIndex = nearestIndex;
+        unvisitedIndices.remove(nearestIndex);
       } else {
-        print('⚠️ Không đủ điểm hợp lệ (${newPoints.length}). Giữ nguyên thứ tự ban đầu.');
+        break;
       }
-    } catch (e) {
-      print('❌ Lỗi khi cập nhật thứ tự điểm: $e. Giữ nguyên thứ tự ban đầu.');
     }
+
+    // 3. Cập nhật lại danh sách chính để UI và API sử dụng
+    setState(() {
+      _selectedPoints = sortedPoints;
+      _locationNames = sortedNames;
+    });
+
+    print('✅ Đã tối ưu (Nearest Neighbor): ${_locationNames.join(" -> ")}');
   }
 
-  /// Gọi API OSRM để lấy lộ trình TỐI ƯU NHẤT (Sử dụng endpoint /trip)
-  Future<void> _fetchRoute() async {
-    if (_selectedPoints.length < 2) {
-      setState(() {
-        _errorMessage = 'Cần ít nhất 2 điểm để vẽ lộ trình';
-      });
-      return;
-    }
+  // ===============================================================
+  // PHẦN 3: GỌI OSRM ROUTE API (VẼ ĐƯỜNG THEO THỨ TỰ ĐÃ TỐI ƯU)
+  // ===============================================================
 
+  Future<void> _fetchRoute() async {
     try {
-      // Tạo chuỗi tọa độ cho OSRM API (OSRM trip sẽ tự sắp xếp thứ tự tối ưu)
-      // Dùng Longitude, Latitude
+      // Vì đã tối ưu thứ tự ở Client, ta gửi list này lên API Route
       final coordinates = _selectedPoints
           .map((point) => '${point.longitude},${point.latitude}')
           .join(';');
 
-      // Sử dụng OSRM /trip để tối ưu hóa thứ tự các điểm
-      // roundtrip=false để không quay về điểm xuất phát
+      // Sử dụng Route API (Không dùng Trip API nữa) để tránh bị zigzag
       final url = Uri.parse(
-        'https://router.project-osrm.org/trip/v1/driving/$coordinates?overview=full&geometries=polyline&source=first&roundtrip=false',
+        'https://router.project-osrm.org/route/v1/driving/$coordinates'
+            '?overview=full&geometries=polyline',
       );
 
-      print('🗺️ Fetching OPTIMIZED route from OSRM: $url');
-
+      print('🚀 Calling OSRM Route: $url');
       final response = await http.get(url);
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
 
-        if (data['trips'] != null && (data['trips'] as List).isNotEmpty) {
-          final trip = data['trips'][0];
-          final encodedPolyline = trip['geometry'] as String;
+        if (data['routes'] != null && (data['routes'] as List).isNotEmpty) {
+          final route = data['routes'][0];
 
-          // Giải mã polyline
-          final decodedPoints = _decodePolyline(encodedPolyline);
-
-          // Lấy thứ tự các điểm đã được OSRM tối ưu hóa
-          final optimizedWaypoints = trip['waypoints'];
-
-          print('🔍 OSRM waypoints data: $optimizedWaypoints');
-
-          // Cập nhật thứ tự điểm theo OSRM optimization
-          if (optimizedWaypoints != null && optimizedWaypoints is List && optimizedWaypoints.isNotEmpty) {
-            try {
-              _updatePointsOrder(optimizedWaypoints);
-              print('✅ Points reordered based on OSRM optimization');
-            } catch (e) {
-              print('⚠️ Could not reorder points: $e. Using original order.');
-            }
-          } else {
-            print('⚠️ No waypoint optimization data available. Using original order.');
-          }
+          final distance = (route['distance'] as num).toDouble() / 1000;
+          final duration = (route['duration'] as num).toDouble() / 60;
+          final encodedPolyline = route['geometry'] as String;
 
           setState(() {
-            _routePoints = decodedPoints;
+            _routePoints = _decodePolyline(encodedPolyline);
+            _totalDistance = distance;
+            _totalDuration = duration;
           });
-
-          print('✅ Route decoded and OPTIMIZED: ${_routePoints.length} points');
-          print('📍 Optimized order: ${_locationNames.join(" → ")}');
-        } else {
-          throw Exception('Không tìm thấy lộ trình tối ưu');
         }
       } else {
-        throw Exception('OSRM API error: ${response.statusCode}');
+        print('❌ OSRM API error: ${response.statusCode}');
       }
     } catch (e) {
-      print('❌ Lỗi khi lấy lộ trình tối ưu: $e');
+      print('❌ Lỗi vẽ đường: $e');
       setState(() {
-        _errorMessage = 'Không thể vẽ lộ trình tối ưu: $e';
+        _errorMessage = 'Không thể vẽ lộ trình: $e';
       });
     }
   }
 
-  /// Giải mã chuỗi polyline thành danh sách LatLng
+  // ===============================================================
+  // PHẦN 4: UI & TIỆN ÍCH (GIỮ NGUYÊN UI GỐC CỦA BẠN)
+  // ===============================================================
+
+  String _formatDuration(double minutes) {
+    int hours = (minutes / 60).floor();
+    int mins = (minutes % 60).round();
+    return hours > 0 ? '${hours}h ${mins}m' : '${mins}m';
+  }
+
+  String _formatDistance(double km) {
+    return '${km.toStringAsFixed(2)} km';
+  }
+
   List<LatLng> _decodePolyline(String encoded) {
     List<LatLng> points = [];
     int index = 0;
@@ -399,31 +312,26 @@ class _MapRouteScreenState extends State<MapRouteScreen> {
       int b;
       int shift = 0;
       int result = 0;
-
       do {
         b = encoded.codeUnitAt(index++) - 63;
         result |= (b & 0x1f) << shift;
         shift += 5;
       } while (b >= 0x20);
-
       int dlat = ((result & 1) != 0 ? ~(result >> 1) : (result >> 1));
       lat += dlat;
 
       shift = 0;
       result = 0;
-
       do {
         b = encoded.codeUnitAt(index++) - 63;
         result |= (b & 0x1f) << shift;
         shift += 5;
       } while (b >= 0x20);
-
       int dlng = ((result & 1) != 0 ? ~(result >> 1) : (result >> 1));
       lng += dlng;
 
       points.add(LatLng(lat / 1E5, lng / 1E5));
     }
-
     return points;
   }
 
@@ -435,7 +343,7 @@ class _MapRouteScreenState extends State<MapRouteScreen> {
           'Lộ Trình Du Lịch',
           style: TextStyle(color: Colors.black87),
         ),
-        backgroundColor: const Color(0xFFFFF8E7), // Màu kem
+        backgroundColor: const Color(0xFFFFF8E7),
         iconTheme: const IconThemeData(color: Colors.black87),
         actions: [
           IconButton(
@@ -447,256 +355,285 @@ class _MapRouteScreenState extends State<MapRouteScreen> {
       ),
       body: _isLoading
           ? const Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  CircularProgressIndicator(),
-                  SizedBox(height: 16),
-                  Text('Đang tải bản đồ...'),
-                ],
-              ),
-            )
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            CircularProgressIndicator(),
+            SizedBox(height: 16),
+            Text('Đang tải bản đồ...'),
+          ],
+        ),
+      )
           : _errorMessage.isNotEmpty
-              ? Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(Icons.error_outline, size: 64, color: Colors.red),
-                        const SizedBox(height: 16),
-                        Text(
-                          _errorMessage,
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(fontSize: 16),
-                        ),
-                        const SizedBox(height: 16),
-                        ElevatedButton(
-                          onPressed: _initializeMap,
-                          child: const Text('Thử lại'),
-                        ),
-                      ],
-                    ),
-                  ),
-                )
-              : Stack(
-                  children: [
-                    FlutterMap(
-                      mapController: _mapController,
-                      options: MapOptions(
-                        initialCenter: _selectedPoints.isNotEmpty
-                            ? _selectedPoints[0]
-                            : const LatLng(21.0285, 105.8542), // Mặc định là Hà Nội
-                        initialZoom: 13.0,
-                        minZoom: 3.0,
-                        maxZoom: 18.0,
-                      ),
-                      children: [
-                        // Tile Layer - Bản đồ nền OSM
-                        TileLayer(
-                          urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                          userAgentPackageName: 'com.example.my_travel_app',
-                        ),
-
-                        // Polyline Layer - Vẽ lộ trình
-                        if (_routePoints.isNotEmpty)
-                          PolylineLayer(
-                            polylines: [
-                              Polyline(
-                                points: _routePoints,
-                                strokeWidth: 4.0,
-                                color: Colors.blue,
-                              ),
-                            ],
-                          ),
-
-                        // Marker Layer - Đánh dấu các điểm
-                        if (_selectedPoints.isNotEmpty)
-                          MarkerLayer(
-                            markers: _selectedPoints.asMap().entries.map((entry) {
-                              final index = entry.key;
-                              final point = entry.value;
-                              final isFirst = index == 0;
-                              final isLast = index == _selectedPoints.length - 1;
-
-                              return Marker(
-                                point: point,
-                                width: 40,
-                                height: 40,
-                                child: GestureDetector(
-                                  onTap: () {
-                                    _showLocationInfo(index);
-                                  },
-                                  child: Icon(
-                                    isFirst
-                                        ? Icons.location_on
-                                        : isLast
-                                            ? Icons.flag
-                                            : Icons.place,
-                                    color: isFirst
-                                        ? Colors.green
-                                        : isLast
-                                            ? Colors.red
-                                            : Colors.orange,
-                                    size: 40,
-                                  ),
-                                ),
-                              );
-                            }).toList(),
-                          ),
-                      ],
-                    ),
-
-                    // Danh sách địa điểm theo thứ tự tối ưu
-                    if (_locationNames.isNotEmpty && _routePoints.isNotEmpty)
-                      Positioned(
-                        top: 16,
-                        left: 16,
-                        right: 16,
-                        child: Card(
-                          color: Colors.white.withValues(alpha: 0.95),
-                          child: Padding(
-                            padding: const EdgeInsets.all(12.0),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Row(
-                                  children: [
-                                    Icon(Icons.route, color: Colors.blue, size: 20),
-                                    SizedBox(width: 8),
-                                    Text(
-                                      'Lộ trình đã tối ưu (${_locationNames.length} điểm):',
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 14,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                SizedBox(height: 8),
-                                ...List.generate(_locationNames.length, (index) {
-                                  final isFirst = index == 0;
-                                  final isLast = index == _locationNames.length - 1;
-                                  return Padding(
-                                    padding: const EdgeInsets.symmetric(vertical: 2.0),
-                                    child: Row(
-                                      children: [
-                                        Icon(
-                                          isFirst
-                                              ? Icons.location_on
-                                              : isLast
-                                                  ? Icons.flag
-                                                  : Icons.place,
-                                          color: isFirst
-                                              ? Colors.green
-                                              : isLast
-                                                  ? Colors.red
-                                                  : Colors.orange,
-                                          size: 16,
-                                        ),
-                                        SizedBox(width: 8),
-                                        Expanded(
-                                          child: Text(
-                                            '${index + 1}. ${_locationNames[index]}',
-                                            style: TextStyle(fontSize: 12),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  );
-                                }),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-
-                    // Legend
-                    Positioned(
-                      bottom: 16,
-                      left: 16,
-                      child: Card(
-                        child: Padding(
-                          padding: const EdgeInsets.all(8.0),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Text(
-                                'Chú thích:',
-                                style: TextStyle(fontWeight: FontWeight.bold),
-                              ),
-                              const SizedBox(height: 4),
-                              Row(
-                                children: [
-                                  Icon(Icons.location_on, color: Colors.green, size: 20),
-                                  const SizedBox(width: 4),
-                                  const Text('Điểm đầu'),
-                                ],
-                              ),
-                              Row(
-                                children: [
-                                  Icon(Icons.place, color: Colors.orange, size: 20),
-                                  const SizedBox(width: 4),
-                                  const Text('Điểm dừng'),
-                                ],
-                              ),
-                              Row(
-                                children: [
-                                  Icon(Icons.flag, color: Colors.red, size: 20),
-                                  const SizedBox(width: 4),
-                                  const Text('Điểm cuối'),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-
-                    // Zoom buttons
-                    Positioned(
-                      right: 16,
-                      bottom: 100,
-                      child: Column(
-                        children: [
-                          FloatingActionButton(
-                            mini: true,
-                            onPressed: () {
-                              _mapController.move(
-                                _mapController.camera.center,
-                                _mapController.camera.zoom + 1,
-                              );
-                            },
-                            child: const Icon(Icons.add),
-                          ),
-                          const SizedBox(height: 8),
-                          FloatingActionButton(
-                            mini: true,
-                            onPressed: () {
-                              _mapController.move(
-                                _mapController.camera.center,
-                                _mapController.camera.zoom - 1,
-                              );
-                            },
-                            child: const Icon(Icons.remove),
-                          ),
-                          const SizedBox(height: 8),
-                          FloatingActionButton(
-                            mini: true,
-                            onPressed: _fitBounds,
-                            child: const Icon(Icons.my_location),
-                          ),
-                        ],
-                      ),
+          ? Center(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.error_outline, size: 64, color: Colors.red),
+              const SizedBox(height: 16),
+              Text(
+                _errorMessage,
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontSize: 16),
+              ),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: _initializeMap,
+                child: const Text('Thử lại'),
+              ),
+            ],
+          ),
+        ),
+      )
+          : Stack(
+        children: [
+          FlutterMap(
+            mapController: _mapController,
+            options: MapOptions(
+              initialCenter: _selectedPoints.isNotEmpty
+                  ? _selectedPoints[0]
+                  : const LatLng(21.0285, 105.8542),
+              initialZoom: 13.0,
+              minZoom: 3.0,
+              maxZoom: 18.0,
+            ),
+            children: [
+              TileLayer(
+                urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                userAgentPackageName: 'com.example.my_travel_app',
+              ),
+              if (_routePoints.isNotEmpty)
+                PolylineLayer(
+                  polylines: [
+                    Polyline(
+                      points: _routePoints,
+                      strokeWidth: 4.0,
+                      color: Colors.blue,
                     ),
                   ],
                 ),
+              if (_selectedPoints.isNotEmpty)
+                MarkerLayer(
+                  markers: _selectedPoints.asMap().entries.map((entry) {
+                    final index = entry.key;
+                    final point = entry.value;
+                    final isFirst = index == 0;
+                    final isLast = index == _selectedPoints.length - 1;
+
+                    // UI Gốc: Sử dụng Icon
+                    return Marker(
+                      point: point,
+                      width: 40,
+                      height: 40,
+                      child: GestureDetector(
+                        onTap: () {
+                          _showLocationInfo(index);
+                        },
+                        child: Icon(
+                          isFirst
+                              ? Icons.location_on
+                              : isLast
+                              ? Icons.flag
+                              : Icons.place,
+                          color: isFirst
+                              ? Colors.green
+                              : isLast
+                              ? Colors.red
+                              : Colors.orange,
+                          size: 40,
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ),
+            ],
+          ),
+
+          // Danh sách địa điểm (Sử dụng _locationNames đã được sort)
+          if (_locationNames.isNotEmpty && _routePoints.isNotEmpty)
+            Positioned(
+              top: 16,
+              left: 16,
+              right: 16,
+              child: Card(
+                color: Colors.white.withValues(alpha: 0.95),
+                child: Padding(
+                  padding: const EdgeInsets.all(12.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(Icons.route, color: Colors.blue, size: 20),
+                          SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'Lộ trình tối ưu (${_locationNames.length} điểm):',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      // Hiển thị thông số thời gian/khoảng cách
+                      if (_totalDuration > 0)
+                        Container(
+                          margin: EdgeInsets.only(top: 8, bottom: 8),
+                          padding: EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: Colors.blue[50],
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceAround,
+                            children: [
+                              Column(
+                                children: [
+                                  Icon(Icons.schedule, color: Colors.blue, size: 18),
+                                  Text(_formatDuration(_totalDuration), style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                                ],
+                              ),
+                              Container(width: 1, height: 20, color: Colors.grey),
+                              Column(
+                                children: [
+                                  Icon(Icons.straighten, color: Colors.green, size: 18),
+                                  Text(_formatDistance(_totalDistance), style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      Divider(height: 1),
+                      SizedBox(height: 8),
+                      ...List.generate(_locationNames.length, (index) {
+                        final isFirst = index == 0;
+                        final isLast = index == _locationNames.length - 1;
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 2.0),
+                          child: Row(
+                            children: [
+                              Icon(
+                                isFirst
+                                    ? Icons.location_on
+                                    : isLast
+                                    ? Icons.flag
+                                    : Icons.place,
+                                color: isFirst
+                                    ? Colors.green
+                                    : isLast
+                                    ? Colors.red
+                                    : Colors.orange,
+                                size: 16,
+                              ),
+                              SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  '${index + 1}. ${_locationNames[index]}',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: isFirst || isLast ? FontWeight.bold : FontWeight.normal,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      }),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+
+          // Legend
+          Positioned(
+            bottom: 16,
+            left: 16,
+            child: Card(
+              child: Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Text(
+                      'Chú thích:',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        Icon(Icons.location_on, color: Colors.green, size: 20),
+                        const SizedBox(width: 4),
+                        const Text('Điểm đầu'),
+                      ],
+                    ),
+                    Row(
+                      children: [
+                        Icon(Icons.place, color: Colors.orange, size: 20),
+                        const SizedBox(width: 4),
+                        const Text('Điểm dừng'),
+                      ],
+                    ),
+                    Row(
+                      children: [
+                        Icon(Icons.flag, color: Colors.red, size: 20),
+                        const SizedBox(width: 4),
+                        const Text('Điểm cuối'),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+
+          // Zoom buttons
+          Positioned(
+            right: 16,
+            bottom: 100,
+            child: Column(
+              children: [
+                FloatingActionButton(
+                  mini: true,
+                  onPressed: () {
+                    _mapController.move(
+                      _mapController.camera.center,
+                      _mapController.camera.zoom + 1,
+                    );
+                  },
+                  child: const Icon(Icons.add),
+                ),
+                const SizedBox(height: 8),
+                FloatingActionButton(
+                  mini: true,
+                  onPressed: () {
+                    _mapController.move(
+                      _mapController.camera.center,
+                      _mapController.camera.zoom - 1,
+                    );
+                  },
+                  child: const Icon(Icons.remove),
+                ),
+                const SizedBox(height: 8),
+                FloatingActionButton(
+                  mini: true,
+                  onPressed: _fitBounds,
+                  child: const Icon(Icons.my_location),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 
-  /// Hiển thị thông tin địa điểm
   void _showLocationInfo(int index) {
     final name = index < _locationNames.length
         ? _locationNames[index]
@@ -727,7 +664,6 @@ class _MapRouteScreenState extends State<MapRouteScreen> {
     );
   }
 
-  /// Fit bản đồ để hiển thị tất cả các điểm
   void _fitBounds() {
     if (_selectedPoints.isEmpty) return;
 
@@ -751,4 +687,3 @@ class _MapRouteScreenState extends State<MapRouteScreen> {
     _mapController.move(center, 12.0);
   }
 }
-
