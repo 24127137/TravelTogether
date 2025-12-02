@@ -1,5 +1,5 @@
 from sqlmodel import Session, select, text
-from db_tables import TravelGroup, Profiles, UserTripPlans
+from db_tables import TravelGroup, Profiles
 from group_models import SuggestionOutput, GroupPlanOutput
 from fastapi import HTTPException
 from typing import List, Any
@@ -9,67 +9,58 @@ from .utils import validate_user_profile_completeness
 async def group_suggest_service(session: Session, current_user: Any) -> List[SuggestionOutput]:
     user_uuid = str(current_user.id)
     
-    # 1. Lấy Plan mới nhất (vừa update) trong bảng UserTripPlans
-    # Sắp xếp theo updated_at giảm dần để lấy cái mới nhất
-    latest_plan = session.exec(
-        select(UserTripPlans)
-        .where(UserTripPlans.user_id == user_uuid)
-        .order_by(UserTripPlans.updated_at.desc())
-    ).first()
-    
-    # Nếu chưa có plan nào trong bảng mới, fallback về Profile cũ hoặc báo lỗi
-    if not latest_plan:
-        # Thử lấy từ Profile (cho tương thích ngược)
-        user_profile = session.exec(select(Profiles).where(Profiles.auth_user_id == user_uuid)).first()
-        if user_profile and user_profile.preferred_city and user_profile.travel_dates:
-             # Tạo giả object plan từ profile
-             class TempPlan:
-                 preferred_city = user_profile.preferred_city
-                 travel_dates = user_profile.travel_dates
-                 itinerary = user_profile.itinerary
-             latest_plan = TempPlan()
-        else:
-            raise HTTPException(404, "Bạn chưa có kế hoạch du lịch nào. Hãy cập nhật hồ sơ trước.")
+    # 1. Lấy thông tin từ Profile (Nguồn duy nhất & Đã được validate sạch sẽ)
+    user = session.exec(select(Profiles).where(Profiles.auth_user_id == user_uuid)).first()
+    validate_user_profile_completeness(user)
 
-    # 2. Tìm nhóm khớp với Plan mới nhất
-    # Lưu ý: Convert DATERANGE thành chuỗi để so sánh trong SQL nếu cần, hoặc dùng parameter binding
-    # Ở đây ta dùng text literal cho an toàn với daterange
+    # 2. Tìm nhóm khớp City và Date
+    # Vì user.travel_dates đã được bảo đảm không trùng với các nhóm user đang tham gia (nhờ user_service)
+    # Nên ta KHÔNG CẦN vòng lặp check_date_overlap ở đây nữa.
     statement = select(TravelGroup).where(
         TravelGroup.status == "open",
-        TravelGroup.preferred_city == latest_plan.preferred_city, 
-        text(f"travel_dates = '{latest_plan.travel_dates}'::daterange") 
+        TravelGroup.preferred_city == user.preferred_city,
+        text(f"travel_dates = '{user.travel_dates}'::daterange") 
     )
     candidates = session.exec(statement).all()
     
     if not candidates:
-        raise HTTPException(404, f"Không có nhóm nào đi {latest_plan.preferred_city} đúng ngày này.")
+        raise HTTPException(
+            status_code=404, 
+            detail=f"Không có nhóm nào đi {user.preferred_city} đúng ngày này."
+        )
 
     valid_candidates = []
     ai_input_list = []
     
     for group in candidates:
-        # Bỏ qua nhóm mình làm chủ
+        # Lọc chính mình (Host)
         if group.owner_id == user_uuid: continue 
         
-        # Bỏ qua nhóm mình đang pending
+        # Lọc Pending
         is_pending = False
         if group.pending_requests:
             for req in group.pending_requests:
                 if req.get("profile_uuid") == user_uuid: is_pending = True
         if is_pending: continue
         
-        # Bỏ qua nhóm mình ĐÃ tham gia (check joined_groups của profile)
-        # (Đoạn này tối ưu: có thể query profile 1 lần ở trên)
+        # Lọc đã Join
+        # (Thực ra query theo ngày ở trên đã lọc rồi vì ngày trong profile không thể trùng với ngày nhóm đã join, 
+        # nhưng giữ lại check id này cho chắc chắn 100%)
+        is_joined = False
+        if user.joined_groups:
+             for j in user.joined_groups:
+                 if j.get('group_id') == group.id: is_joined = True
+        if is_joined: continue
         
         valid_candidates.append(group)
         ai_input_list.append({"id": group.id, "itinerary": group.itinerary})
 
-    if not valid_candidates: 
-        raise HTTPException(404, "Không tìm thấy nhóm phù hợp (hoặc bạn đã tham gia hết rồi).")
+    if not valid_candidates:
+        raise HTTPException(status_code=404, detail="Không tìm thấy nhóm phù hợp.")
 
-    # GỌI AI: So sánh Itinerary của PLAN MỚI NHẤT với các nhóm
+    # 3. Gọi AI chấm điểm
     ai_scores_map = await ai_service.rank_groups_by_itinerary_ai(
-        latest_plan.itinerary, 
+        user.itinerary,
         ai_input_list
     )
     
