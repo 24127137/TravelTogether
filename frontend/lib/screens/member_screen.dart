@@ -119,8 +119,8 @@ class _MemberScreenMemberState extends State<MemberScreenMember> {
                 context,
                 isHost: false,
                 onSuccess: () {
-                  Navigator.of(context).pop(); 
-                  Navigator.of(context).pop(); 
+                  Navigator.of(context).pop();
+                  Navigator.of(context).pop();
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
                       content: Text('Đã rời nhóm thành công'),

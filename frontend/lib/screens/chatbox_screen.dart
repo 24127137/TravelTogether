@@ -505,7 +505,7 @@ class _ChatboxScreenState extends State<ChatboxScreen> with WidgetsBindingObserv
 
         // === THÊM MỚI: Fetch avatars for all senders (parallel) ===
         await Future.wait(
-          senderIds.map((id) => _fetchUserAvatar(id))
+            senderIds.map((id) => _fetchUserAvatar(id))
         );
 
         setState(() {
@@ -608,7 +608,7 @@ class _ChatboxScreenState extends State<ChatboxScreen> with WidgetsBindingObserv
 
       // Lắng nghe tin nhắn từ server
       _channel!.stream.listen(
-        (message) {
+            (message) {
           print('📥 WebSocket received: $message');
           _handleWebSocketMessage(message);
         },
@@ -905,14 +905,14 @@ class _ChatboxScreenState extends State<ChatboxScreen> with WidgetsBindingObserv
       }
 
       final groupData = jsonDecode(utf8.decode(groupResponse.bodyBytes));
-      
+
       final groupName = groupData['name']?.toString() ?? 'Unknown Group';
       final currentMembers = groupData['member_count'] as int? ?? 0;
       final maxMembers = groupData['max_members'] as int? ?? 0;
 
       String? currentUserRole;
       final List<dynamic> membersList = groupData['members'] ?? [];
-      
+
       for (var memberData in membersList) {
         final profileUuid = memberData['profile_uuid']?.toString();
         if (profileUuid == _currentUserId) {
@@ -952,7 +952,7 @@ class _ChatboxScreenState extends State<ChatboxScreen> with WidgetsBindingObserv
           }
         } catch (e) {
           print('⚠️ Error parsing member: $e');
-          continue; 
+          continue;
         }
       }
 
@@ -1026,13 +1026,13 @@ class _ChatboxScreenState extends State<ChatboxScreen> with WidgetsBindingObserv
                 border: Border.all(color: Colors.white, width: 2),
                 image: _groupAvatarUrl != null && _groupAvatarUrl!.isNotEmpty
                     ? DecorationImage(
-                        image: NetworkImage(_groupAvatarUrl!),
-                        fit: BoxFit.cover,
-                      )
+                  image: NetworkImage(_groupAvatarUrl!),
+                  fit: BoxFit.cover,
+                )
                     : const DecorationImage(
-                        image: AssetImage('assets/images/chatbot_icon.png'),
-                        fit: BoxFit.cover,
-                      ),
+                  image: AssetImage('assets/images/chatbot_icon.png'),
+                  fit: BoxFit.cover,
+                ),
               ),
             ),
           ],
@@ -1060,224 +1060,224 @@ class _ChatboxScreenState extends State<ChatboxScreen> with WidgetsBindingObserv
       ),
       backgroundColor: const Color(0xFFEBE3D7),
       body: _isLoading
-        ? const Center(
-            child: CircularProgressIndicator(
-              color: Color(0xFF8A724C),
-            ),
-          )
-        : Stack( // === SỬA ĐỔI: Sử dụng Stack để chồng nút lên trên danh sách tin nhắn ===
+          ? const Center(
+        child: CircularProgressIndicator(
+          color: Color(0xFF8A724C),
+        ),
+      )
+          : Stack( // === SỬA ĐỔI: Sử dụng Stack để chồng nút lên trên danh sách tin nhắn ===
+        children: [
+          Column(
             children: [
-              Column(
-                children: [
-                  Expanded(
-                    child: Container(
-                      decoration: const BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.only(
-                          topLeft: Radius.circular(30),
-                          topRight: Radius.circular(30),
-                        ),
-                      ),
-                      child: Column(
-                        children: [
-                          // === BỎ HEADER "HÔM NAY" CỐ ĐỊNH ===
-                          // Date separators sẽ được hiển thị động trong ListView
-                          Expanded(
-                            child: Container(
-                              color: Colors.white,
-                              child: ListView.builder(
-                                controller: _scrollController,
-                                padding: const EdgeInsets.only(
-                                  left: 12,
-                                  right: 12,
-                                  top: 16,
-                                  bottom: 16,
-                                ),
-                                itemCount: _messages.length,
-                                itemBuilder: (context, index) {
-                                  final m = _messages[index];
-                                  final dateSeparator = _getDateSeparator(index);
-                                  final shouldShowAvatar = _shouldShowAvatar(index); // === THÊM MỚI: Message grouping ===
+              Expanded(
+                child: Container(
+                  decoration: const BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.only(
+                      topLeft: Radius.circular(30),
+                      topRight: Radius.circular(30),
+                    ),
+                  ),
+                  child: Column(
+                    children: [
+                      // === BỎ HEADER "HÔM NAY" CỐ ĐỊNH ===
+                      // Date separators sẽ được hiển thị động trong ListView
+                      Expanded(
+                        child: Container(
+                          color: Colors.white,
+                          child: ListView.builder(
+                            controller: _scrollController,
+                            padding: const EdgeInsets.only(
+                              left: 12,
+                              right: 12,
+                              top: 16,
+                              bottom: 16,
+                            ),
+                            itemCount: _messages.length,
+                            itemBuilder: (context, index) {
+                              final m = _messages[index];
+                              final dateSeparator = _getDateSeparator(index);
+                              final shouldShowAvatar = _shouldShowAvatar(index); // === THÊM MỚI: Message grouping ===
 
-                                  // Ensure we have a GlobalKey for this index
-                                  _messageKeys[index] = _messageKeys[index] ?? GlobalKey();
-                                  final messageKey = _messageKeys[index]!;
+                              // Ensure we have a GlobalKey for this index
+                              _messageKeys[index] = _messageKeys[index] ?? GlobalKey();
+                              final messageKey = _messageKeys[index]!;
 
-                                  return Column(
-                                    children: [
-                                      // === THÊM MỚI: Date separator (nếu có) ===
-                                      if (dateSeparator != null)
-                                        Padding(
-                                          padding: const EdgeInsets.symmetric(vertical: 16.0),
-                                          child: Container(
-                                            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-                                            decoration: BoxDecoration(
-                                              color: const Color(0xFFEBE3D7),
-                                              borderRadius: BorderRadius.circular(20),
-                                            ),
-                                            child: Text(
-                                              dateSeparator,
-                                              style: const TextStyle(
-                                                color: Colors.black54,
-                                                fontSize: 12,
-                                                fontWeight: FontWeight.w500,
-                                              ),
-                                            ),
-                                          ),
+                              return Column(
+                                children: [
+                                  // === THÊM MỚI: Date separator (nếu có) ===
+                                  if (dateSeparator != null)
+                                    Padding(
+                                      padding: const EdgeInsets.symmetric(vertical: 16.0),
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFFEBE3D7),
+                                          borderRadius: BorderRadius.circular(20),
                                         ),
-                                      // Message bubble wrapped with key and tap handler
-                                      GestureDetector(
-                                        onTap: () async {
-                                          // Focus the input so keyboard opens
-                                          _focusNode.requestFocus();
-
-                                          // Wait for keyboard to open
-                                          await Future.delayed(const Duration(milliseconds: 350));
-
-                                          // Ensure the tapped message is visible
-                                          if (messageKey.currentContext != null) {
-                                            try {
-                                              await Scrollable.ensureVisible(
-                                                messageKey.currentContext!,
-                                                duration: const Duration(milliseconds: 300),
-                                                alignment: 0.3, // try to position message above keyboard
-                                                curve: Curves.easeOut,
-                                              );
-                                            } catch (e) {
-                                              // fallback: animate to bottom
-                                              if (_scrollController.hasClients) {
-                                                _scrollController.animateTo(
-                                                  _scrollController.position.maxScrollExtent,
-                                                  duration: const Duration(milliseconds: 300),
-                                                  curve: Curves.easeOut,
-                                                );
-                                              }
-                                            }
-                                          }
-                                        },
-                                        child: Container(
-                                          key: messageKey,
-                                          child: _MessageBubble(
-                                            message: m,
-                                            senderAvatarUrl: m.senderAvatarUrl,
-                                            currentUserId: _currentUserId,
-                                            shouldShowAvatar: shouldShowAvatar, // === THÊM MỚI: Truyền thông tin grouping ===
+                                        child: Text(
+                                          dateSeparator,
+                                          style: const TextStyle(
+                                            color: Colors.black54,
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w500,
                                           ),
                                         ),
                                       ),
-                                    ],
-                                  );
-                                },
-                              ), // ListView.builder
-                            ), // Container (color: Colors.white)
-                          ), // Expanded
-                        ], // children of inner Column
-                      ), // Column
-                    ), // Container (with decoration)
-                  ), // Expanded
-
-                  // Input bar at bottom
-                  SafeArea(
-                    top: false,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
-                      color: Colors.white,
-                      child: Row(
-                        children: [
-                          // === THÊM MỚI: Nút chọn ảnh - hiện bottom sheet để chọn camera/gallery ===
-                          Material(
-                            color: const Color(0xFFB99668),
-                            shape: const CircleBorder(),
-                            child: IconButton(
-                              icon: _isUploading
-                                ? const SizedBox(
-                                    width: 20,
-                                    height: 20,
-                                    child: CircularProgressIndicator(
-                                      color: Colors.white,
-                                      strokeWidth: 2,
                                     ),
-                                  )
-                                : const Icon(Icons.add_photo_alternate, color: Colors.white),
-                              onPressed: _isUploading ? null : _showImageSourceSelection,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFEBE3D7),
-                                borderRadius: BorderRadius.circular(30.0),
-                              ),
-                              child: TextField(
-                                controller: _controller,
-                                focusNode: _focusNode,
-                                maxLines: null, // === SỬA: Cho phép nhiều dòng ===
-                                minLines: 1, // === SỬA: Bắt đầu với 1 dòng ===
-                                keyboardType: TextInputType.multiline, // === SỬA: Keyboard hỗ trợ multiline ===
-                                textInputAction: TextInputAction.newline, // === SỬA: Enter để xuống dòng ===
-                                decoration: InputDecoration(
-                                  contentPadding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-                                  hintText: 'enter_message'.tr(),
-                                  hintStyle: const TextStyle(color: Colors.black38),
-                                  border: InputBorder.none,
-                                ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Material(
-                            color: const Color(0xFFB99668),
-                            shape: const CircleBorder(),
-                            child: IconButton(
-                              icon: const Icon(Icons.send, color: Colors.white),
-                              onPressed: _sendMessage,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              // === THÊM MỚI: Nút "Go to latest message" - Positioned ở giữa màn hình, bên phải ===
-              if (_showScrollToBottomButton)
-                Positioned(
-                  right: 16, // === Căn bên phải ===
-                  bottom: 100, // === Cách đáy 100px để tránh input bar ===
-                  child: Material(
-                    color: const Color(0xFFB99668),
-                    elevation: 6,
-                    shape: const CircleBorder(),
-                    child: IconButton(
-                      tooltip: 'Đi tới tin nhắn mới nhất',
-                      icon: const Icon(Icons.arrow_downward, color: Colors.white),
-                      onPressed: _isAutoScrolling
-                          ? null
-                          : () async {
-                              if (!_scrollController.hasClients) return;
-                              try {
-                                _isAutoScrolling = true;
-                                await _scrollController.animateTo(
-                                  _scrollController.position.maxScrollExtent,
-                                  duration: const Duration(milliseconds: 300),
-                                  curve: Curves.easeOut,
-                                );
-                              } catch (e) {
-                                // ignore
-                              } finally {
-                                _isAutoScrolling = false;
-                                if (mounted) setState(() => _showScrollToBottomButton = false);
-                              }
+                                  // Message bubble wrapped with key and tap handler
+                                  GestureDetector(
+                                    onTap: () async {
+                                      // Focus the input so keyboard opens
+                                      _focusNode.requestFocus();
+
+                                      // Wait for keyboard to open
+                                      await Future.delayed(const Duration(milliseconds: 350));
+
+                                      // Ensure the tapped message is visible
+                                      if (messageKey.currentContext != null) {
+                                        try {
+                                          await Scrollable.ensureVisible(
+                                            messageKey.currentContext!,
+                                            duration: const Duration(milliseconds: 300),
+                                            alignment: 0.3, // try to position message above keyboard
+                                            curve: Curves.easeOut,
+                                          );
+                                        } catch (e) {
+                                          // fallback: animate to bottom
+                                          if (_scrollController.hasClients) {
+                                            _scrollController.animateTo(
+                                              _scrollController.position.maxScrollExtent,
+                                              duration: const Duration(milliseconds: 300),
+                                              curve: Curves.easeOut,
+                                            );
+                                          }
+                                        }
+                                      }
+                                    },
+                                    child: Container(
+                                      key: messageKey,
+                                      child: _MessageBubble(
+                                        message: m,
+                                        senderAvatarUrl: m.senderAvatarUrl,
+                                        currentUserId: _currentUserId,
+                                        shouldShowAvatar: shouldShowAvatar, // === THÊM MỚI: Truyền thông tin grouping ===
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              );
                             },
-                    ),
+                          ), // ListView.builder
+                        ), // Container (color: Colors.white)
+                      ), // Expanded
+                    ], // children of inner Column
+                  ), // Column
+                ), // Container (with decoration)
+              ), // Expanded
+
+              // Input bar at bottom
+              SafeArea(
+                top: false,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
+                  color: Colors.white,
+                  child: Row(
+                    children: [
+                      // === THÊM MỚI: Nút chọn ảnh - hiện bottom sheet để chọn camera/gallery ===
+                      Material(
+                        color: const Color(0xFFB99668),
+                        shape: const CircleBorder(),
+                        child: IconButton(
+                          icon: _isUploading
+                              ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
+                              strokeWidth: 2,
+                            ),
+                          )
+                              : const Icon(Icons.add_photo_alternate, color: Colors.white),
+                          onPressed: _isUploading ? null : _showImageSourceSelection,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFEBE3D7),
+                            borderRadius: BorderRadius.circular(30.0),
+                          ),
+                          child: TextField(
+                            controller: _controller,
+                            focusNode: _focusNode,
+                            maxLines: null, // === SỬA: Cho phép nhiều dòng ===
+                            minLines: 1, // === SỬA: Bắt đầu với 1 dòng ===
+                            keyboardType: TextInputType.multiline, // === SỬA: Keyboard hỗ trợ multiline ===
+                            textInputAction: TextInputAction.newline, // === SỬA: Enter để xuống dòng ===
+                            decoration: InputDecoration(
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                              hintText: 'enter_message'.tr(),
+                              hintStyle: const TextStyle(color: Colors.black38),
+                              border: InputBorder.none,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Material(
+                        color: const Color(0xFFB99668),
+                        shape: const CircleBorder(),
+                        child: IconButton(
+                          icon: const Icon(Icons.send, color: Colors.white),
+                          onPressed: _sendMessage,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-             ],
-           ),
-     );
-   }
+              ),
+            ],
+          ),
+          // === THÊM MỚI: Nút "Go to latest message" - Positioned ở giữa màn hình, bên phải ===
+          if (_showScrollToBottomButton)
+            Positioned(
+              right: 16, // === Căn bên phải ===
+              bottom: 100, // === Cách đáy 100px để tránh input bar ===
+              child: Material(
+                color: const Color(0xFFB99668),
+                elevation: 6,
+                shape: const CircleBorder(),
+                child: IconButton(
+                  tooltip: 'Đi tới tin nhắn mới nhất',
+                  icon: const Icon(Icons.arrow_downward, color: Colors.white),
+                  onPressed: _isAutoScrolling
+                      ? null
+                      : () async {
+                    if (!_scrollController.hasClients) return;
+                    try {
+                      _isAutoScrolling = true;
+                      await _scrollController.animateTo(
+                        _scrollController.position.maxScrollExtent,
+                        duration: const Duration(milliseconds: 300),
+                        curve: Curves.easeOut,
+                      );
+                    } catch (e) {
+                      // ignore
+                    } finally {
+                      _isAutoScrolling = false;
+                      if (mounted) setState(() => _showScrollToBottomButton = false);
+                    }
+                  },
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
 }
 
 class _MessageBubble extends StatelessWidget {
@@ -1324,18 +1324,18 @@ class _MessageBubble extends StatelessWidget {
               width: 48, // === Chiều rộng cố định cho vùng avatar ===
               child: showAvatar
                   ? Padding(
-                      padding: const EdgeInsets.only(right: 8.0),
-                      child: CircleAvatar(
-                        radius: 20,
-                        backgroundColor: const Color(0xFFD9CBB3),
-                        backgroundImage: senderAvatarUrl != null && senderAvatarUrl!.isNotEmpty
-                            ? NetworkImage(senderAvatarUrl!)
-                            : null,
-                        child: senderAvatarUrl == null || senderAvatarUrl!.isEmpty
-                            ? const Icon(Icons.person, size: 24, color: Colors.white)
-                            : null,
-                      ),
-                    )
+                padding: const EdgeInsets.only(right: 8.0),
+                child: CircleAvatar(
+                  radius: 20,
+                  backgroundColor: const Color(0xFFD9CBB3),
+                  backgroundImage: senderAvatarUrl != null && senderAvatarUrl!.isNotEmpty
+                      ? NetworkImage(senderAvatarUrl!)
+                      : null,
+                  child: senderAvatarUrl == null || senderAvatarUrl!.isEmpty
+                      ? const Icon(Icons.person, size: 24, color: Colors.white)
+                      : null,
+                ),
+              )
                   : const SizedBox(), // === Khoảng trống để canh chỉnh ===
             ),
           ],
@@ -1400,8 +1400,8 @@ class _MessageBubble extends StatelessWidget {
                         color: textColor,
                         fontSize: 16,
                         fontWeight: !isUser && !message.isSeen
-                          ? FontWeight.bold  // === THÊM MỚI: In đậm nếu chưa seen ===
-                          : FontWeight.normal,
+                            ? FontWeight.bold  // === THÊM MỚI: In đậm nếu chưa seen ===
+                            : FontWeight.normal,
                       ),
                     ),
                   const SizedBox(height: 6),

@@ -11,6 +11,7 @@ class MemberScreenHost extends StatefulWidget {
   final int currentMembers;
   final int maxMembers;
   final List<Member> members;
+  final bool openPendingTab;
 
   const MemberScreenHost({
     super.key,
@@ -18,14 +19,18 @@ class MemberScreenHost extends StatefulWidget {
     required this.currentMembers,
     required this.maxMembers,
     required this.members,
+    this.openPendingTab = false,
   });
 
   @override
   State<MemberScreenHost> createState() => _MemberScreenHostState();
 }
 
-class _MemberScreenHostState extends State<MemberScreenHost> {
+// === SỬA ĐỔI: Thêm WidgetsBindingObserver để handle app lifecycle ===
+class _MemberScreenHostState extends State<MemberScreenHost> with WidgetsBindingObserver {
   bool _showMembers = true;
+  bool _isApproving = false;
+  bool _isRejecting = false;
   String _searchQuery = '';
   final Set<String> _selectedRequests = <String>{};
   late List<Member> _filteredMembers;
@@ -37,14 +42,35 @@ class _MemberScreenHostState extends State<MemberScreenHost> {
   @override
   void initState() {
     super.initState();
+    // === THÊM: Register observer ===
+    WidgetsBinding.instance.addObserver(this);
+
+    _showMembers = !widget.openPendingTab;
     _updateFilteredLists();
     _loadAccessToken();
   }
 
+  @override
+  void dispose() {
+    // === THÊM: Unregister observer ===
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  // === SỬA ĐỔI: Handle app lifecycle với đúng signature ===
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    // Refresh data when app comes back to foreground
+    if (state == AppLifecycleState.resumed) {
+      _refreshData();
+    }
+  }
+
   Future<void> _loadAccessToken() async {
-    final prefs = await SharedPreferences.getInstance();
-    _accessToken = prefs.getString('access_token');
-    
+    // === SỬA ĐỔI: Loại bỏ SharedPreferences duplicate ===
+    _accessToken = await AuthService.getValidAccessToken();
+
     if (_accessToken != null) {
       await _fetchPendingRequests();
     } else {
@@ -64,6 +90,9 @@ class _MemberScreenHostState extends State<MemberScreenHost> {
     });
 
     try {
+      // === SỬA: Refresh token trước mỗi API call ===
+      _accessToken = await AuthService.getValidAccessToken();
+
       final url = ApiConfig.getUri(ApiConfig.groupManageRequests);
       final response = await http.get(
         url,
@@ -75,7 +104,7 @@ class _MemberScreenHostState extends State<MemberScreenHost> {
 
       if (response.statusCode == 200) {
         final List<dynamic> data = json.decode(utf8.decode(response.bodyBytes));
-        
+
         setState(() {
           _pendingRequests = data.map((item) => PendingRequest(
             id: item['profile_uuid'] as String,
@@ -86,8 +115,17 @@ class _MemberScreenHostState extends State<MemberScreenHost> {
             rating: 4.5,
             keywords: [],
           )).toList();
-          
+
           _updateFilteredLists();
+          _isLoadingRequests = false;
+        });
+      } else if (response.statusCode == 401) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Phiên đăng nhập đã hết hạn')),
+          );
+        }
+        setState(() {
           _isLoadingRequests = false;
         });
       } else {
@@ -112,17 +150,149 @@ class _MemberScreenHostState extends State<MemberScreenHost> {
     }
   }
 
+  // === SỬA ĐỔI: Hoàn thiện implementation của _approveSelectedRequests ===
+  Future<void> _approveSelectedRequests() async {
+    if (_selectedRequests.isEmpty || _isApproving) return;
+
+    setState(() {
+      _isApproving = true;
+    });
+
+    try {
+      final totalAfterAccept = currentMemberCount + _selectedRequests.length;
+
+      // Kiểm tra giới hạn thành viên
+      if (totalAfterAccept > widget.maxMembers) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                  'Không thể phê duyệt! Nhóm chỉ còn ${widget.maxMembers - currentMemberCount} chỗ trống. '
+                      'Bạn đang chọn ${_selectedRequests.length} yêu cầu.'
+              ),
+              backgroundColor: Colors.red,
+              duration: const Duration(seconds: 3),
+            ),
+          );
+        }
+        return;
+      }
+
+      _accessToken = await AuthService.getValidAccessToken();
+      if (_accessToken == null) return;
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Đang xử lý...'),
+            duration: Duration(seconds: 1),
+          ),
+        );
+      }
+
+      int successCount = 0;
+      int failCount = 0;
+      List<PendingRequest> approvedRequests = [];
+
+      // Xử lý từng request
+      for (String profileUuid in _selectedRequests) {
+        // Kiểm tra giới hạn trong quá trình approve
+        if (currentMemberCount + successCount >= widget.maxMembers) {
+          failCount += (_selectedRequests.length - successCount - failCount);
+          break;
+        }
+
+        final success = await _performMemberAction(profileUuid, 'accept');
+        if (success) {
+          successCount++;
+          // Tìm request được approve để thêm vào danh sách members
+          final approvedRequest = _pendingRequests.firstWhere(
+                (request) => request.id == profileUuid,
+          );
+          approvedRequests.add(approvedRequest);
+        } else {
+          failCount++;
+        }
+      }
+
+      // Cập nhật UI sau khi hoàn thành
+      if (successCount > 0) {
+        setState(() {
+          // Thêm các thành viên mới được approve vào danh sách members
+          for (var request in approvedRequests) {
+            widget.members.add(Member(
+              id: request.id,
+              name: request.name,
+              email: request.email,
+              avatarUrl: request.avatarUrl,
+            ));
+          }
+
+          // Xóa các requests đã được approve khỏi pending list
+          _pendingRequests.removeWhere(
+                (request) => approvedRequests.any((approved) => approved.id == request.id),
+          );
+
+          _selectedRequests.clear();
+          _updateFilteredLists();
+        });
+      }
+
+      // Hiển thị kết quả
+      if (mounted) {
+        if (failCount == 0) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Đã phê duyệt $successCount yêu cầu thành công'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        } else {
+          String message = 'Thành công: $successCount, Thất bại: $failCount';
+          if (currentMemberCount >= widget.maxMembers) {
+            message += '\nNhóm đã đầy!';
+          }
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(message),
+              backgroundColor: Colors.orange,
+              duration: const Duration(seconds: 3),
+            ),
+          );
+        }
+      }
+
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Lỗi xử lý: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      // === QUAN TRỌNG: Luôn reset loading state ===
+      if (mounted) {
+        setState(() {
+          _isApproving = false;
+        });
+      }
+    }
+  }
+
+  // === Các methods còn lại giữ nguyên ===
   void _updateFilteredLists() {
     _filteredMembers = widget.members
         .where((member) =>
-            member.name.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-            member.email.toLowerCase().contains(_searchQuery.toLowerCase()))
+    member.name.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+        member.email.toLowerCase().contains(_searchQuery.toLowerCase()))
         .toList();
 
     _filteredRequests = _pendingRequests
         .where((request) =>
-            request.name.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-            request.email.toLowerCase().contains(_searchQuery.toLowerCase()))
+    request.name.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+        request.email.toLowerCase().contains(_searchQuery.toLowerCase()))
         .toList();
   }
 
@@ -143,117 +313,28 @@ class _MemberScreenHostState extends State<MemberScreenHost> {
     });
   }
 
-  Future<void> _approveSelectedRequests() async {
-    if (_selectedRequests.isEmpty) return;
-
-    final totalAfterAccept = currentMemberCount + _selectedRequests.length;
-    
-    if (totalAfterAccept > widget.maxMembers) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Không thể phê duyệt! Nhóm chỉ còn ${widget.maxMembers - currentMemberCount} chỗ trống. '
-              'Bạn đang chọn ${_selectedRequests.length} yêu cầu.'
-            ),
-            backgroundColor: Colors.red,
-            duration: const Duration(seconds: 3),
-          ),
-        );
-      }
-      return;
-    }
-
-    _accessToken = await AuthService.getValidAccessToken();
-    if (_accessToken == null) return;
-
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Đang xử lý...'),
-          duration: Duration(seconds: 1),
-        ),
-      );
-    }
-
-    int successCount = 0;
-    int failCount = 0;
-
-    for (String profileUuid in _selectedRequests) {
-      if (currentMemberCount + successCount >= widget.maxMembers) {
-        failCount += (_selectedRequests.length - successCount - failCount);
-        break;
-      }
-      
-      final success = await _performMemberAction(profileUuid, 'accept');
-      if (success) {
-        successCount++;
-      } else {
-        failCount++;
-      }
-    }
-
-    if (successCount > 0) {
-      setState(() {
-        final approvedRequests = _pendingRequests
-            .where((request) => _selectedRequests.contains(request.id))
-            .take(successCount) 
-            .toList();
-
-        for (var request in approvedRequests) {
-          widget.members.add(Member(
-            id: request.id,
-            name: request.name,
-            email: request.email,
-            avatarUrl: request.avatarUrl,
-          ));
-        }
-
-        _pendingRequests.removeWhere(
-          (request) => approvedRequests.any((approved) => approved.id == request.id),
-        );
-
-        _selectedRequests.clear();
-        _updateFilteredLists();
-      });
-    }
-
-    if (mounted) {
-      if (failCount == 0) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Đã phê duyệt $successCount yêu cầu thành công')),
-        );
-      } else {
-        String message = 'Thành công: $successCount, Thất bại: $failCount';
-        if (currentMemberCount >= widget.maxMembers) {
-          message += '\nNhóm đã đầy!';
-        }
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(message),
-            backgroundColor: Colors.orange,
-            duration: const Duration(seconds: 3),
-          ),
-        );
-      }
-    }
-  }
-
   Future<bool> _performMemberAction(String profileUuid, String action) async {
     _accessToken = await AuthService.getValidAccessToken();
-    if (_accessToken == null) return false;
-    
+    if (_accessToken == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Không thể xác thực. Vui lòng đăng nhập lại.')),
+        );
+      }
+      return false;
+    }
+
     try {
       final url = ApiConfig.getUri(ApiConfig.groupManage);
-      
+
       final requestBody = {
         "profile_uuid": profileUuid,
         "action": action,
       };
-      
+
       print('📤 PATCH ${ApiConfig.groupManage}');
       print('📤 Request body: ${json.encode(requestBody)}');
-      
+
       final response = await http.patch(
         url,
         headers: {
@@ -268,40 +349,60 @@ class _MemberScreenHostState extends State<MemberScreenHost> {
 
       if (response.statusCode == 200) {
         return true;
+      } else if (response.statusCode == 401) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Phiên đăng nhập đã hết hạn')),
+          );
+        }
+        return false;
+      } else if (response.statusCode == 403) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Bạn không có quyền thực hiện hành động này')),
+          );
+        }
+        return false;
       } else {
-        print('❌ Action $action failed for $profileUuid');
+        print('❌ Action $action failed for $profileUuid: ${response.statusCode}');
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Lỗi ${response.statusCode}: ${response.body}')),
+          );
+        }
         return false;
       }
     } catch (e) {
       print('❌ Error performing action $action: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Lỗi kết nối: $e')),
+        );
+      }
       return false;
     }
   }
 
+  Future<void> _refreshData() async {
+    await _fetchPendingRequests();
+  }
+
+  // === Các methods còn lại giữ nguyên ===
   Future<void> _rejectRequest(String requestId) async {
     _accessToken = await AuthService.getValidAccessToken();
-    
+
     final success = await _performMemberAction(requestId, 'reject');
-    
+
     if (success) {
       setState(() {
         _pendingRequests.removeWhere((request) => request.id == requestId);
         _selectedRequests.remove(requestId);
         _updateFilteredLists();
       });
-      
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Đã từ chối yêu cầu')),
-        );
-      }
-    } else {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Lỗi từ chối yêu cầu'),
-            backgroundColor: Colors.red,
-          ),
         );
       }
     }
@@ -311,31 +412,24 @@ class _MemberScreenHostState extends State<MemberScreenHost> {
     _accessToken = await AuthService.getValidAccessToken();
 
     final success = await _performMemberAction(member.id, 'kick');
-    
+
     if (success) {
       setState(() {
         widget.members.remove(member);
         _updateFilteredLists();
       });
-      
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Đã kick ${member.name} khỏi nhóm')),
         );
       }
-    } else {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Lỗi kick thành viên'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
     }
   }
 
-  // Widget để hiển thị avatar với error handling
+  int get currentMemberCount => widget.members.length;
+
+  // === Widget builds giữ nguyên từ code gốc ===
   Widget _buildAvatar(String? avatarUrl, {double radius = 30}) {
     if (avatarUrl != null && avatarUrl.isNotEmpty) {
       return CircleAvatar(
@@ -353,7 +447,7 @@ class _MemberScreenHostState extends State<MemberScreenHost> {
                 child: CircularProgressIndicator(
                   value: loadingProgress.expectedTotalBytes != null
                       ? loadingProgress.cumulativeBytesLoaded /
-                          loadingProgress.expectedTotalBytes!
+                      loadingProgress.expectedTotalBytes!
                       : null,
                   strokeWidth: 2,
                   color: const Color(0xFFB99668),
@@ -371,7 +465,7 @@ class _MemberScreenHostState extends State<MemberScreenHost> {
         ),
       );
     }
-    
+
     return CircleAvatar(
       radius: radius,
       backgroundColor: const Color(0xFFD9CBB3),
@@ -410,6 +504,8 @@ class _MemberScreenHostState extends State<MemberScreenHost> {
     );
   }
 
+  // Widget để hiển thị avatar với error handling
+
   Widget _buildHeader() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 26, vertical: 20),
@@ -442,14 +538,14 @@ class _MemberScreenHostState extends State<MemberScreenHost> {
             ),
           ),
           GestureDetector(
-            onTap: () {
+            onTap: (_isApproving || _isRejecting) ? null : () {
               if (_showMembers) {
                 OutGroupDialog.show(
                   context,
                   isHost: true,
                   onSuccess: () {
-                    Navigator.of(context).pop(); 
-                    Navigator.of(context).pop(); 
+                    Navigator.of(context).pop();
+                    Navigator.of(context).pop();
 
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
@@ -471,12 +567,21 @@ class _MemberScreenHostState extends State<MemberScreenHost> {
               decoration: ShapeDecoration(
                 color: _showMembers
                     ? const Color(0xFFF6F6F8)
-                    : (_selectedRequests.isNotEmpty
-                        ? const Color(0xFF4CAF50)
-                        : const Color(0xFFF6F6F8)),
+                    : (_selectedRequests.isNotEmpty && !_isApproving
+                    ? const Color(0xFF4CAF50)
+                    : const Color(0xFFF6F6F8)),
                 shape: const CircleBorder(),
               ),
-              child: Icon(
+              child: _isApproving
+                  ? const SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(
+                  color: Colors.white,
+                  strokeWidth: 2,
+                ),
+              )
+                  : Icon(
                 _showMembers ? Icons.exit_to_app : Icons.check,
                 size: 20,
                 color: _showMembers
@@ -489,8 +594,6 @@ class _MemberScreenHostState extends State<MemberScreenHost> {
       ),
     );
   }
-
-  int get currentMemberCount => widget.members.length;
 
   Widget _buildMemberCount() {
     return Padding(
@@ -702,39 +805,53 @@ class _MemberScreenHostState extends State<MemberScreenHost> {
     }
 
     if (_filteredRequests.isEmpty) {
-      return const Center(
-        child: Text(
-          'Không có yêu cầu nào',
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 16,
-            fontFamily: 'DM Sans',
-          ),
+      return RefreshIndicator(
+        onRefresh: _refreshData,
+        color: const Color(0xFFB99668),
+        child: ListView(
+          children: const [
+            SizedBox(height: 200),
+            Center(
+              child: Text(
+                'Không có yêu cầu nào\nKéo để làm mới',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontFamily: 'DM Sans',
+                ),
+              ),
+            ),
+          ],
         ),
       );
     }
 
-    return ListView.builder(
-      padding: const EdgeInsets.symmetric(horizontal: 15),
-      itemCount: _filteredRequests.length,
-      itemBuilder: (context, index) {
-        final request = _filteredRequests[index];
-        return Dismissible(
-          key: Key(request.id),
-          direction: DismissDirection.endToStart,
-          confirmDismiss: (direction) async {
-            await _rejectRequest(request.id);
-            return true;
-          },
-          background: Container(
-            alignment: Alignment.centerRight,
-            padding: const EdgeInsets.only(right: 20),
-            color: Colors.red,
-            child: const Icon(Icons.delete, color: Colors.white),
-          ),
-          child: _buildPendingCard(request),
-        );
-      },
+    return RefreshIndicator(
+      onRefresh: _refreshData,
+      color: const Color(0xFFB99668),
+      child: ListView.builder(
+        padding: const EdgeInsets.symmetric(horizontal: 15),
+        itemCount: _filteredRequests.length,
+        itemBuilder: (context, index) {
+          final request = _filteredRequests[index];
+          return Dismissible(
+            key: Key(request.id),
+            direction: DismissDirection.endToStart,
+            confirmDismiss: (direction) async {
+              await _rejectRequest(request.id);
+              return true;
+            },
+            background: Container(
+              alignment: Alignment.centerRight,
+              padding: const EdgeInsets.only(right: 20),
+              color: Colors.red,
+              child: const Icon(Icons.delete, color: Colors.white),
+            ),
+            child: _buildPendingCard(request),
+          );
+        },
+      ),
     );
   }
 

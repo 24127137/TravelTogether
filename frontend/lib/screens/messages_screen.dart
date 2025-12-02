@@ -91,7 +91,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
         String groupName = 'chat_title'.tr();
         String? groupImageUrl;
         bool hasGroup = false;
-        
+
         try {
           final myGroupUrl = ApiConfig.getUri(ApiConfig.myGroup);
           final myGroupResponse = await http.get(
@@ -101,7 +101,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
               "Authorization": "Bearer $_accessToken",
             },
           );
-          
+
           if (myGroupResponse.statusCode == 200) {
             final groupData = jsonDecode(utf8.decode(myGroupResponse.bodyBytes));
             groupName = groupData['name'] ?? groupName;
@@ -135,8 +135,8 @@ class _MessagesScreenState extends State<MessagesScreen> {
               // === THÊM MỚI: Format time - nếu hôm nay hiện giờ, nếu không hiện ngày ===
               final now = DateTime.now();
               final isToday = createdAtLocal.year == now.year &&
-                             createdAtLocal.month == now.month &&
-                             createdAtLocal.day == now.day;
+                  createdAtLocal.month == now.month &&
+                  createdAtLocal.day == now.day;
 
               final timeStr = isToday
                   ? DateFormat('HH:mm').format(createdAtLocal)
@@ -250,69 +250,69 @@ class _MessagesScreenState extends State<MessagesScreen> {
                       // Messages list với Pull-to-Refresh
                       Expanded(
                         child: _isLoading
-                          ? const Center(
-                              child: CircularProgressIndicator(
-                                color: Color(0xFFC69A61),
-                              ),
-                            )
-                          : _conversations.isEmpty
+                            ? const Center(
+                          child: CircularProgressIndicator(
+                            color: Color(0xFFC69A61),
+                          ),
+                        )
+                            : _conversations.isEmpty
                             ? RefreshIndicator(
-                                color: const Color(0xFFC69A61),
-                                backgroundColor: Colors.white,
-                                onRefresh: _handleRefresh,
-                                child: SingleChildScrollView(
-                                  physics: const AlwaysScrollableScrollPhysics(),
-                                  child: SizedBox(
-                                    height: MediaQuery.of(context).size.height * 0.5,
-                                    child: Center(
-                                      child: Column(
-                                        mainAxisAlignment: MainAxisAlignment.center,
-                                        children: [
-                                          Icon(
-                                            Icons.chat_bubble_outline,
-                                            size: 64,
-                                            color: Colors.grey[400],
-                                          ),
-                                          const SizedBox(height: 16),
-                                          Text(
-                                            'chat_no_group'.tr(),
-                                            style: TextStyle(
-                                              color: Colors.grey[600],
-                                              fontSize: 16,
-                                            ),
-                                          ),
-                                        ],
+                          color: const Color(0xFFC69A61),
+                          backgroundColor: Colors.white,
+                          onRefresh: _handleRefresh,
+                          child: SingleChildScrollView(
+                            physics: const AlwaysScrollableScrollPhysics(),
+                            child: SizedBox(
+                              height: MediaQuery.of(context).size.height * 0.5,
+                              child: Center(
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(
+                                      Icons.chat_bubble_outline,
+                                      size: 64,
+                                      color: Colors.grey[400],
+                                    ),
+                                    const SizedBox(height: 16),
+                                    Text(
+                                      'chat_no_group'.tr(),
+                                      style: TextStyle(
+                                        color: Colors.grey[600],
+                                        fontSize: 16,
                                       ),
                                     ),
-                                  ),
-                                ),
-                              )
-                            : RefreshIndicator(
-                                color: const Color(0xFFC69A61),
-                                backgroundColor: Colors.white,
-                                strokeWidth: 3.0,
-                                displacement: 40.0,
-                                onRefresh: _handleRefresh,
-                                child: ListView.separated(
-                                  physics: const AlwaysScrollableScrollPhysics(),
-                                  padding: EdgeInsets.only(top: 0, bottom: 20 * scaleFactor),
-                                  itemCount: _conversations.length,
-                                  separatorBuilder: (_, __) => SizedBox(height: spacing),
-                                  itemBuilder: (context, index) {
-                                    final conv = _conversations[index];
-                                    return _MessageTile(
-                                      sender: conv.sender,
-                                      message: conv.message,
-                                      time: conv.time,
-                                      isOnline: conv.isOnline,
-                                      isAiChat: conv.isAiChat, // Pass isAiChat
-                                      hasUnseenMessages: conv.hasUnseenMessages, // === THÊM MỚI: Pass unseen status ===
-                                      groupImageUrl: conv.groupImageUrl, // === THÊM MỚI: Pass group image ===
-                                      scaleFactor: scaleFactor,
-                                    );
-                                  },
+                                  ],
                                 ),
                               ),
+                            ),
+                          ),
+                        )
+                            : RefreshIndicator(
+                          color: const Color(0xFFC69A61),
+                          backgroundColor: Colors.white,
+                          strokeWidth: 3.0,
+                          displacement: 40.0,
+                          onRefresh: _handleRefresh,
+                          child: ListView.separated(
+                            physics: const AlwaysScrollableScrollPhysics(),
+                            padding: EdgeInsets.only(top: 0, bottom: 20 * scaleFactor),
+                            itemCount: _conversations.length,
+                            separatorBuilder: (_, __) => SizedBox(height: spacing),
+                            itemBuilder: (context, index) {
+                              final conv = _conversations[index];
+                              return _MessageTile(
+                                sender: conv.sender,
+                                message: conv.message,
+                                time: conv.time,
+                                isOnline: conv.isOnline,
+                                isAiChat: conv.isAiChat, // Pass isAiChat
+                                hasUnseenMessages: conv.hasUnseenMessages, // === THÊM MỚI: Pass unseen status ===
+                                groupImageUrl: conv.groupImageUrl, // === THÊM MỚI: Pass group image ===
+                                scaleFactor: scaleFactor,
+                              );
+                            },
+                          ),
+                        ),
                       ),
                     ],
                   ),
@@ -424,28 +424,28 @@ class _MessageTile extends StatelessWidget {
             children: [
               // Hiển thị icon khác nhau cho AI Chatbot vs Group Chat
               isAiChat
-                ? Container(
-                    width: 64 * scaleFactor,
-                    height: 64 * scaleFactor,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      image: const DecorationImage(
-                        image: AssetImage('assets/images/chatbot_icon.png'),
-                        fit: BoxFit.cover,
-                      ),
-                    ),
-                  )
-                : // === THÊM MỚI: Hiển thị ảnh group nếu có, nếu không dùng default avatar ===
-                  (groupImageUrl != null && groupImageUrl!.isNotEmpty)
-                    ? CircleAvatar(
-                        radius: 32 * scaleFactor,
-                        backgroundImage: NetworkImage(groupImageUrl!),
-                      )
-                    : CircleAvatar(
-                        radius: 32 * scaleFactor,
-                        backgroundColor: const Color(0xFFD9CBB3),
-                        child: Icon(Icons.people, size: 32 * scaleFactor, color: Colors.white),
-                      ),
+                  ? Container(
+                width: 64 * scaleFactor,
+                height: 64 * scaleFactor,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  image: const DecorationImage(
+                    image: AssetImage('assets/images/chatbot_icon.png'),
+                    fit: BoxFit.cover,
+                  ),
+                ),
+              )
+                  : // === THÊM MỚI: Hiển thị ảnh group nếu có, nếu không dùng default avatar ===
+              (groupImageUrl != null && groupImageUrl!.isNotEmpty)
+                  ? CircleAvatar(
+                radius: 32 * scaleFactor,
+                backgroundImage: NetworkImage(groupImageUrl!),
+              )
+                  : CircleAvatar(
+                radius: 32 * scaleFactor,
+                backgroundColor: const Color(0xFFD9CBB3),
+                child: Icon(Icons.people, size: 32 * scaleFactor, color: Colors.white),
+              ),
               // Removed the small online indicator dot per request
             ],
           ),

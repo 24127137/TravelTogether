@@ -88,7 +88,7 @@ class NotificationService {
       // Xử lý theo loại notification
       switch (payload) {
         case 'message':
-          // Navigate tới màn hình chat nhóm
+        // Navigate tới màn hình chat nhóm
           debugPrint('🚀 Navigating to ChatboxScreen');
           Navigator.of(context).push(
             MaterialPageRoute(
@@ -98,7 +98,7 @@ class NotificationService {
           break;
 
         case 'ai_chat':
-          // Navigate tới màn hình AI chatbot
+        // Navigate tới màn hình AI chatbot
           debugPrint('🚀 Navigating to AiChatbotScreen');
           Navigator.of(context).push(
             MaterialPageRoute(
@@ -108,7 +108,7 @@ class NotificationService {
           break;
 
         case 'group_request':
-          // Navigate tới màn hình notifications để xem yêu cầu
+        // Navigate tới màn hình notifications để xem yêu cầu
           debugPrint('🚀 Navigating to NotificationScreen');
           Navigator.of(context).push(
             MaterialPageRoute(
@@ -118,14 +118,27 @@ class NotificationService {
           break;
 
         default:
-          // Nếu payload có format khác (ví dụ JSON), có thể parse thêm
+        // Nếu payload có format khác (ví dụ JSON), có thể parse thêm
           debugPrint('⚠️ Unknown payload type: $payload');
           // Thử parse JSON nếu có
           try {
             final jsonData = jsonDecode(payload);
             final type = jsonData['type'] as String?;
 
-            if (type == 'message') {
+            if (type == 'group_request') {
+              // Vì MemberScreenHost cần dữ liệu phức tạp (list members),
+              // cách đơn giản nhất là điều hướng về NotificationScreen để nó tự load lại
+              // và người dùng nhấn vào thẻ.
+              // Hoặc nếu muốn xịn hơn, bạn phải gọi API trong này tương tự như _handleGroupRequestTap ở trên.
+
+              // Tạm thời giữ nguyên việc điều hướng về NotificationScreen là an toàn nhất với cấu trúc hiện tại.
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => const NotificationScreen(),
+                ),
+              );
+            }
+            else if (type == 'message') {
               final groupId = jsonData['group_id'] as String?;
               debugPrint('🚀 Navigating to ChatboxScreen with groupId: $groupId');
               Navigator.of(context).push(
@@ -162,10 +175,10 @@ class NotificationService {
       final granted = await _notifications
           .resolvePlatformSpecificImplementation<IOSFlutterLocalNotificationsPlugin>()
           ?.requestPermissions(
-            alert: true,
-            badge: true,
-            sound: true,
-          );
+        alert: true,
+        badge: true,
+        sound: true,
+      );
       return granted ?? false;
     } else if (defaultTargetPlatform == TargetPlatform.android) {
       // Android 13+ cần xin quyền thông báo
@@ -182,10 +195,10 @@ class NotificationService {
       final granted = await _notifications
           .resolvePlatformSpecificImplementation<IOSFlutterLocalNotificationsPlugin>()
           ?.requestPermissions(
-            alert: true,
-            badge: true,
-            sound: true,
-          );
+        alert: true,
+        badge: true,
+        sound: true,
+      );
       return granted ?? false;
     } else if (defaultTargetPlatform == TargetPlatform.android) {
       final androidImplementation = _notifications.resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
@@ -263,8 +276,8 @@ class NotificationService {
       id: 1, // ID cố định cho message notifications
       title: groupName,
       body: unreadCount > 1
-        ? '$unreadCount tin nhắn mới'
-        : message,
+          ? '$unreadCount tin nhắn mới'
+          : message,
       payload: jsonEncode(payloadData), // === SỬA: Dùng JSON payload ===
       priority: NotificationPriority.high,
     );
@@ -373,4 +386,3 @@ enum NotificationPriority {
   normal,
   high,
 }
-
