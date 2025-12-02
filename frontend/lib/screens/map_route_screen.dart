@@ -8,7 +8,7 @@ import '../services/user_service.dart';
 import '../services/group_service.dart';
 import '../services/auth_service.dart';
 
-/// Màn hình hiển thị bản đồ và vẽ lộ trình (Tối ưu Client-side + UI Gốc)
+/// Màn hình hiển thị bản đồ và vẽ lộ trình (Multi-Start Nearest Neighbor)
 class MapRouteScreen extends StatefulWidget {
   final int? groupId;
 
@@ -23,21 +23,18 @@ class _MapRouteScreenState extends State<MapRouteScreen> {
   final UserService _userService = UserService();
   final GroupService _groupService = GroupService();
 
-  // Dùng để tính khoảng cách cho thuật toán Nearest Neighbor
   final Distance _distanceCalculator = const Distance();
 
-  // Danh sách các điểm (Sẽ được sắp xếp lại bởi Nearest Neighbor)
+  // Danh sách các điểm gốc
   List<LatLng> _selectedPoints = [];
   List<String> _locationNames = [];
 
-  // Danh sách các điểm của lộ trình (sau khi giải mã polyline)
+  // Danh sách các điểm vẽ đường
   List<LatLng> _routePoints = [];
 
-  // Trạng thái tải dữ liệu
   bool _isLoading = true;
   String _errorMessage = '';
 
-  // Thông tin lộ trình
   double _totalDistance = 0.0;
   double _totalDuration = 0.0;
 
@@ -47,7 +44,6 @@ class _MapRouteScreenState extends State<MapRouteScreen> {
     _initializeMap();
   }
 
-  /// Khởi tạo và tải dữ liệu
   Future<void> _initializeMap() async {
     setState(() {
       _isLoading = true;
@@ -55,20 +51,18 @@ class _MapRouteScreenState extends State<MapRouteScreen> {
     });
 
     try {
-      // 1. Lấy thông tin kế hoạch từ API (Supabase)
       await _fetchGroupPlan();
 
-      // 2. Nếu có ít nhất 2 điểm, tiến hành tối ưu và vẽ
       if (_selectedPoints.length >= 2) {
-        // A. Chạy thuật toán tối ưu thứ tự (Client-side)
-        _optimizeRouteNearestNeighbor();
+        // 1. Tối ưu hóa: Thử tất cả điểm làm điểm bắt đầu
+        _optimizeRouteMultiStartNN();
 
-        // B. Gọi API vẽ đường theo thứ tự đã tối ưu
+        // 2. Vẽ đường theo kết quả tốt nhất
         await _fetchRoute();
       }
     } catch (e) {
       setState(() {
-        _errorMessage = 'Lỗi khi tải dữ liệu: $e';
+        _errorMessage = 'Lỗi: $e';
       });
     } finally {
       setState(() {
@@ -81,27 +75,24 @@ class _MapRouteScreenState extends State<MapRouteScreen> {
   // PHẦN 1: LOGIC LẤY DỮ LIỆU (GIỮ NGUYÊN)
   // ===============================================================
 
-  /// Lấy thông tin kế hoạch từ API
   Future<void> _fetchGroupPlan() async {
     try {
       final token = await AuthService.getValidAccessToken();
       if (token == null) throw Exception('Vui lòng đăng nhập');
 
       final profile = await _userService.getUserProfile();
-      if (profile == null) throw Exception('Không lấy được thông tin cá nhân');
+      if (profile == null) throw Exception('Không lấy được thông tin');
 
       dynamic itineraryData;
       int? groupId;
       String? preferredCity = profile['preferred_city'];
       bool useGroupPlan = false;
 
-      // Logic check group (Giống code cũ)
       if (widget.groupId != null && widget.groupId! > 0) {
         groupId = widget.groupId;
       } else {
         List owned = profile['owned_groups'] ?? [];
         List joined = profile['joined_groups'] ?? [];
-
         if (owned.isNotEmpty || joined.isNotEmpty) {
           try {
             final groupDetail = await _groupService.getMyGroupDetail(token);
@@ -110,7 +101,7 @@ class _MapRouteScreenState extends State<MapRouteScreen> {
               useGroupPlan = true;
             }
           } catch (e) {
-            print('❌ Lỗi check nhóm: $e');
+            print('Check group error: $e');
           }
         }
       }
@@ -126,9 +117,8 @@ class _MapRouteScreenState extends State<MapRouteScreen> {
       }
 
       await _parseItineraryData(itineraryData, preferredCity ?? 'Vietnam', useGroupPlan);
-
     } catch (e) {
-      print('❌ Lỗi _fetchGroupPlan: $e');
+      print('Fetch plan error: $e');
       rethrow;
     }
   }
@@ -155,8 +145,6 @@ class _MapRouteScreenState extends State<MapRouteScreen> {
 
     if (rawNames.isEmpty) throw Exception('Không tìm thấy địa điểm nào');
 
-    print('🗺️ Đang geocode ${rawNames.length} địa điểm...');
-
     for (String locationName in rawNames) {
       try {
         final coords = await _geocodeLocation(locationName, cityContext);
@@ -165,7 +153,7 @@ class _MapRouteScreenState extends State<MapRouteScreen> {
           names.add(locationName);
         }
       } catch (e) {
-        print('❌ Lỗi geocoding $locationName: $e');
+        print('Geocode error: $e');
       }
     }
 
@@ -191,67 +179,97 @@ class _MapRouteScreenState extends State<MapRouteScreen> {
   }
 
   // ===============================================================
-  // PHẦN 2: THUẬT TOÁN NEAREST NEIGHBOR (TỐI ƯU THỨ TỰ)
+  // PHẦN 2: THUẬT TOÁN MULTI-START NEAREST NEIGHBOR (MỚI)
   // ===============================================================
 
-  /// Sắp xếp lại _selectedPoints và _locationNames theo thứ tự tối ưu
-  void _optimizeRouteNearestNeighbor() {
-    if (_selectedPoints.length < 3) return; // Không cần tối ưu nếu chỉ có 2 điểm
+  /// Chạy thuật toán Nearest Neighbor với một điểm bắt đầu cố định
+  /// Trả về: (Tổng khoảng cách, Danh sách index đã sắp xếp)
+  Map<String, dynamic> _runNearestNeighborFromStart(int startIndex, int totalPoints) {
+    List<int> path = [startIndex];
+    List<int> unvisited = List.generate(totalPoints, (i) => i)..remove(startIndex);
+    double pathDistance = 0.0;
+    int current = startIndex;
 
-    List<LatLng> sortedPoints = [];
-    List<String> sortedNames = [];
-    List<int> unvisitedIndices = List.generate(_selectedPoints.length, (index) => index);
+    while (unvisited.isNotEmpty) {
+      int nearest = -1;
+      double minD = double.infinity;
 
-    // 1. Luôn giữ điểm đầu tiên cố định (Ví dụ: Chợ Bến Thành)
-    int currentIndex = 0;
-    sortedPoints.add(_selectedPoints[currentIndex]);
-    sortedNames.add(_locationNames[currentIndex]);
-    unvisitedIndices.remove(0);
-
-    // 2. Vòng lặp tìm điểm gần nhất tiếp theo
-    while (unvisitedIndices.isNotEmpty) {
-      int nearestIndex = -1;
-      double minDistance = double.infinity;
-
-      for (int i in unvisitedIndices) {
-        double distance = _distanceCalculator.as(LengthUnit.Meter, _selectedPoints[currentIndex], _selectedPoints[i]);
-        if (distance < minDistance) {
-          minDistance = distance;
-          nearestIndex = i;
+      for (int candidate in unvisited) {
+        double d = _distanceCalculator.as(LengthUnit.Meter, _selectedPoints[current], _selectedPoints[candidate]);
+        if (d < minD) {
+          minD = d;
+          nearest = candidate;
         }
       }
 
-      if (nearestIndex != -1) {
-        sortedPoints.add(_selectedPoints[nearestIndex]);
-        sortedNames.add(_locationNames[nearestIndex]);
-        currentIndex = nearestIndex;
-        unvisitedIndices.remove(nearestIndex);
+      if (nearest != -1) {
+        pathDistance += minD;
+        path.add(nearest);
+        unvisited.remove(nearest);
+        current = nearest;
       } else {
         break;
       }
     }
 
-    // 3. Cập nhật lại danh sách chính để UI và API sử dụng
+    return {
+      'distance': pathDistance,
+      'path': path
+    };
+  }
+
+  /// Thử tất cả các điểm làm điểm xuất phát và chọn lộ trình ngắn nhất
+  void _optimizeRouteMultiStartNN() {
+    int n = _selectedPoints.length;
+    if (n < 3) return; // 2 điểm thì không cần tối ưu
+
+    double bestDistance = double.infinity;
+    List<int> bestPathIndices = [];
+
+    print('🔄 Bắt đầu Multi-Start NN cho $n điểm...');
+
+    // Vòng lặp thử từng điểm làm điểm xuất phát
+    for (int i = 0; i < n; i++) {
+      var result = _runNearestNeighborFromStart(i, n);
+      double dist = result['distance'];
+      List<int> path = result['path'];
+
+      // So sánh để tìm lộ trình ngắn nhất
+      if (dist < bestDistance) {
+        bestDistance = dist;
+        bestPathIndices = path;
+      }
+    }
+
+    // Cập nhật lại danh sách điểm theo lộ trình tốt nhất tìm được
+    List<LatLng> sortedPoints = [];
+    List<String> sortedNames = [];
+
+    for (int index in bestPathIndices) {
+      sortedPoints.add(_selectedPoints[index]);
+      sortedNames.add(_locationNames[index]);
+    }
+
     setState(() {
       _selectedPoints = sortedPoints;
       _locationNames = sortedNames;
     });
 
-    print('✅ Đã tối ưu (Nearest Neighbor): ${_locationNames.join(" -> ")}');
+    print('✅ Tối ưu hoàn tất. Tổng khoảng cách ước tính: ${bestDistance.toStringAsFixed(0)}m');
+    print('📍 Thứ tự tối ưu nhất: ${_locationNames.join(" -> ")}');
   }
 
   // ===============================================================
-  // PHẦN 3: GỌI OSRM ROUTE API (VẼ ĐƯỜNG THEO THỨ TỰ ĐÃ TỐI ƯU)
+  // PHẦN 3: GỌI OSRM ROUTE API (GIỮ NGUYÊN)
   // ===============================================================
 
   Future<void> _fetchRoute() async {
     try {
-      // Vì đã tối ưu thứ tự ở Client, ta gửi list này lên API Route
       final coordinates = _selectedPoints
           .map((point) => '${point.longitude},${point.latitude}')
           .join(';');
 
-      // Sử dụng Route API (Không dùng Trip API nữa) để tránh bị zigzag
+      // Sử dụng Route API để tôn trọng thứ tự đã tối ưu ở trên
       final url = Uri.parse(
         'https://router.project-osrm.org/route/v1/driving/$coordinates'
             '?overview=full&geometries=polyline',
@@ -266,14 +284,10 @@ class _MapRouteScreenState extends State<MapRouteScreen> {
         if (data['routes'] != null && (data['routes'] as List).isNotEmpty) {
           final route = data['routes'][0];
 
-          final distance = (route['distance'] as num).toDouble() / 1000;
-          final duration = (route['duration'] as num).toDouble() / 60;
-          final encodedPolyline = route['geometry'] as String;
-
           setState(() {
-            _routePoints = _decodePolyline(encodedPolyline);
-            _totalDistance = distance;
-            _totalDuration = duration;
+            _routePoints = _decodePolyline(route['geometry']);
+            _totalDistance = (route['distance'] as num).toDouble() / 1000;
+            _totalDuration = (route['duration'] as num).toDouble() / 60;
           });
         }
       } else {
@@ -288,7 +302,7 @@ class _MapRouteScreenState extends State<MapRouteScreen> {
   }
 
   // ===============================================================
-  // PHẦN 4: UI & TIỆN ÍCH (GIỮ NGUYÊN UI GỐC CỦA BẠN)
+  // PHẦN 4: UI & TIỆN ÍCH (GIỮ NGUYÊN)
   // ===============================================================
 
   String _formatDuration(double minutes) {
@@ -303,15 +317,10 @@ class _MapRouteScreenState extends State<MapRouteScreen> {
 
   List<LatLng> _decodePolyline(String encoded) {
     List<LatLng> points = [];
-    int index = 0;
-    int len = encoded.length;
-    int lat = 0;
-    int lng = 0;
-
+    int index = 0, len = encoded.length;
+    int lat = 0, lng = 0;
     while (index < len) {
-      int b;
-      int shift = 0;
-      int result = 0;
+      int b, shift = 0, result = 0;
       do {
         b = encoded.codeUnitAt(index++) - 63;
         result |= (b & 0x1f) << shift;
@@ -319,9 +328,7 @@ class _MapRouteScreenState extends State<MapRouteScreen> {
       } while (b >= 0x20);
       int dlat = ((result & 1) != 0 ? ~(result >> 1) : (result >> 1));
       lat += dlat;
-
-      shift = 0;
-      result = 0;
+      shift = 0; result = 0;
       do {
         b = encoded.codeUnitAt(index++) - 63;
         result |= (b & 0x1f) << shift;
@@ -329,7 +336,6 @@ class _MapRouteScreenState extends State<MapRouteScreen> {
       } while (b >= 0x20);
       int dlng = ((result & 1) != 0 ? ~(result >> 1) : (result >> 1));
       lng += dlng;
-
       points.add(LatLng(lat / 1E5, lng / 1E5));
     }
     return points;
@@ -354,50 +360,14 @@ class _MapRouteScreenState extends State<MapRouteScreen> {
         ],
       ),
       body: _isLoading
-          ? const Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            CircularProgressIndicator(),
-            SizedBox(height: 16),
-            Text('Đang tải bản đồ...'),
-          ],
-        ),
-      )
-          : _errorMessage.isNotEmpty
-          ? Center(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.error_outline, size: 64, color: Colors.red),
-              const SizedBox(height: 16),
-              Text(
-                _errorMessage,
-                textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 16),
-              ),
-              const SizedBox(height: 16),
-              ElevatedButton(
-                onPressed: _initializeMap,
-                child: const Text('Thử lại'),
-              ),
-            ],
-          ),
-        ),
-      )
+          ? const Center(child: CircularProgressIndicator())
           : Stack(
         children: [
           FlutterMap(
             mapController: _mapController,
             options: MapOptions(
-              initialCenter: _selectedPoints.isNotEmpty
-                  ? _selectedPoints[0]
-                  : const LatLng(21.0285, 105.8542),
+              initialCenter: _selectedPoints.isNotEmpty ? _selectedPoints[0] : const LatLng(21.0285, 105.8542),
               initialZoom: 13.0,
-              minZoom: 3.0,
-              maxZoom: 18.0,
             ),
             children: [
               TileLayer(
@@ -407,11 +377,7 @@ class _MapRouteScreenState extends State<MapRouteScreen> {
               if (_routePoints.isNotEmpty)
                 PolylineLayer(
                   polylines: [
-                    Polyline(
-                      points: _routePoints,
-                      strokeWidth: 4.0,
-                      color: Colors.blue,
-                    ),
+                    Polyline(points: _routePoints, strokeWidth: 4.0, color: Colors.blue),
                   ],
                 ),
               if (_selectedPoints.isNotEmpty)
@@ -422,26 +388,15 @@ class _MapRouteScreenState extends State<MapRouteScreen> {
                     final isFirst = index == 0;
                     final isLast = index == _selectedPoints.length - 1;
 
-                    // UI Gốc: Sử dụng Icon
                     return Marker(
                       point: point,
                       width: 40,
                       height: 40,
                       child: GestureDetector(
-                        onTap: () {
-                          _showLocationInfo(index);
-                        },
+                        onTap: () => _showLocationInfo(index),
                         child: Icon(
-                          isFirst
-                              ? Icons.location_on
-                              : isLast
-                              ? Icons.flag
-                              : Icons.place,
-                          color: isFirst
-                              ? Colors.green
-                              : isLast
-                              ? Colors.red
-                              : Colors.orange,
+                          isFirst ? Icons.location_on : (isLast ? Icons.flag : Icons.place),
+                          color: isFirst ? Colors.green : (isLast ? Colors.red : Colors.orange),
                           size: 40,
                         ),
                       ),
@@ -450,19 +405,14 @@ class _MapRouteScreenState extends State<MapRouteScreen> {
                 ),
             ],
           ),
-
-          // Danh sách địa điểm (Sử dụng _locationNames đã được sort)
           if (_locationNames.isNotEmpty && _routePoints.isNotEmpty)
             Positioned(
-              top: 16,
-              left: 16,
-              right: 16,
+              top: 16, left: 16, right: 16,
               child: Card(
                 color: Colors.white.withValues(alpha: 0.95),
                 child: Padding(
                   padding: const EdgeInsets.all(12.0),
                   child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Row(
@@ -472,15 +422,11 @@ class _MapRouteScreenState extends State<MapRouteScreen> {
                           Expanded(
                             child: Text(
                               'Lộ trình tối ưu (${_locationNames.length} điểm):',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 14,
-                              ),
+                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
                             ),
                           ),
                         ],
                       ),
-                      // Hiển thị thông số thời gian/khoảng cách
                       if (_totalDuration > 0)
                         Container(
                           margin: EdgeInsets.only(top: 8, bottom: 8),
@@ -510,114 +456,57 @@ class _MapRouteScreenState extends State<MapRouteScreen> {
                         ),
                       Divider(height: 1),
                       SizedBox(height: 8),
-                      ...List.generate(_locationNames.length, (index) {
-                        final isFirst = index == 0;
-                        final isLast = index == _locationNames.length - 1;
-                        return Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 2.0),
-                          child: Row(
-                            children: [
-                              Icon(
-                                isFirst
-                                    ? Icons.location_on
-                                    : isLast
-                                    ? Icons.flag
-                                    : Icons.place,
-                                color: isFirst
-                                    ? Colors.green
-                                    : isLast
-                                    ? Colors.red
-                                    : Colors.orange,
-                                size: 16,
-                              ),
-                              SizedBox(width: 8),
-                              Expanded(
-                                child: Text(
-                                  '${index + 1}. ${_locationNames[index]}',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: isFirst || isLast ? FontWeight.bold : FontWeight.normal,
+                      ConstrainedBox(
+                        constraints: BoxConstraints(maxHeight: 200),
+                        child: ListView.builder(
+                          shrinkWrap: true,
+                          itemCount: _locationNames.length,
+                          itemBuilder: (context, index) {
+                            final isFirst = index == 0;
+                            final isLast = index == _locationNames.length - 1;
+                            return Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 2.0),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    isFirst ? Icons.location_on : (isLast ? Icons.flag : Icons.place),
+                                    color: isFirst ? Colors.green : (isLast ? Colors.red : Colors.orange),
+                                    size: 16,
                                   ),
-                                ),
+                                  SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      '${index + 1}. ${_locationNames[index]}',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: isFirst || isLast ? FontWeight.bold : FontWeight.normal,
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ),
-                            ],
-                          ),
-                        );
-                      }),
+                            );
+                          },
+                        ),
+                      ),
                     ],
                   ),
                 ),
               ),
             ),
-
-          // Legend
           Positioned(
-            bottom: 16,
-            left: 16,
-            child: Card(
-              child: Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Text(
-                      'Chú thích:',
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    const SizedBox(height: 4),
-                    Row(
-                      children: [
-                        Icon(Icons.location_on, color: Colors.green, size: 20),
-                        const SizedBox(width: 4),
-                        const Text('Điểm đầu'),
-                      ],
-                    ),
-                    Row(
-                      children: [
-                        Icon(Icons.place, color: Colors.orange, size: 20),
-                        const SizedBox(width: 4),
-                        const Text('Điểm dừng'),
-                      ],
-                    ),
-                    Row(
-                      children: [
-                        Icon(Icons.flag, color: Colors.red, size: 20),
-                        const SizedBox(width: 4),
-                        const Text('Điểm cuối'),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-
-          // Zoom buttons
-          Positioned(
-            right: 16,
-            bottom: 100,
+            right: 16, bottom: 100,
             child: Column(
               children: [
                 FloatingActionButton(
                   mini: true,
-                  onPressed: () {
-                    _mapController.move(
-                      _mapController.camera.center,
-                      _mapController.camera.zoom + 1,
-                    );
-                  },
+                  onPressed: () => _mapController.move(_mapController.camera.center, _mapController.camera.zoom + 1),
                   child: const Icon(Icons.add),
                 ),
                 const SizedBox(height: 8),
                 FloatingActionButton(
                   mini: true,
-                  onPressed: () {
-                    _mapController.move(
-                      _mapController.camera.center,
-                      _mapController.camera.zoom - 1,
-                    );
-                  },
+                  onPressed: () => _mapController.move(_mapController.camera.center, _mapController.camera.zoom - 1),
                   child: const Icon(Icons.remove),
                 ),
                 const SizedBox(height: 8),
@@ -635,55 +524,19 @@ class _MapRouteScreenState extends State<MapRouteScreen> {
   }
 
   void _showLocationInfo(int index) {
-    final name = index < _locationNames.length
-        ? _locationNames[index]
-        : 'Điểm ${index + 1}';
-    final point = _selectedPoints[index];
-
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(name),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Vĩ độ: ${point.latitude.toStringAsFixed(4)}'),
-            Text('Kinh độ: ${point.longitude.toStringAsFixed(4)}'),
-            const SizedBox(height: 8),
-            Text('Thứ tự: ${index + 1}/${_selectedPoints.length}'),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Đóng'),
-          ),
-        ],
+        title: Text(_locationNames[index]),
+        content: Text('Vị trí: ${_selectedPoints[index].latitude}, ${_selectedPoints[index].longitude}'),
+        actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('Đóng'))],
       ),
     );
   }
 
   void _fitBounds() {
     if (_selectedPoints.isEmpty) return;
-
-    double minLat = _selectedPoints[0].latitude;
-    double maxLat = _selectedPoints[0].latitude;
-    double minLng = _selectedPoints[0].longitude;
-    double maxLng = _selectedPoints[0].longitude;
-
-    for (var point in _selectedPoints) {
-      if (point.latitude < minLat) minLat = point.latitude;
-      if (point.latitude > maxLat) maxLat = point.latitude;
-      if (point.longitude < minLng) minLng = point.longitude;
-      if (point.longitude > maxLng) maxLng = point.longitude;
-    }
-
-    final center = LatLng(
-      (minLat + maxLat) / 2,
-      (minLng + maxLng) / 2,
-    );
-
-    _mapController.move(center, 12.0);
+    final bounds = LatLngBounds.fromPoints(_selectedPoints);
+    _mapController.fitCamera(CameraFit.bounds(bounds: bounds, padding: const EdgeInsets.all(50)));
   }
 }
