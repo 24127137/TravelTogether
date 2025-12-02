@@ -139,3 +139,17 @@ class AIMessages(SQLModel, table=True):
     image_url: Optional[str] = Field(default=None, sa_column=Column(TEXT))
     
     created_at: Optional[datetime] = Field(default=None, sa_column_kwargs={"default": "NOW()"})
+
+class UserTripPlans(SQLModel, table=True):
+    __tablename__ = "user_trip_plans"
+    
+    id: Optional[int] = Field(default=None, primary_key=True)
+    
+    user_id: str = Field(sa_column=Column(UUID(as_uuid=False), ForeignKey("profiles.auth_user_id", ondelete="CASCADE")))
+    
+    preferred_city: str = Field(sa_column=Column(TEXT))
+    travel_dates: Any = Field(sa_column=Column(DATERANGE))
+    itinerary: Optional[Dict[str, Any]] = Field(default=None, sa_column=Column(JSONB))
+    
+    created_at: Optional[datetime] = Field(default=None, sa_column_kwargs={"default": "NOW()"})
+    updated_at: Optional[datetime] = Field(default=None, sa_column_kwargs={"default": "NOW()"})

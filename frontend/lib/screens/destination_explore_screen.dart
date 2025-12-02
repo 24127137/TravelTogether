@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
 import '../data/mock_explore_items.dart';
 import '../models/destination_explore_item.dart';
 import '../widgets/enter_bar.dart';
@@ -45,6 +47,11 @@ class _DestinationExploreScreenState extends State<DestinationExploreScreen> {
 
   Key _enterButtonKey = UniqueKey();
 
+  // Cache keys
+  static const String _cacheKeyPrefix = 'ai_recommendations_';
+  static const String _cacheTimestampPrefix = 'ai_recommendations_timestamp_';
+  static const Duration _cacheExpiration = Duration(hours: 24); // Cache 24 giờ
+
   // Hàm chuẩn hóa tên mạnh mẽ hơn (Trim, Lowercase, Xóa khoảng trắng thừa)
   String _normalizeName(String name) {
     return name.trim().toLowerCase().replaceAll(RegExp(r'\s+'), ' ');
@@ -68,64 +75,146 @@ class _DestinationExploreScreenState extends State<DestinationExploreScreen> {
     _loadUserAvatar();
   }
 
-  Future<void> _loadAllData() async {
+  /// Lấy cache key theo cityId
+  String _getCacheKey() => '$_cacheKeyPrefix${widget.cityId}';
+  String _getCacheTimestampKey() => '$_cacheTimestampPrefix${widget.cityId}';
+
+  /// Kiểm tra xem cache còn hợp lệ không
+  Future<bool> _isCacheValid() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final timestampStr = prefs.getString(_getCacheTimestampKey());
+      
+      if (timestampStr == null) return false;
+      
+      final timestamp = DateTime.parse(timestampStr);
+      final now = DateTime.now();
+      final difference = now.difference(timestamp);
+      
+      return difference < _cacheExpiration;
+    } catch (e) {
+      print("⚠️ Lỗi kiểm tra cache: $e");
+      return false;
+    }
+  }
+
+  /// Lưu AI recommendations vào cache
+  Future<void> _saveRecommendationsToCache(List<RecommendationOutput> recommendations) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      
+      // Convert recommendations to JSON
+      final Map<String, int> scoresMap = {};
+      for (var rec in recommendations) {
+        scoresMap[_normalizeName(rec.locationName)] = rec.score;
+      }
+      
+      await prefs.setString(_getCacheKey(), json.encode(scoresMap));
+      await prefs.setString(_getCacheTimestampKey(), DateTime.now().toIso8601String());
+      
+      print("💾 Đã lưu ${scoresMap.length} recommendations vào cache cho city ${widget.cityId}");
+    } catch (e) {
+      print("⚠️ Lỗi lưu cache: $e");
+    }
+  }
+
+  /// Load AI recommendations từ cache
+  Future<Map<String, int>?> _loadRecommendationsFromCache() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final cachedData = prefs.getString(_getCacheKey());
+      
+      if (cachedData == null) return null;
+      
+      final Map<String, dynamic> decoded = json.decode(cachedData);
+      final Map<String, int> scores = decoded.map((key, value) => MapEntry(key, value as int));
+      
+      print("📦 Đã load ${scores.length} recommendations từ cache");
+      return scores;
+    } catch (e) {
+      print("⚠️ Lỗi load cache: $e");
+      return null;
+    }
+  }
+
+  /// Xóa cache (dùng khi cần force refresh)
+  Future<void> _clearCache() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(_getCacheKey());
+      await prefs.remove(_getCacheTimestampKey());
+      print("🗑️ Đã xóa cache cho city ${widget.cityId}");
+    } catch (e) {
+      print("⚠️ Lỗi xóa cache: $e");
+    }
+  }
+
+  Future<void> _loadAllData({bool forceRefresh = false}) async {
     if (mounted) setState(() => _isLoading = true);
 
     try {
       print("🚀 [Explore] Bắt đầu load dữ liệu...");
 
+      // 1. Kiểm tra cache trước
+      bool shouldUseCache = !forceRefresh && await _isCacheValid();
+      List<RecommendationOutput> recommendations = [];
+      
+      if (shouldUseCache) {
+        final cachedScores = await _loadRecommendationsFromCache();
+        if (cachedScores != null) {
+          print("✅ Sử dụng cache - Không gọi AI API");
+          _compatibilityScores = cachedScores;
+          
+          // Chỉ cần load saved itineraries
+          final savedNames = await _userService.getSavedItineraryNames();
+          print("📥 Server trả về ${savedNames.length} địa điểm đã lưu");
+          
+          _syncFavorites(savedNames);
+          _sortItems();
+          
+          _hasLoadedOnce = true;
+          
+          if (mounted) {
+            setState(() {
+              _isLoading = false;
+            });
+          }
+          return;
+        }
+      }
+
+      // 2. Nếu không có cache hoặc cache hết hạn, gọi API
+      print("🌐 Gọi AI API để lấy recommendations mới");
       final results = await Future.wait([
         _recommendService.getMyRecommendations(), // Index 0
         _userService.getSavedItineraryNames(),    // Index 1
       ]);
 
-      final recommendations = results[0] as List<RecommendationOutput>;
+      recommendations = results[0] as List<RecommendationOutput>;
       final savedNames = results[1] as List<String>;
 
-      print("📥 Server trả về ${savedNames.length} địa điểm đã lưu: $savedNames");
+      print("📥 AI trả về ${recommendations.length} recommendations");
+      print("📥 Server trả về ${savedNames.length} địa điểm đã lưu");
 
-      // 1. Xử lý điểm số AI
+      // 3. Lưu vào cache
+      await _saveRecommendationsToCache(recommendations);
+
+      // 4. Xử lý điểm số AI
       _compatibilityScores.clear();
       for (var rec in recommendations) {
         _compatibilityScores[_normalizeName(rec.locationName)] = rec.score;
       }
 
-      // 2. Xử lý đồng bộ Tim (Sync Favorites)
-      int matchCount = 0;
-      for (var item in _displayItems) {
-        String itemNormal = _normalizeName(item.name);
+      // 5. Sync favorites
+      _syncFavorites(savedNames);
 
-        // So sánh tên item với danh sách đã lưu
-        bool isSaved = savedNames.any((savedName) {
-          String savedNormal = _normalizeName(savedName);
-          // Log kiểm tra nếu thấy nghi ngờ
-          // if (itemNormal.contains("rồng")) print("So sánh: '$itemNormal' vs '$savedNormal'");
-          return savedNormal == itemNormal;
-        });
-
-        if (isSaved) {
-          item.isFavorite = true;
-          matchCount++;
-        } else {
-          item.isFavorite = false;
-        }
-      }
-
-      print("✅ Đã đồng bộ xong. Có $matchCount thẻ được tim đỏ.");
-
-      // 3. Sắp xếp lại
-      List<DestinationExploreItem> sortedItems = List.from(_displayItems);
-      sortedItems.sort((a, b) {
-        int scoreA = _getScore(a.name);
-        int scoreB = _getScore(b.name);
-        return scoreB.compareTo(scoreA);
-      });
+      // 6. Sắp xếp
+      _sortItems();
 
       _hasLoadedOnce = true;
 
       if (mounted) {
         setState(() {
-          _displayItems = sortedItems;
           _isLoading = false;
         });
       }
@@ -135,14 +224,45 @@ class _DestinationExploreScreenState extends State<DestinationExploreScreen> {
     }
   }
 
-  Future<void> _loadUserAvatar() async {
-    // 1. Thử lấy từ Cache trước cho nhanh
-    // (Giả sử HomePage đã lưu vào SharedPreferences key 'user_avatar')
-    // Nếu bạn muốn dùng chung cache thì import SharedPreferences
-    // final prefs = await SharedPreferences.getInstance();
-    // setState(() { _userAvatar = prefs.getString('user_avatar'); });
+  /// Đồng bộ trạng thái yêu thích
+  void _syncFavorites(List<String> savedNames) {
+    int matchCount = 0;
+    for (var item in _displayItems) {
+      String itemNormal = _normalizeName(item.name);
 
-    // 2. Gọi API lấy mới nhất (để chắc chắn)
+      bool isSaved = savedNames.any((savedName) {
+        String savedNormal = _normalizeName(savedName);
+        return savedNormal == itemNormal;
+      });
+
+      if (isSaved) {
+        item.isFavorite = true;
+        matchCount++;
+      } else {
+        item.isFavorite = false;
+      }
+    }
+
+    print("✅ Đã đồng bộ xong. Có $matchCount thẻ được tim đỏ.");
+  }
+
+  /// Sắp xếp items theo điểm số
+  void _sortItems() {
+    List<DestinationExploreItem> sortedItems = List.from(_displayItems);
+    sortedItems.sort((a, b) {
+      int scoreA = _getScore(a.name);
+      int scoreB = _getScore(b.name);
+      return scoreB.compareTo(scoreA);
+    });
+
+    if (mounted) {
+      setState(() {
+        _displayItems = sortedItems;
+      });
+    }
+  }
+
+  Future<void> _loadUserAvatar() async {
     try {
       final profile = await _userService.getUserProfile();
       if (profile != null && mounted) {
@@ -155,7 +275,6 @@ class _DestinationExploreScreenState extends State<DestinationExploreScreen> {
     }
   }
 
-  // ... (Giữ nguyên các hàm phụ trợ khác: _restoreCityIfNeeded, _getScore...)
   Future<void> _restoreCityIfNeeded() async {
     if (widget.restoreCityRawName != null) {
       await _userService.updatePreferredCityRaw(widget.restoreCityRawName!);
@@ -195,8 +314,8 @@ class _DestinationExploreScreenState extends State<DestinationExploreScreen> {
         ),
       ),
     );
-    // Khi quay lại từ Search, reload lại data để cập nhật tim nếu có thay đổi bên search
-    _loadAllData();
+    // Khi quay lại từ Search, chỉ reload saved items, không gọi lại AI
+    _loadAllData(forceRefresh: false);
   }
 
   void _handleBack() {
@@ -234,6 +353,12 @@ class _DestinationExploreScreenState extends State<DestinationExploreScreen> {
     if (mounted) setState(() { _enterButtonKey = UniqueKey(); });
   }
 
+  /// Hàm để force refresh (có thể gọi từ pull-to-refresh)
+  Future<void> _handleRefresh() async {
+    await _clearCache();
+    await _loadAllData(forceRefresh: true);
+  }
+
   @override
   Widget build(BuildContext context) {
     return PopScope(
@@ -253,86 +378,96 @@ class _DestinationExploreScreenState extends State<DestinationExploreScreen> {
             decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
             child: IconButton(icon: const Icon(Icons.arrow_back, color: Colors.black), onPressed: _handleBack),
           ),
-          actions: [ // Bỏ const để dùng biến động
+          actions: [
+            // Nút refresh (optional - có thể bỏ nếu không cần)
+            IconButton(
+              icon: const Icon(Icons.refresh, color: Colors.white),
+              onPressed: _handleRefresh,
+              tooltip: 'Làm mới AI recommendations',
+            ),
             Padding(
               padding: const EdgeInsets.only(right: 16),
               child: CircleAvatar(
                 radius: 18,
-                backgroundColor: Colors.grey[300], // Màu nền khi chưa có ảnh
-                // LOGIC HIỂN THỊ ẢNH ĐỘNG:
+                backgroundColor: Colors.grey[300],
                 backgroundImage: (_userAvatar != null && _userAvatar!.isNotEmpty)
                     ? NetworkImage(_userAvatar!) as ImageProvider
-                    : const AssetImage('assets/images/avatar.jpg'), // Ảnh mặc định local
+                    : const AssetImage('assets/images/avatar.jpg'),
               ),
             ),
           ],
         ),
-        body: Stack(
-          fit: StackFit.expand,
-          children: [
-            Container(decoration: const BoxDecoration(image: DecorationImage(image: AssetImage('assets/images/landmarks.png'), fit: BoxFit.cover))),
-            LayoutBuilder(
-              builder: (context, constraints) {
-                final screenHeight = constraints.maxHeight;
-                final scaleFactor = (screenHeight / 800).clamp(0.7, 1.0);
-                final topPadding = 100.0 * scaleFactor;
-                final searchBarHeight = 74.0 * scaleFactor;
-                final cardHeight = 380.0 * scaleFactor;
-                final cardWidth = 282.01 * scaleFactor;
-                final bottomPadding = MediaQuery.of(context).padding.bottom + kBottomNavigationBarHeight + 90.0;
+        body: RefreshIndicator(
+          onRefresh: _handleRefresh,
+          color: const Color(0xFFB64B12),
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              Container(decoration: const BoxDecoration(image: DecorationImage(image: AssetImage('assets/images/landmarks.png'), fit: BoxFit.cover))),
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final screenHeight = constraints.maxHeight;
+                  final scaleFactor = (screenHeight / 800).clamp(0.7, 1.0);
+                  final topPadding = 100.0 * scaleFactor;
+                  final searchBarHeight = 74.0 * scaleFactor;
+                  final cardHeight = 380.0 * scaleFactor;
+                  final cardWidth = 282.01 * scaleFactor;
+                  final bottomPadding = MediaQuery.of(context).padding.bottom + kBottomNavigationBarHeight + 90.0;
 
-                return SingleChildScrollView(
-                  padding: EdgeInsets.fromLTRB(16, 16, 16, bottomPadding),
-                  child: Column(
-                    children: [
-                      SizedBox(height: topPadding),
-                      GestureDetector(
-                        onTap: _handleOpenSearch,
-                        child: Container(
-                          width: double.infinity, height: searchBarHeight,
-                          decoration: BoxDecoration(color: const Color(0xFFEDE2CC), border: Border.all(color: const Color(0xFFB64B12), width: 2), borderRadius: BorderRadius.circular(21)),
-                          alignment: Alignment.centerLeft,
-                          padding: EdgeInsets.symmetric(horizontal: 24 * scaleFactor),
-                          child: Text('search_place'.tr(), style: TextStyle(color: const Color(0xFF3E3322), fontSize: 16 * scaleFactor, fontFamily: 'Roboto', fontWeight: FontWeight.w500)),
+                  return SingleChildScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(), // Cho phép pull-to-refresh
+                    padding: EdgeInsets.fromLTRB(16, 16, 16, bottomPadding),
+                    child: Column(
+                      children: [
+                        SizedBox(height: topPadding),
+                        GestureDetector(
+                          onTap: _handleOpenSearch,
+                          child: Container(
+                            width: double.infinity, height: searchBarHeight,
+                            decoration: BoxDecoration(color: const Color(0xFFEDE2CC), border: Border.all(color: const Color(0xFFB64B12), width: 2), borderRadius: BorderRadius.circular(21)),
+                            alignment: Alignment.centerLeft,
+                            padding: EdgeInsets.symmetric(horizontal: 24 * scaleFactor),
+                            child: Text('search_place'.tr(), style: TextStyle(color: const Color(0xFF3E3322), fontSize: 16 * scaleFactor, fontFamily: 'Roboto', fontWeight: FontWeight.w500)),
+                          ),
                         ),
-                      ),
-                      SizedBox(height: 12 * scaleFactor),
-                      Text('featured_places'.tr(), style: TextStyle(color: const Color(0xFFB99668), fontSize: 16 * scaleFactor, fontFamily: 'Poppins', fontWeight: FontWeight.w600)),
-                      SizedBox(height: 16 * scaleFactor),
+                        SizedBox(height: 12 * scaleFactor),
+                        Text('featured_places'.tr(), style: TextStyle(color: const Color(0xFFB99668), fontSize: 16 * scaleFactor, fontFamily: 'Poppins', fontWeight: FontWeight.w600)),
+                        SizedBox(height: 16 * scaleFactor),
 
-                      SizedBox(
-                        height: cardHeight,
-                        child: _isLoading
-                            ? const Center(child: CircularProgressIndicator(color: Color(0xFFB64B12)))
-                            : _displayItems.isEmpty
-                            ? const Center(child: Text("Không tìm thấy địa điểm nào", style: TextStyle(color: Colors.white)))
-                            : ListView.separated(
-                          scrollDirection: Axis.horizontal,
-                          itemCount: _displayItems.length,
-                          separatorBuilder: (_, __) => SizedBox(width: 30 * scaleFactor),
-                          itemBuilder: (context, index) {
-                            final item = _displayItems[index];
-                            return _buildPlaceCard(item, cardWidth, scaleFactor);
-                          },
+                        SizedBox(
+                          height: cardHeight,
+                          child: _isLoading
+                              ? const Center(child: CircularProgressIndicator(color: Color(0xFFB64B12)))
+                              : _displayItems.isEmpty
+                              ? const Center(child: Text("Không tìm thấy địa điểm nào", style: TextStyle(color: Colors.white)))
+                              : ListView.separated(
+                            scrollDirection: Axis.horizontal,
+                            itemCount: _displayItems.length,
+                            separatorBuilder: (_, __) => SizedBox(width: 30 * scaleFactor),
+                            itemBuilder: (context, index) {
+                              final item = _displayItems[index];
+                              return _buildPlaceCard(item, cardWidth, scaleFactor);
+                            },
+                          ),
                         ),
-                      ),
-                      SizedBox(height: 25 * scaleFactor),
-                    ],
+                        SizedBox(height: 25 * scaleFactor),
+                      ],
+                    ),
+                  );
+                },
+              ),
+              Positioned(
+                left: 0, right: 0, bottom: kBottomNavigationBarHeight + 35,
+                child: Center(
+                  child: EnterButton(
+                    key: _enterButtonKey,
+                    onValidation: _validateSelection,
+                    onConfirm: _handleEnter,
                   ),
-                );
-              },
-            ),
-            Positioned(
-              left: 0, right: 0, bottom: kBottomNavigationBarHeight + 35,
-              child: Center(
-                child: EnterButton(
-                  key: _enterButtonKey,
-                  onValidation: _validateSelection,
-                  onConfirm: _handleEnter,
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -366,7 +501,6 @@ class _DestinationExploreScreenState extends State<DestinationExploreScreen> {
                     width: 32 * scaleFactor, height: 32 * scaleFactor,
                     decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16 * scaleFactor)),
                     child: Icon(
-                      // QUAN TRỌNG: UI phản ánh đúng trạng thái isFavorite
                         item.isFavorite ? Icons.favorite : Icons.favorite_border,
                         color: item.isFavorite ? Colors.red : Colors.black.withOpacity(0.2),
                         size: 22 * scaleFactor
