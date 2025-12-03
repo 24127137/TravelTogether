@@ -19,7 +19,7 @@ def list_to_daterange(date_list: Optional[List[str]]) -> Optional[Any]:
 def is_group_expired(group: TravelGroup) -> bool:
     if not group.travel_dates: return False
     try:
-        # Xử lý an toàn nếu travel_dates là string (trường hợp hiếm)
+        # Xử lý an toàn nếu travel_dates là string
         if isinstance(group.travel_dates, str):
             _, end_date = _extract_dates(group.travel_dates)
         else:
@@ -54,7 +54,7 @@ def validate_user_profile_completeness(user: Profiles):
     if not user.preferred_city or not user.travel_dates:
         raise HTTPException(400, "Vui lòng cập nhật City và Dates trong hồ sơ trước khi tham gia nhóm.")
 
-# === [HELPER MỚI] Xử lý trích xuất ngày từ String hoặc Object ===
+# === [HELPER QUAN TRỌNG] Xử lý trích xuất ngày từ String hoặc Object ===
 def _extract_dates(date_range_obj: Any) -> Tuple[Optional[date], Optional[date]]:
     """
     Hàm thông minh: Tự động nhận diện đầu vào là String (từ Frontend) 
@@ -70,7 +70,6 @@ def _extract_dates(date_range_obj: Any) -> Tuple[Optional[date], Optional[date]]
             clean_str = date_range_obj.strip("[]()")
             parts = clean_str.split(",")
             if len(parts) == 2:
-                # Convert string '2025-12-10' thành date object
                 start = datetime.strptime(parts[0].strip(), "%Y-%m-%d").date() if parts[0].strip() else None
                 end = datetime.strptime(parts[1].strip(), "%Y-%m-%d").date() if parts[1].strip() else None
                 return start, end
@@ -79,11 +78,9 @@ def _extract_dates(date_range_obj: Any) -> Tuple[Optional[date], Optional[date]]
             return None, None
 
     # Trường hợp 2: Là Object từ Database (psycopg2 DateRange)
-    # Nó có thuộc tính .lower và .upper là date object thật
     try:
         return date_range_obj.lower, date_range_obj.upper
     except AttributeError:
-        # Nếu không phải string cũng không có .lower/.upper
         return None, None
 
 def check_date_overlap(range_a: Any, range_b: Any) -> bool:
