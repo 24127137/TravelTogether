@@ -53,6 +53,7 @@ dependencies:
   latlong2: ^0.9.1
   flutter_polyline_points: ^2.1.0
   geocoding: ^3.0.0
+  flutter_animate: ^4.5.2
 
 dev_dependencies:
   flutter_test:
