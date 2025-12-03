@@ -19,7 +19,12 @@ def list_to_daterange(date_list: Optional[List[str]]) -> Optional[Any]:
 def is_group_expired(group: TravelGroup) -> bool:
     if not group.travel_dates: return False
     try:
-        end_date = group.travel_dates.upper
+        # Xử lý an toàn nếu travel_dates là string (trường hợp hiếm)
+        if isinstance(group.travel_dates, str):
+            _, end_date = _extract_dates(group.travel_dates)
+        else:
+            end_date = group.travel_dates.upper
+            
         if not end_date: return False
         return end_date < date.today()
     except Exception: return False
@@ -49,15 +54,47 @@ def validate_user_profile_completeness(user: Profiles):
     if not user.preferred_city or not user.travel_dates:
         raise HTTPException(400, "Vui lòng cập nhật City và Dates trong hồ sơ trước khi tham gia nhóm.")
 
+# === [HELPER MỚI] Xử lý trích xuất ngày từ String hoặc Object ===
+def _extract_dates(date_range_obj: Any) -> Tuple[Optional[date], Optional[date]]:
+    """
+    Hàm thông minh: Tự động nhận diện đầu vào là String (từ Frontend) 
+    hay Daterange Object (từ DB) để lấy ra ngày bắt đầu và kết thúc.
+    """
+    if not date_range_obj:
+        return None, None
+
+    # Trường hợp 1: Là String (Frontend gửi lên: '[2025-12-10,2025-12-18)')
+    if isinstance(date_range_obj, str):
+        try:
+            # Loại bỏ các ký tự bao quanh: [, ], (, )
+            clean_str = date_range_obj.strip("[]()")
+            parts = clean_str.split(",")
+            if len(parts) == 2:
+                # Convert string '2025-12-10' thành date object
+                start = datetime.strptime(parts[0].strip(), "%Y-%m-%d").date() if parts[0].strip() else None
+                end = datetime.strptime(parts[1].strip(), "%Y-%m-%d").date() if parts[1].strip() else None
+                return start, end
+        except Exception as e:
+            print(f"Lỗi parse date string: {e}")
+            return None, None
+
+    # Trường hợp 2: Là Object từ Database (psycopg2 DateRange)
+    # Nó có thuộc tính .lower và .upper là date object thật
+    try:
+        return date_range_obj.lower, date_range_obj.upper
+    except AttributeError:
+        # Nếu không phải string cũng không có .lower/.upper
+        return None, None
+
 def check_date_overlap(range_a: Any, range_b: Any) -> bool:
     """
     Kiểm tra 2 khoảng thời gian có trùng nhau không.
+    Đã fix lỗi String vs Date object.
     Logic: (StartA <= EndB) AND (StartB <= EndA)
     """
-    if not range_a or not range_b: return False
-    # PostgreSQL daterange object có thuộc tính .lower (start) và .upper (end)
-    start_a, end_a = range_a.lower, range_a.upper
-    start_b, end_b = range_b.lower, range_b.upper
+    # Dùng hàm helper để chuẩn hóa dữ liệu về date object
+    start_a, end_a = _extract_dates(range_a)
+    start_b, end_b = _extract_dates(range_b)
     
     if start_a and end_a and start_b and end_b:
         return start_a <= end_b and start_b <= end_a
