@@ -16,6 +16,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../config/api_config.dart';
+import 'first_of_all.dart';
 
 class SettingsScreen extends StatefulWidget {
   final VoidCallback onBack;
@@ -480,7 +481,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                 // Chuyển về màn hình Welcome và xóa toàn bộ stack
                                 Navigator.of(context).pushAndRemoveUntil(
                                   MaterialPageRoute(
-                                    builder: (context) => const WelcomeScreen(),
+                                    builder: (context) => const FirstScreen(),
                                   ),
                                   (route) => false, // Xóa toàn bộ route stack
                                 );

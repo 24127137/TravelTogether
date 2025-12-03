@@ -7,6 +7,8 @@ import '../services/recommendation_service.dart';
 import '../services/user_service.dart';
 import 'destination_search_screen.dart';
 import 'before_group_screen.dart';
+import 'dart:ui'; // Để dùng ImageFilter.blur
+import 'package:flutter_animate/flutter_animate.dart';
 
 class DestinationExploreScreen extends StatefulWidget {
   final String cityId;
@@ -234,6 +236,139 @@ class _DestinationExploreScreenState extends State<DestinationExploreScreen> {
     if (mounted) setState(() { _enterButtonKey = UniqueKey(); });
   }
 
+  void _showDescriptionPopup(BuildContext context, DestinationExploreItem item) {
+    // Tách văn bản thành các đoạn nhỏ dựa trên 2 dấu xuống dòng để làm hiệu ứng xuất hiện từng đoạn
+    List<String> paragraphs = item.description.split('\n\n');
+
+    showGeneralDialog(
+      context: context,
+      barrierDismissible: true, // <--- QUAN TRỌNG: Cho phép nhấn ra ngoài để đóng
+      barrierLabel: "Close",
+      barrierColor: Colors.black.withOpacity(0.2), // Màu nền tối nhẹ phía sau lớp kính
+      transitionDuration: const Duration(milliseconds: 400),
+      pageBuilder: (context, anim1, anim2) {
+        return Stack(
+          children: [
+            // 1. Lớp kính mờ (Frosted Glass) toàn màn hình
+            BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+              child: Container(color: Colors.transparent),
+            ),
+
+            // 2. Vùng nhận diện click để đóng (khi nhấn vào vùng mờ)
+            GestureDetector(
+              onTap: () => Navigator.of(context).pop(),
+              child: Container(
+                color: Colors.transparent,
+                width: double.infinity,
+                height: double.infinity,
+              ),
+            ),
+
+            // 3. Nội dung chính (Popup)
+            Center(
+              child: GestureDetector(
+                onTap: () {}, // Chặn click xuyên qua thẻ (để không bị đóng khi nhấn vào nội dung)
+                child: Container(
+                  width: MediaQuery.of(context).size.width * 0.85,
+                  constraints: BoxConstraints(
+                    maxHeight: MediaQuery.of(context).size.height * 0.7,
+                  ),
+                  margin: const EdgeInsets.all(20),
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF9F5EB).withOpacity(0.95), // Màu kem Hermès, hơi trong suốt
+                    borderRadius: BorderRadius.circular(24),
+                    border: Border.all(color: const Color(0xFFB99668), width: 1.5), // Viền vàng kim sang trọng
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFF3E3322).withOpacity(0.2),
+                        blurRadius: 20,
+                        offset: const Offset(0, 10),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // --- Tiêu đề ---
+                      Text(
+                        item.name.toUpperCase(),
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          fontFamily: 'Playfair Display', // Hoặc font có chân bạn thích
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 1.2,
+                          color: Color(0xFF3E3322), // Nâu đậm
+                          decoration: TextDecoration.none,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      // Đường kẻ trang trí
+                      Container(width: 40, height: 2, color: const Color(0xFFB99668)),
+                      const SizedBox(height: 20),
+
+                      // --- Nội dung cuộn ---
+                      Flexible(
+                        child: SingleChildScrollView(
+                          physics: const BouncingScrollPhysics(),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // Duyệt qua từng đoạn văn để tạo hiệu ứng Staggered (xuất hiện đuổi nhau)
+                              ...paragraphs.map((text) {
+                                return Padding(
+                                  padding: const EdgeInsets.only(bottom: 16),
+                                  child: Text(
+                                    text,
+                                    style: const TextStyle(
+                                      fontFamily: 'Roboto',
+                                      fontSize: 15,
+                                      height: 1.6, // Giãn dòng dễ đọc
+                                      color: Color(0xFF5A4D3B), // Nâu nhạt hơn chút cho body text
+                                      decoration: TextDecoration.none,
+                                    ),
+                                    textAlign: TextAlign.justify,
+                                  ),
+                                );
+                              }).toList()
+                              // THÊM HIỆU ỨNG ANIMATION Ở ĐÂY
+                                  .animate(interval: 100.ms) // Mỗi đoạn cách nhau 100ms
+                                  .fade(duration: 600.ms, curve: Curves.easeOut) // Hiện dần
+                                  .slideY(begin: 0.2, end: 0, duration: 600.ms, curve: Curves.easeOut), // Trượt nhẹ từ dưới lên
+                            ],
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(height: 10),
+                      // --- Nút đóng nhỏ bên dưới (Optional) ---
+                      TextButton(
+                        onPressed: () => Navigator.of(context).pop(),
+                        child: const Text(
+                          "ĐÓNG",
+                          style: TextStyle(color: Color(0xFFB64B12), letterSpacing: 1, fontSize: 13),
+                        ),
+                      )
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+      transitionBuilder: (context, anim1, anim2, child) {
+        // Hiệu ứng scale nhẹ khi popup hiện ra
+        return ScaleTransition(
+          scale: CurvedAnimation(parent: anim1, curve: Curves.easeOutBack),
+          child: FadeTransition(opacity: anim1, child: child),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return PopScope(
@@ -381,6 +516,32 @@ class _DestinationExploreScreenState extends State<DestinationExploreScreen> {
                 SizedBox(height: 4 * scaleFactor),
                 Text(item.getSubtitle(context.locale.languageCode), style: TextStyle(color: const Color(0xFFDDDDDD), fontSize: 13 * scaleFactor, shadows: const [Shadow(color: Colors.black, blurRadius: 4)]))
               ]),
+            ),
+            Positioned(
+              right: 16 * scaleFactor,
+              bottom: 16 * scaleFactor,
+              child: GestureDetector(
+                // GỌI HÀM MỚI TẠI ĐÂY
+                onTap: () => _showDescriptionPopup(context, item),
+
+                child: Container(
+                  width: 36 * scaleFactor,
+                  height: 36 * scaleFactor,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF3E3322).withOpacity(0.9), // Nền nâu đậm
+                    shape: BoxShape.circle,
+                    border: Border.all(color: const Color(0xFFB99668), width: 1), // Viền vàng
+                    boxShadow: [
+                      BoxShadow(color: Colors.black.withOpacity(0.3), blurRadius: 4, offset: const Offset(0, 2))
+                    ],
+                  ),
+                  child: Icon(
+                    Icons.auto_stories_outlined, // Icon sách mở
+                    color: const Color(0xFFEDE2CC),
+                    size: 18 * scaleFactor,
+                  ),
+                ),
+              ),
             ),
           ],
         ),
