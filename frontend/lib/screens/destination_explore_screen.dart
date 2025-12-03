@@ -277,13 +277,17 @@ class _DestinationExploreScreenState extends State<DestinationExploreScreen> {
                   margin: const EdgeInsets.all(20),
                   padding: const EdgeInsets.all(24),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFF9F5EB).withOpacity(0.95), // Màu kem Hermès, hơi trong suốt
+        // Thay bằng ảnh nền da cam kết hợp lớp phủ màu kem
+                    image: DecorationImage(
+                      image: const AssetImage('assets/images/description.png'),
+                      fit: BoxFit.cover,
+                    ),
                     borderRadius: BorderRadius.circular(24),
-                    border: Border.all(color: const Color(0xFFB99668), width: 1.5), // Viền vàng kim sang trọng
+                    border: Border.all(color: const Color(0xFFB99668), width: 1.5),
                     boxShadow: [
                       BoxShadow(
-                        color: const Color(0xFF3E3322).withOpacity(0.2),
-                        blurRadius: 20,
+                        color: const Color(0xFF3E3322).withOpacity(0.3),
+                        blurRadius: 25,
                         offset: const Offset(0, 10),
                       ),
                     ],
@@ -296,11 +300,11 @@ class _DestinationExploreScreenState extends State<DestinationExploreScreen> {
                         item.name.toUpperCase(),
                         textAlign: TextAlign.center,
                         style: const TextStyle(
-                          fontFamily: 'Playfair Display', // Hoặc font có chân bạn thích
+                          fontFamily: 'Alumni Sans', // Hoặc font có chân bạn thích
                           fontSize: 22,
-                          fontWeight: FontWeight.bold,
+                          fontWeight: FontWeight.w800,
                           letterSpacing: 1.2,
-                          color: Color(0xFF3E3322), // Nâu đậm
+                          color: Colors.white, // Nâu đậm
                           decoration: TextDecoration.none,
                         ),
                       ),
@@ -323,10 +327,10 @@ class _DestinationExploreScreenState extends State<DestinationExploreScreen> {
                                   child: Text(
                                     text,
                                     style: const TextStyle(
-                                      fontFamily: 'Roboto',
+                                      fontFamily: 'Alegreya',
                                       fontSize: 15,
                                       height: 1.6, // Giãn dòng dễ đọc
-                                      color: Color(0xFF5A4D3B), // Nâu nhạt hơn chút cho body text
+                                      color: Colors.white,
                                       decoration: TextDecoration.none,
                                     ),
                                     textAlign: TextAlign.justify,
@@ -348,7 +352,7 @@ class _DestinationExploreScreenState extends State<DestinationExploreScreen> {
                         onPressed: () => Navigator.of(context).pop(),
                         child: const Text(
                           "ĐÓNG",
-                          style: TextStyle(color: Color(0xFFB64B12), letterSpacing: 1, fontSize: 13),
+                          style: TextStyle(color: Colors.white, letterSpacing: 1, fontSize: 13),
                         ),
                       )
                     ],
