@@ -554,12 +554,78 @@ class _MapRouteScreenState extends State<MapRouteScreen> {
   }
 
   void _showLocationInfo(int index) {
+    // Lấy tọa độ của điểm được chọn
+    final point = _selectedPoints[index];
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(_locationNames[index]),
-        content: Text('Vị trí: ${_selectedPoints[index].latitude}, ${_selectedPoints[index].longitude}'),
-        actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('Đóng'))],
+        title: Text(
+          _locationNames[index],
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
+        content: FutureBuilder<List<Placemark>>(
+          // Gọi hàm của gói geocoding để lấy địa chỉ từ tọa độ
+          future: placemarkFromCoordinates(point.latitude, point.longitude),
+          builder: (context, snapshot) {
+            // 1. Đang tải
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const SizedBox(
+                height: 50,
+                child: Row(
+                  children: [
+                    CircularProgressIndicator(),
+                    SizedBox(width: 16),
+                    Text("Đang tìm địa chỉ..."),
+                  ],
+                ),
+              );
+            }
+
+            // 2. Có lỗi hoặc không có dữ liệu
+            if (snapshot.hasError || !snapshot.hasData || snapshot.data!.isEmpty) {
+              return Text(
+                  'Không tìm thấy địa chỉ cụ thể.\nTọa độ: ${point.latitude}, ${point.longitude}');
+            }
+
+            // 3. Có dữ liệu -> Hiển thị địa chỉ
+            final place = snapshot.data![0];
+
+            // Ghép các thành phần địa chỉ lại cho đẹp
+            // Các trường thường dùng: street, subAdministrativeArea (quận/huyện), administrativeArea (tỉnh/tp)
+            String address = [
+              place.street,
+              place.subAdministrativeArea,
+              place.administrativeArea,
+              place.country
+            ].where((element) => element != null && element.isNotEmpty).join(", ");
+
+            return Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  "Địa chỉ:",
+                  style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blue),
+                ),
+                const SizedBox(height: 4),
+                Text(address, style: const TextStyle(fontSize: 16)),
+                const Divider(),
+                // Vẫn hiển thị tọa độ nhưng để nhỏ bên dưới cho chuyên nghiệp
+                Text(
+                  'GPS: ${point.latitude.toStringAsFixed(5)}, ${point.longitude.toStringAsFixed(5)}',
+                  style: const TextStyle(fontSize: 12, color: Colors.grey),
+                ),
+              ],
+            );
+          },
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Đóng'),
+          )
+        ],
       ),
     );
   }
