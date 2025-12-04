@@ -93,7 +93,7 @@ async def update_profile_service(
         if profile_updates:
             # === [LOGIC MỚI: XÓA ITINERARY NẾU ĐỔI CITY] ===
             new_city = profile_updates.get("preferred_city")
-            
+
             # Nếu có city mới VÀ city mới khác city cũ -> Xóa lịch trình cũ
             if new_city and new_city != db_profile.preferred_city:
                 print(f"User đổi thành phố sang {new_city} -> Xóa itinerary cũ.")

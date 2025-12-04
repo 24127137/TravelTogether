@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:async';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../config/api_config.dart';
@@ -47,9 +48,43 @@ class UserService {
   }
 
   // ===============================================================
-  // FIX: LƯU ITINERARY THEO THÀNH PHỐ HIỆN TẠI
+  // FIX: LƯU ITINERARY THEO THÀNH PHỐ HIỆN TẠI VỚI MUTEX LOCK
   // ===============================================================
+
+  // Queue để xử lý tuần tự các request
+  static final List<_ItineraryTask> _taskQueue = [];
+  static bool _isProcessing = false;
+
   Future<bool> toggleItineraryItem(String placeName, bool isAdding) async {
+    // Tạo completer để đợi kết quả
+    final completer = Completer<bool>();
+
+    // Thêm task vào queue
+    _taskQueue.add(_ItineraryTask(placeName, isAdding, completer));
+
+    // Chạy queue nếu chưa đang xử lý
+    _processQueue();
+
+    return completer.future;
+  }
+
+  Future<void> _processQueue() async {
+    if (_isProcessing || _taskQueue.isEmpty) return;
+    _isProcessing = true;
+
+    while (_taskQueue.isNotEmpty) {
+      final task = _taskQueue.removeAt(0);
+      final result = await _executeToggle(task.placeName, task.isAdding);
+      task.completer.complete(result);
+
+      // Delay nhỏ giữa các request để đảm bảo server xử lý xong
+      await Future.delayed(const Duration(milliseconds: 100));
+    }
+
+    _isProcessing = false;
+  }
+
+  Future<bool> _executeToggle(String placeName, bool isAdding) async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('access_token');
     if (token == null) return false;
@@ -57,7 +92,7 @@ class UserService {
     try {
       final url = Uri.parse('$baseUrl/users/me');
 
-      // 1. GET DỮ LIỆU
+      // 1. GET DỮ LIỆU MỚI NHẤT TỪ SERVER
       final getResponse = await http.get(
         url,
         headers: {'Authorization': 'Bearer $token'},
@@ -69,56 +104,60 @@ class UserService {
       var profileData = data['profile'] ?? data;
 
       // Lấy tên thành phố đang chọn (Ví dụ: "Đà Nẵng")
-      // Nếu null thì dùng "Unknown"
       String currentCity = profileData['preferred_city'] ?? "Unknown";
-
-      // Tạo prefix để phân biệt (Ví dụ: "Đà Nẵng_")
       String prefix = "${currentCity}_";
 
       var rawItinerary = profileData['itinerary'];
 
-      List<String> currentCityItems = [];
-      Map<String, String> otherCityItems = {};
+      // 2. PHÂN LOẠI DỮ LIỆU: Thành phố hiện tại vs Thành phố khác
+      // Format: {"Hà Nội_1": "Phố cổ", "Đà Nẵng_1": "Cầu Rồng", ...}
+      List<String> currentCityPlaces = []; // Địa điểm của thành phố đang chọn
+      Map<String, String> otherCityItems = {}; // Giữ nguyên data của thành phố khác
 
-      // 2. PHÂN LOẠI: Cái nào của city này, cái nào của city khác
       if (rawItinerary != null && rawItinerary is Map) {
         rawItinerary.forEach((key, value) {
           String strKey = key.toString();
           String strVal = value.toString();
 
           if (strKey.startsWith(prefix)) {
-            currentCityItems.add(strVal);
+            // Thuộc thành phố hiện tại -> lấy tên địa điểm
+            currentCityPlaces.add(strVal);
           } else {
-            // Giữ lại dữ liệu của các thành phố khác
+            // Thuộc thành phố khác -> giữ nguyên
             otherCityItems[strKey] = strVal;
           }
         });
       }
 
-      // 3. THÊM / XÓA (Chỉ tác động vào list của city hiện tại)
+      print("📊 [Before] $currentCity có ${currentCityPlaces.length} địa điểm: $currentCityPlaces");
+      print("📊 [Before] Thành phố khác: $otherCityItems");
+
+      // 3. THÊM / XÓA địa điểm (chỉ tác động vào currentCityPlaces)
       if (isAdding) {
-        if (!currentCityItems.contains(placeName)) {
-          currentCityItems.add(placeName);
+        if (!currentCityPlaces.contains(placeName)) {
+          currentCityPlaces.add(placeName);
+          print("➕ Thêm '$placeName' vào $currentCity");
         }
       } else {
-        currentCityItems.remove(placeName);
+        currentCityPlaces.remove(placeName);
+        print("➖ Xóa '$placeName' khỏi $currentCity");
       }
 
-      // 4. ĐÓNG GÓI LẠI
+      // 4. TẠO PAYLOAD MỚI: GIỮ NGUYÊN THÀNH PHỐ KHÁC + ĐÁNH SỐ LẠI THÀNH PHỐ HIỆN TẠI
       Map<String, String> finalPayload = {};
 
-      // 4.1 Chép lại city khác
+      // 4.1 Copy tất cả thành phố khác (không thay đổi gì)
       finalPayload.addAll(otherCityItems);
 
-      // 4.2 Chép city hiện tại với key mới (đánh số lại)
-      for (int i = 0; i < currentCityItems.length; i++) {
-        String newKey = "$prefix${i + 1}"; // Ví dụ: "Đà Nẵng_1"
-        finalPayload[newKey] = currentCityItems[i];
+      // 4.2 Đánh số lại thành phố hiện tại: Hà Nội_1, Hà Nội_2, ...
+      for (int i = 0; i < currentCityPlaces.length; i++) {
+        String newKey = "$prefix${i + 1}";
+        finalPayload[newKey] = currentCityPlaces[i];
       }
 
-      print("📝 Payload chuẩn bị gửi: $finalPayload");
+      print("📝 [After] Payload gửi đi (${finalPayload.length} items): $finalPayload");
 
-      // 5. GỬI ĐI
+      // 5. GỬI LÊN SERVER
       final patchResponse = await http.patch(
         url,
         headers: {
@@ -130,7 +169,15 @@ class UserService {
         }),
       );
 
-      return (patchResponse.statusCode == 200 || patchResponse.statusCode == 204);
+      final success = (patchResponse.statusCode == 200 || patchResponse.statusCode == 204);
+
+      if (!success) {
+        print("❌ Server trả về: ${patchResponse.statusCode} - ${patchResponse.body}");
+      } else {
+        print("✅ Lưu thành công!");
+      }
+
+      return success;
 
     } catch (e) {
       print('❌ [UserService] Exception: $e');
@@ -158,19 +205,27 @@ class UserService {
 
         List<String> savedNames = [];
 
-        // Logic giải mã (giống hàm toggle): Lấy tất cả Value trong Map ra
+        // Format: {"Hà Nội_1": "Phố cổ", "Đà Nẵng_1": "Cầu Rồng"}
+        // Ta lấy tất cả Value (tên địa điểm) để đồng bộ trạng thái tim
         if (rawItinerary != null) {
           if (rawItinerary is Map) {
-            // Backend trả về {"Đà Nẵng_1": "Cầu Rồng", "Hà Nội_1": "Hồ Gươm"}
-            // Ta chỉ cần lấy phần Value ("Cầu Rồng", "Hồ Gươm")
             for (var val in rawItinerary.values) {
-              savedNames.add(val.toString());
+              String name = val.toString();
+              if (!savedNames.contains(name)) {
+                savedNames.add(name);
+              }
             }
           } else if (rawItinerary is List) {
-            // Fallback trường hợp cũ
-            savedNames = List<String>.from(rawItinerary.map((e) => e.toString()));
+            // Fallback trường hợp cũ (nếu có)
+            for (var e in rawItinerary) {
+              String name = e.toString();
+              if (!savedNames.contains(name)) {
+                savedNames.add(name);
+              }
+            }
           }
         }
+        print("📥 [UserService] Đã load ${savedNames.length} địa điểm từ DB: $savedNames");
         return savedNames;
       }
     } catch (e) {
@@ -195,3 +250,13 @@ class UserService {
     return null;
   }
 }
+
+// Helper class cho task queue
+class _ItineraryTask {
+  final String placeName;
+  final bool isAdding;
+  final Completer<bool> completer;
+
+  _ItineraryTask(this.placeName, this.isAdding, this.completer);
+}
+

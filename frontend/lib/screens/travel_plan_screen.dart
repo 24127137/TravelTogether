@@ -47,13 +47,14 @@ class _TravelPlanScreenState extends State<TravelPlanScreen> {
       if (itinerary != null && itinerary is Map) {
         itinerary.forEach((key, value) {
           String strKey = key.toString();
-          // Key format: "CityName_Index" (Ví dụ: Đà Nẵng_1)
+
+          // Format: "Hà Nội_1", "Đà Nẵng_2", ...
+          // Lấy tên thành phố từ phần trước dấu "_"
           if (strKey.contains('_')) {
-            String cityName = strKey.split('_')[0]; // Lấy phần "Đà Nẵng"
-            if (cityCounts.containsKey(cityName)) {
-              cityCounts[cityName] = cityCounts[cityName]! + 1;
-            } else {
-              cityCounts[cityName] = 1;
+            String cityName = strKey.split('_')[0];
+
+            if (cityName.isNotEmpty) {
+              cityCounts[cityName] = (cityCounts[cityName] ?? 0) + 1;
             }
           }
         });
