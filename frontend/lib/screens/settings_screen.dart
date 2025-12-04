@@ -230,10 +230,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               Container(
                                 decoration: BoxDecoration(
                                   shape: BoxShape.circle,
-                                  border: Border.all(
-                                    color: const Color(0xFFFF6B00),
-                                    width: 4,
-                                  ),
                                 ),
                                 child: CircleAvatar(
                                   radius: avatarRadius,
@@ -242,7 +238,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                       : const AssetImage('assets/images/avatar.jpg') as ImageProvider<Object>,
                                 ),
                               ),
-                              const SizedBox(width: 16),
+                              const SizedBox(width: 20),
                               // Thông tin user
                               Expanded(
                                 child: Column(

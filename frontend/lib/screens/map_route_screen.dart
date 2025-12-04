@@ -11,8 +11,13 @@ import '../services/auth_service.dart';
 /// Màn hình hiển thị bản đồ và vẽ lộ trình (Multi-Start Nearest Neighbor)
 class MapRouteScreen extends StatefulWidget {
   final int? groupId;
+  final String? cityFilter;
 
-  const MapRouteScreen({Key? key, this.groupId}) : super(key: key);
+  const MapRouteScreen({
+    Key? key,
+    this.groupId,
+    this.cityFilter
+  }) : super(key: key);
 
   @override
   State<MapRouteScreen> createState() => _MapRouteScreenState();
@@ -51,7 +56,15 @@ class _MapRouteScreenState extends State<MapRouteScreen> {
     });
 
     try {
-      await _fetchGroupPlan();
+      if (widget.cityFilter != null) {
+        // TRƯỜNG HỢP 1: CỦA BẠN (Xem theo thành phố cụ thể)
+        // Gọi hàm mới chúng ta sẽ viết bên dưới
+        await _fetchMyPersonalRoute(widget.cityFilter!);
+      } else {
+        // TRƯỜNG HỢP 2: CỦA BẠN BẠN (Logic cũ)
+        // Giữ nguyên hàm này, không đụng vào nội dung bên trong nó
+        await _fetchGroupPlan();
+      }
 
       if (_selectedPoints.length >= 2) {
         // 1. Tối ưu hóa: Thử tất cả điểm làm điểm bắt đầu
@@ -74,6 +87,23 @@ class _MapRouteScreenState extends State<MapRouteScreen> {
   // ===============================================================
   // PHẦN 1: LOGIC LẤY DỮ LIỆU (GIỮ NGUYÊN)
   // ===============================================================
+
+  // === HÀM MỚI: CHỈ PHỤC VỤ LOGIC CỦA BẠN ===
+  Future<void> _fetchMyPersonalRoute(String cityName) async {
+    // 1. Lấy token và profile như bình thường
+    final token = await AuthService.getValidAccessToken();
+    if (token == null) throw Exception('Vui lòng đăng nhập');
+    final profile = await _userService.getUserProfile();
+    if (profile == null) throw Exception('Không lấy được thông tin');
+
+    // 2. Lấy itinerary
+    final itineraryData = profile['itinerary'];
+
+    // Vì hàm này chỉ có nhiệm vụ convert text sang tọa độ, dùng chung được.
+    // Tham số thứ 2 là cityContext -> truyền cityName vào
+    // Tham số thứ 3 là isGroupPlan -> truyền false
+    await _parseItineraryData(itineraryData, cityName, false);
+  }
 
   Future<void> _fetchGroupPlan() async {
     try {
