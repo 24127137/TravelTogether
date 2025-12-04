@@ -55,17 +55,17 @@ class _DestinationExploreScreenState extends State<DestinationExploreScreen> {
   @override
   void initState() {
     super.initState();
-    // 1. Reset trạng thái tim của mock data về false trước khi load để tránh lưu cache sai
-    for (var item in mockExploreItems) {
-      if (item.cityId == widget.cityId) item.isFavorite = false;
-    }
-
-    // 2. Khởi tạo list hiển thị
+    // 1. Khởi tạo list hiển thị từ mock data (sẽ được cập nhật favorite từ server)
     _displayItems = mockExploreItems
         .where((item) => item.cityId == widget.cityId)
         .toList();
 
-    // 3. Gọi load dữ liệu
+    // Reset isFavorite ban đầu (sẽ được đồng bộ lại từ server trong _loadAllData)
+    for (var item in _displayItems) {
+      item.isFavorite = false;
+    }
+
+    // 2. Gọi load dữ liệu
     _loadAllData();
     _loadUserAvatar();
   }
