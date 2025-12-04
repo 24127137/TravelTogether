@@ -740,146 +740,168 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
   Widget _buildInterestsPicker() {
     return Expanded(
-      child: Column(
-        children: [
-          const Text(
-            "Chọn ít nhất 3 sở thích của bạn",
-            style: TextStyle(
-              fontSize: 20,
-              fontFamily: 'WorkSans',
-              fontWeight: FontWeight.w600,
-              color: Colors.white,
-            ),
-          ),
-          const SizedBox(height: 16),
-          Expanded(
-            child: GridView.builder(
-              controller: _scrollController,
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 3,
-                mainAxisSpacing: 12,
-                crossAxisSpacing: 12,
-                childAspectRatio: 0.9,
-              ),
-              itemCount: _visibleCount,
-              itemBuilder: (context, index) {
-                final interest = _allInterests[index];
-                final isSelected =
-                _selectedInterests.contains(interest['title']);
-                final imagePath = (interest['image'] ?? '').trim();
-                final hasImage = imagePath.isNotEmpty;
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          // Tính toán kích thước dynamic dựa trên màn hình
+          final screenWidth = constraints.maxWidth;
+          final itemWidth = (screenWidth - 24) / 3; // 3 cột, trừ spacing
+          // Tính chiều cao item: ảnh + padding + text
+          final imageHeight = itemWidth * 0.85; // Tỷ lệ ảnh
+          final itemHeight = imageHeight + 24; // Ảnh + text + padding
+          final aspectRatio = itemWidth / itemHeight;
 
-                return GestureDetector(
-                  onTap: () {
-                    setState(() {
-                      if (isSelected) {
-                        _selectedInterests.remove(interest['title']);
-                      } else {
-                        _selectedInterests.add(interest['title']!);
-                      }
-                    });
-                  },
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Container(
-                        decoration: BoxDecoration(
-                          border: Border.all(
-                            color: isSelected
-                                ? Color.fromARGB(255, 255, 225, 176)
-                                : Colors.transparent,
-                            width: 3,
-                          ),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        height: 105,
-                        child: Stack(
-                          children: [
-                            ClipRRect(
-                              borderRadius: BorderRadius.circular(18),
-                              child: hasImage
-                                  ? Image.asset(
-                                imagePath,
-                                fit: BoxFit.cover,
-                                width: double.infinity,
-                                height: double.infinity,
-                                errorBuilder:
-                                    (context, error, stackTrace) {
-                                  return Container(
-                                    color: Colors.black.withValues(alpha: 0.6),
-                                    alignment: Alignment.center,
-                                    child: Text(
-                                      interest['title']!,
-                                      textAlign: TextAlign.center,
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 14,
-                                        fontFamily: 'WorkSans',
-                                        fontWeight: FontWeight.w600,
+          return Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                child: Text(
+                  "Chọn ít nhất 3 sở thích của bạn",
+                  style: TextStyle(
+                    fontSize: screenWidth < 360 ? 16 : 18,
+                    fontFamily: 'WorkSans',
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Expanded(
+                child: GridView.builder(
+                  controller: _scrollController,
+                  padding: const EdgeInsets.only(bottom: 8),
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 3,
+                    mainAxisSpacing: 10,
+                    crossAxisSpacing: 10,
+                    childAspectRatio: aspectRatio,
+                  ),
+                  itemCount: _visibleCount,
+                  itemBuilder: (context, index) {
+                    final interest = _allInterests[index];
+                    final isSelected =
+                        _selectedInterests.contains(interest['title']);
+                    final imagePath = (interest['image'] ?? '').trim();
+                    final hasImage = imagePath.isNotEmpty;
+
+                    return GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          if (isSelected) {
+                            _selectedInterests.remove(interest['title']);
+                          } else {
+                            _selectedInterests.add(interest['title']!);
+                          }
+                        });
+                      },
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Expanded(
+                            child: Container(
+                              decoration: BoxDecoration(
+                                border: Border.all(
+                                  color: isSelected
+                                      ? const Color.fromARGB(255, 255, 225, 176)
+                                      : Colors.transparent,
+                                  width: 2.5,
+                                ),
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              child: Stack(
+                                children: [
+                                  ClipRRect(
+                                    borderRadius: BorderRadius.circular(14),
+                                    child: hasImage
+                                        ? Image.asset(
+                                            imagePath,
+                                            fit: BoxFit.cover,
+                                            width: double.infinity,
+                                            height: double.infinity,
+                                            errorBuilder:
+                                                (context, error, stackTrace) {
+                                              return Container(
+                                                color: Colors.black
+                                                    .withValues(alpha: 0.6),
+                                                alignment: Alignment.center,
+                                                child: Text(
+                                                  interest['title']!,
+                                                  textAlign: TextAlign.center,
+                                                  style: const TextStyle(
+                                                    color: Colors.white,
+                                                    fontSize: 12,
+                                                    fontFamily: 'WorkSans',
+                                                    fontWeight: FontWeight.w600,
+                                                  ),
+                                                ),
+                                              );
+                                            },
+                                          )
+                                        : Container(
+                                            color: Colors.black
+                                                .withValues(alpha: 0.6),
+                                            alignment: Alignment.center,
+                                            child: Text(
+                                              interest['title']!,
+                                              textAlign: TextAlign.center,
+                                              style: const TextStyle(
+                                                color: Colors.white,
+                                                fontSize: 12,
+                                                fontFamily: 'WorkSans',
+                                                fontWeight: FontWeight.w600,
+                                              ),
+                                            ),
+                                          ),
+                                  ),
+                                  if (isSelected)
+                                    Positioned(
+                                      top: 6,
+                                      right: 6,
+                                      child: Container(
+                                        decoration: BoxDecoration(
+                                          color: const Color.fromARGB(
+                                              255, 255, 225, 176),
+                                          borderRadius:
+                                              BorderRadius.circular(5),
+                                        ),
+                                        padding: const EdgeInsets.all(3),
+                                        child: const Icon(
+                                          Icons.check,
+                                          color: Colors.white,
+                                          size: 14,
+                                        ),
                                       ),
                                     ),
-                                  );
-                                },
-                              )
-                                  : Container(
-                                color: Colors.black.withValues(alpha: 0.6),
-                                alignment: Alignment.center,
-                                child: Text(
-                                  interest['title']!,
-                                  textAlign: TextAlign.center,
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 14,
-                                    fontFamily: 'WorkSans',
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
+                                ],
                               ),
                             ),
-
-                            if (isSelected)
-                              Positioned(
-                                top: 8,
-                                right: 8,
-                                child: Container(
-                                  decoration: BoxDecoration(
-                                    color: Color.fromARGB(255, 255, 225, 176),
-                                    borderRadius: BorderRadius.circular(6),
-                                  ),
-                                  padding: const EdgeInsets.all(4),
-                                  child: const Icon(
-                                    Icons.check,
-                                    color: Colors.white,
-                                    size: 18,
-                                  ),
-                                ),
-                              ),
-                          ],
-                        ),
-                      ),
-
-                      Padding(
-                        padding: const EdgeInsets.only(top: 6),
-                        child: Text(
-                          interest['title']!,
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontFamily: 'WorkSans',
-                            fontWeight: FontWeight.w600,
-                            color: isSelected
-                                ? Color.fromARGB(255, 255, 225, 176)
-                                : Colors.white,
                           ),
-                        ),
+                          Padding(
+                            padding: const EdgeInsets.only(top: 4),
+                            child: Text(
+                              interest['title']!,
+                              textAlign: TextAlign.center,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontFamily: 'WorkSans',
+                                fontWeight: FontWeight.w600,
+                                color: isSelected
+                                    ? const Color.fromARGB(255, 255, 225, 176)
+                                    : Colors.white,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
-                );
-              },
-            ),
-          ),
-        ],
+                    );
+                  },
+                ),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
