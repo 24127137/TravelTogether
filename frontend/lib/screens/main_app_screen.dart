@@ -516,7 +516,7 @@ class _MainAppScreenState extends State<MainAppScreen> {
           },
         ),
         NotificationScreen(),
-        MessagesScreen(accessToken: widget.accessToken),
+        MessagesScreen(),
         PersonalSection(
           onGroupStateTap: _openGroupState,
           onTravelPlanTap: _openTravelPlan,

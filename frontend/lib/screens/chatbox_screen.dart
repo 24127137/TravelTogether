@@ -17,7 +17,8 @@ import 'map_route_screen.dart';
 
 //màn hình lúc chat
 class ChatboxScreen extends StatefulWidget {
-  const ChatboxScreen({Key? key}) : super(key: key);
+  final Map<String, dynamic>? groupData;
+  const ChatboxScreen({Key? key, this.groupData}) : super(key: key);
 
   // === THÊM MỚI: Getter public để notification service có thể check ===
   static bool get isCurrentlyInChatScreen => _ChatboxScreenState.isInChatScreen;
@@ -355,58 +356,64 @@ class _ChatboxScreenState extends State<ChatboxScreen> with WidgetsBindingObserv
     }
   }
 
-  // === THÊM MỚI: Load thông tin members từ group để lấy avatar ===
   Future<void> _loadGroupMembers() async {
     if (_accessToken == null) return;
 
+    if (widget.groupData != null) {
+      final group = widget.groupData!;
+      final members = group['members'] ?? [];
+
+      setState(() {
+        _groupName = group['name']?.toString() ?? 'Nhóm chat';
+        _groupAvatarUrl = group['group_image_url']?.toString();
+      });
+
+      for (var member in members) {
+        final uuid = member['profile_uuid']?.toString();
+        final avatar = member['avatar_url']?.toString();
+        if (uuid != null && uuid.isNotEmpty) {
+          _groupMembers[uuid] = Map<String, dynamic>.from(member);
+          _userAvatars[uuid] = avatar;
+        }
+      }
+      print('✅ Load nhóm thành công từ MessagesScreen: $_groupName');
+      return;
+    }
+
     try {
-      final url = ApiConfig.getUri(ApiConfig.myGroup);
       final response = await http.get(
-        url,
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": "Bearer $_accessToken",
-        },
+        ApiConfig.getUri(ApiConfig.myGroup),
+        headers: {"Authorization": "Bearer $_accessToken"},
       );
 
       if (response.statusCode == 200) {
-        final data = jsonDecode(utf8.decode(response.bodyBytes));
+        final dynamic raw = jsonDecode(utf8.decode(response.bodyBytes));
+        final List<dynamic> list = raw is List ? raw : (raw is Map ? [raw] : []);
 
-        // Lưu thông tin group (tên và avatar)
-        // Backend trả về 'group_image_url' chứ không phải 'avatar_url'
-        final groupName = data['name'] as String?;
-        final groupAvatar = data['group_image_url'] as String?; // ✅ Sửa key này
-
-        print('🏔️ ===== GROUP INFO DEBUG =====');
-        print('🏔️ Group Name: $groupName');
-        print('🏔️ Group Avatar URL: $groupAvatar');
-        print('🏔️ Full data keys: ${data.keys}');
-        print('🏔️ ============================');
-
-        setState(() {
-          _groupName = groupName;
-          _groupAvatarUrl = groupAvatar;
-        });
-
-        final List<dynamic> members = data['members'] ?? [];
-
-        // Cache avatar theo profile_uuid
-        for (var member in members) {
-          final profileUuid = member['profile_uuid'] as String?;
-          final avatarUrl = member['avatar_url'] as String?;
-          if (profileUuid != null) {
-            _groupMembers[profileUuid] = member;
-            _userAvatars[profileUuid] = avatarUrl;
-          }
+        if (list.isEmpty) {
+          if (mounted) Navigator.of(context).pop();
+          return;
         }
 
-        print('✅ Group info loaded: $_groupName');
-        print('✅ Group avatar: $_groupAvatarUrl');
-        print('✅ Group members loaded: ${_groupMembers.length} members');
-        print('✅ User avatars: $_userAvatars');
+        final group = list[0];
+        final members = group['members'] ?? [];
+
+        setState(() {
+          _groupName = group['name']?.toString() ?? 'Nhóm chat';
+          _groupAvatarUrl = group['group_image_url']?.toString();
+        });
+
+        for (var member in members) {
+          final uuid = member['profile_uuid']?.toString();
+          final avatar = member['avatar_url']?.toString();
+          if (uuid != null && uuid.isNotEmpty) {
+            _groupMembers[uuid] = Map<String, dynamic>.from(member);
+            _userAvatars[uuid] = avatar;
+          }
+        }
       }
     } catch (e) {
-      print('❌ Error loading group members: $e');
+      print('Load group fallback error: $e');
     }
   }
 
@@ -904,7 +911,25 @@ class _ChatboxScreenState extends State<ChatboxScreen> with WidgetsBindingObserv
         return;
       }
 
-      final groupData = jsonDecode(utf8.decode(groupResponse.bodyBytes));
+      final dynamic rawGroupData = jsonDecode(utf8.decode(groupResponse.bodyBytes));
+
+      List<dynamic> groupsList = [];
+      if (rawGroupData is List) {
+        groupsList = rawGroupData;
+      } else if (rawGroupData is Map) {
+        groupsList = [rawGroupData];
+      } else {
+        throw Exception('Invalid group data format');
+      }
+
+      if (groupsList.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Bạn chưa tham gia nhóm nào'.tr())),
+        );
+        return;
+      }
+
+      final groupData = groupsList[0] as Map<String, dynamic>;
 
       final groupName = groupData['name']?.toString() ?? 'Unknown Group';
       final currentMembers = groupData['member_count'] as int? ?? 0;

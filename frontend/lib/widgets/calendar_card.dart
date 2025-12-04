@@ -3,15 +3,13 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../config/api_config.dart';
+import '../services/auth_service.dart';
 
-class CalendarCard extends StatelessWidget {
+class CalendarCard extends StatefulWidget {
   final DateTime focusedDay;
-  final DateTime? rangeStart;
-  final DateTime? rangeEnd;
-  final Function(DateTime, DateTime) onDaySelected;
-  final Function(DateTime) onPageChanged;
+  final DateTime? initialRangeStart;
+  final DateTime? initialRangeEnd;
   final VoidCallback onClose;
   final Color? accentColor;
   final EdgeInsetsGeometry? margin;
@@ -19,50 +17,481 @@ class CalendarCard extends StatelessWidget {
   const CalendarCard({
     Key? key,
     required this.focusedDay,
-    this.rangeStart,
-    this.rangeEnd,
-    required this.onDaySelected,
-    required this.onPageChanged,
+    this.initialRangeStart,
+    this.initialRangeEnd,
     required this.onClose,
     this.accentColor,
     this.margin,
   }) : super(key: key);
 
   @override
+  State<CalendarCard> createState() => _CalendarCardState();
+}
+
+class _CalendarCardState extends State<CalendarCard> {
+  late DateTime _focusedDay;
+  DateTime? _rangeStart;
+  DateTime? _rangeEnd;
+  bool _isSelectingStart = true;
+  bool _isLoading = false;
+  int _tapCount = 0;
+  DateTime? _lastTapTime;
+
+  @override
+  void initState() {
+    super.initState();
+    _focusedDay = widget.focusedDay;
+    _rangeStart = widget.initialRangeStart;
+    _rangeEnd = widget.initialRangeEnd;
+    
+    if (_rangeStart != null && _rangeEnd != null) {
+      _isSelectingStart = true;
+    } else if (_rangeStart != null) {
+      _isSelectingStart = false;
+    }
+  }
+
+  void _onDaySelected(DateTime selectedDay, DateTime focusedDay) {
+    final today = DateTime.now();
+    final todayStart = DateTime(today.year, today.month, today.day);
+
+    if (selectedDay.isBefore(todayStart)) {
+      _showErrorDialog('Vui lòng chọn ngày từ hôm nay trở đi');
+      return;
+    }
+
+    setState(() {
+      _focusedDay = focusedDay;
+
+      if (_isSelectingStart) {
+        _rangeStart = selectedDay;
+        _rangeEnd = null;
+        _isSelectingStart = false;
+        print('📅 Chọn ngày bắt đầu: ${DateFormat('yyyy-MM-dd').format(selectedDay)}');
+      } else {
+        _rangeEnd = selectedDay;
+        
+        if (_rangeStart != null && _rangeEnd!.isBefore(_rangeStart!)) {
+          print('🔄 Đảo ngược: end < start');
+          final temp = _rangeStart;
+          _rangeStart = _rangeEnd;
+          _rangeEnd = temp;
+        }
+        
+        _isSelectingStart = true;
+        print('📅 Chọn ngày kết thúc: ${DateFormat('yyyy-MM-dd').format(selectedDay)}');
+        print('📅 Range: $_rangeStart → $_rangeEnd');
+      }
+    });
+  }
+
+  void _onPageChanged(DateTime focusedDay) {
+    setState(() {
+      _focusedDay = focusedDay;
+    });
+  }
+
+  Map<String, String?> _parseErrorMessage(String rawMessage) {
+    String groupName = '';
+    String dateRange = '';
+
+    final groupMatch = RegExp(r"nhóm '([^']+)'").firstMatch(rawMessage);
+    if (groupMatch != null) {
+      groupName = groupMatch.group(1) ?? '';
+    }
+
+    final dateMatch = RegExp(r'\[(\d{4}-\d{2}-\d{2}),(\d{4}-\d{2}-\d{2})\)').firstMatch(rawMessage);
+    if (dateMatch != null) {
+      try {
+        final start = DateTime.parse(dateMatch.group(1)!);
+        final end = DateTime.parse(dateMatch.group(2)!); 
+        dateRange = '${DateFormat('dd/MM/yyyy').format(start)} - ${DateFormat('dd/MM/yyyy').format(end)}';
+      } catch (e) {
+        dateRange = '';
+      }
+    }
+    
+    return {'groupName': groupName, 'dateRange': dateRange};
+  }
+
+  void _showErrorDialog(String message) {
+    final parsed = _parseErrorMessage(message);
+    final isDateConflict = parsed['groupName']?.isNotEmpty == true;
+    final isTokenError = message.toLowerCase().contains("token");
+    
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        child: Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(20),
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                Colors.orange.shade50,
+                Colors.white,
+              ],
+            ),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.orange.shade100,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  isDateConflict ? Icons.calendar_today : Icons.error_outline,
+                  size: 48,
+                  color: Colors.orange.shade700,
+                ),
+              ),
+              const SizedBox(height: 20),
+
+              Text(
+                isTokenError
+                    ? 'Phiên đăng nhập hết hạn'
+                    : (isDateConflict ? 'Trùng lịch trình!' : 'Không thể lưu'),
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.orange.shade800,
+                ),
+              ),
+
+              const SizedBox(height: 12),
+
+              if (isTokenError)
+                Text(
+                  'Phiên đăng nhập của bạn đã hết hạn.\nVui lòng đăng nhập lại.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 15,
+                    color: Colors.grey.shade700,
+                    height: 1.4,
+                  ),
+                )
+              else if (isDateConflict)
+                _buildDateConflictUI(parsed)
+              else
+                Text(
+                  message,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 15,
+                    color: Colors.grey.shade700,
+                    height: 1.4,
+                  ),
+                ),
+
+              const SizedBox(height: 24),
+
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.orange.shade600,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    elevation: 0,
+                  ),
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                  },
+                  child: Text(
+                    isTokenError ? 'Đăng nhập lại' : 'Đã hiểu',
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDateConflictUI(Map parsed) {
+    return Column(
+      children: [
+        Text(
+          'Bạn đang tham gia nhóm',
+          textAlign: TextAlign.center,
+          style: TextStyle(fontSize: 15, color: Colors.grey.shade600),
+        ),
+        const SizedBox(height: 8),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          decoration: BoxDecoration(
+            color: Colors.orange.shade50,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: Colors.orange.shade200),
+          ),
+          child: Text(
+            parsed['groupName']!,
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: Colors.orange.shade900,
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+
+        Text(
+          'có lịch trình',
+          style: TextStyle(fontSize: 15, color: Colors.grey.shade600),
+        ),
+
+        const SizedBox(height: 8),
+
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.date_range, size: 18, color: Colors.orange.shade700),
+            const SizedBox(width: 6),
+            Text(
+              parsed['dateRange']!,
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+                color: Colors.orange.shade800,
+              ),
+            ),
+          ],
+        ),
+
+        const SizedBox(height: 16),
+
+        Text(
+          'Vui lòng chọn ngày khác hoặc rời khỏi nhóm để cập nhật lịch trình mới.',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontSize: 14,
+            color: Colors.grey.shade600,
+            height: 1.4,
+          ),
+        ),
+      ],
+    );
+  }
+
+  void _showSuccessDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        child: Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(20),
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                Colors.green.shade50,
+                Colors.white,
+              ],
+            ),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.green.shade100,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.check_circle_outline,
+                  size: 48,
+                  color: Colors.green.shade700,
+                ),
+              ),
+              const SizedBox(height: 20),
+
+              Text(
+                'Thành công!',
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.green.shade700,
+                ),
+              ),
+              const SizedBox(height: 12),
+
+              Text(
+                'Lịch trình của bạn đã được lưu thành công',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 15,
+                  color: Colors.grey.shade700,
+                  height: 1.4,
+                ),
+              ),
+
+              if (_rangeStart != null && _rangeEnd != null) ...[
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: Colors.green.shade50,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.green.shade200),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.calendar_today, size: 18, color: Colors.green.shade700),
+                      const SizedBox(width: 8),
+                      Text(
+                        '${DateFormat('dd/MM/yyyy').format(_rangeStart!)} - ${DateFormat('dd/MM/yyyy').format(_rangeEnd!)}',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.green.shade700,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+              
+              const SizedBox(height: 24),
+              
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.green.shade600,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    elevation: 0,
+                  ),
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                    widget.onClose();
+                  },
+                  child: const Text(
+                    'Hoàn tất',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final Color effectiveAccentColor = accentColor ?? const Color(0xFFA15C20);
+    final Color effectiveAccentColor = widget.accentColor ?? const Color(0xFFA15C20);
+    final today = DateTime.now();
+    final todayStart = DateTime(today.year, today.month, today.day);
+    
     return Card(
-      margin: margin ?? const EdgeInsets.symmetric(horizontal: 24),
+      margin: widget.margin ?? const EdgeInsets.symmetric(horizontal: 24),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text('select_date'.tr(),
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+            GestureDetector(
+              child: Text(
+                'select_date'.tr(),
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+              ),
+            ),
+            const SizedBox(height: 8),
+
+            Text(
+              _isSelectingStart 
+                  ? 'Chọn ngày bắt đầu'.tr()
+                  : 'Chọn ngày kết thúc'.tr(),
+              style: TextStyle(
+                fontSize: 14,
+                color: effectiveAccentColor,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+
+            if (_rangeStart != null || _rangeEnd != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 4),
+                child: Text(
+                  _rangeStart != null && _rangeEnd != null
+                      ? '${DateFormat('dd/MM/yyyy').format(_rangeStart!)} - ${DateFormat('dd/MM/yyyy').format(_rangeEnd!)}'
+                      : _rangeStart != null
+                          ? '${DateFormat('dd/MM/yyyy').format(_rangeStart!)} - ...'
+                          : '',
+                  style: const TextStyle(
+                    fontSize: 13,
+                    color: Colors.grey,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            
+            const SizedBox(height: 8),
+            
             TableCalendar(
-              firstDay: DateTime.utc(2020, 1, 1),
+              firstDay: todayStart,
               lastDay: DateTime.utc(2030, 12, 31),
-              focusedDay: focusedDay,
-              rangeStartDay: rangeStart,
-              rangeEndDay: rangeEnd,
+              focusedDay: _focusedDay,
+              rangeStartDay: _rangeStart,
+              rangeEndDay: _rangeEnd,
               locale: context.locale.toString(),
-              onDaySelected: onDaySelected,
-              onPageChanged: onPageChanged,
+              onDaySelected: _onDaySelected,
+              onPageChanged: _onPageChanged,
+              enabledDayPredicate: (day) {
+                return !day.isBefore(todayStart);
+              },
               calendarStyle: CalendarStyle(
                 todayDecoration: BoxDecoration(
-                    color: effectiveAccentColor.withAlpha((0.5 * 255).toInt()), shape: BoxShape.circle),
+                  color: effectiveAccentColor.withAlpha((0.5 * 255).toInt()),
+                  shape: BoxShape.circle,
+                ),
                 selectedDecoration: BoxDecoration(
-                    color: effectiveAccentColor, shape: BoxShape.circle),
+                  color: effectiveAccentColor,
+                  shape: BoxShape.circle,
+                ),
                 rangeStartDecoration: BoxDecoration(
-                    color: effectiveAccentColor, shape: BoxShape.circle),
+                  color: effectiveAccentColor,
+                  shape: BoxShape.circle,
+                ),
                 rangeEndDecoration: BoxDecoration(
-                    color: effectiveAccentColor, shape: BoxShape.circle),
+                  color: effectiveAccentColor,
+                  shape: BoxShape.circle,
+                ),
                 rangeHighlightColor: effectiveAccentColor.withAlpha((0.5 * 255).toInt()),
+                disabledTextStyle: TextStyle(color: Colors.grey.shade300),
               ),
               headerStyle: const HeaderStyle(
-                  formatButtonVisible: false, titleCentered: true),
+                formatButtonVisible: false,
+                titleCentered: true,
+              ),
             ),
             const SizedBox(height: 10),
             ElevatedButton(
@@ -70,25 +499,26 @@ class CalendarCard extends StatelessWidget {
                 backgroundColor: effectiveAccentColor,
                 minimumSize: const Size(double.infinity, 50),
                 shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(25)),
+                  borderRadius: BorderRadius.circular(25),
+                ),
               ),
-              onPressed: () async {
-                // When user confirms, update travel_dates on profile
-                if (rangeStart == null || rangeEnd == null) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('please_select_dates'.tr())),
-                  );
+              onPressed: _isLoading ? null : () async {
+                if (_rangeStart == null || _rangeEnd == null) {
+                  _showErrorDialog('Vui lòng chọn đầy đủ ngày bắt đầu và kết thúc');
                   return;
                 }
 
-                final String startStr = rangeStart!.toIso8601String().split('T')[0];
-                final String endStr = rangeEnd!.toIso8601String().split('T')[0];
-                // Use exclusive upper bound as the backend expects e.g. [2025-12-10,2025-12-17)
+                setState(() => _isLoading = true);
+                
+                final String startStr = DateFormat('yyyy-MM-dd').format(_rangeStart!);
+                final String endStr = DateFormat('yyyy-MM-dd').format(_rangeEnd!);
                 final String daterange = '[$startStr,$endStr)';
 
+                print('📅 Sending daterange: $daterange');
+                print('   User chọn: ${DateFormat('dd/MM/yyyy').format(_rangeStart!)} → ${DateFormat('dd/MM/yyyy').format(_rangeEnd!)}');
+
                 try {
-                  final prefs = await SharedPreferences.getInstance();
-                  final accessToken = prefs.getString('access_token');
+                  final accessToken = await AuthService.getValidAccessToken();
                   final url = ApiConfig.getUri(ApiConfig.userProfile);
 
                   final resp = await http.patch(
@@ -100,33 +530,53 @@ class CalendarCard extends StatelessWidget {
                     body: jsonEncode({'travel_dates': daterange}),
                   );
 
+                  print('📡 Response status: ${resp.statusCode}');
+                  print('📡 Response body: ${resp.body}');
+
+                  setState(() => _isLoading = false);
+
                   if (resp.statusCode == 200 || resp.statusCode == 204) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('dates_saved'.tr())),
-                    );
-                    // close the calendar overlay
-                    onClose();
+                    _showSuccessDialog();
                   } else {
                     final body = resp.body.isNotEmpty ? resp.body : resp.statusCode.toString();
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('save_failed'.tr() + ': ' + body)),
-                    );
+
+                    String errorMessage = 'Đã xảy ra lỗi khi lưu lịch trình';
+                    try {
+                      final jsonBody = jsonDecode(body);
+                      errorMessage = jsonBody['detail'] ?? errorMessage;
+                    } catch (e) {
+                      errorMessage = body;
+                    }
+                    
+                    _showErrorDialog(errorMessage);
+                    print('❌ Error: $body');
                   }
                 } catch (e) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('save_failed'.tr() + ': $e')),
-                  );
+                  setState(() => _isLoading = false);
+                  print('❌ Exception: $e');
+                  _showErrorDialog('Không thể kết nối đến server. Vui lòng thử lại sau.');
                 }
               },
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text('select_date'.tr(),
-                      style: const TextStyle(color: Colors.white, fontSize: 16)),
-                  const SizedBox(width: 8),
-                  const Icon(Icons.arrow_forward, color: Colors.white, size: 20),
-                ],
-              ),
+              child: _isLoading 
+                ? const SizedBox(
+                    height: 20,
+                    width: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                    ),
+                  )
+                : Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        'select_date'.tr(),
+                        style: const TextStyle(color: Colors.white, fontSize: 16),
+                      ),
+                      const SizedBox(width: 8),
+                      const Icon(Icons.arrow_forward, color: Colors.white, size: 20),
+                    ],
+                  ),
             ),
           ],
         ),

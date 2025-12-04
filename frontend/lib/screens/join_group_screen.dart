@@ -367,7 +367,7 @@ class _JoinGroupScreenState extends State<JoinGroupScreen> {
               _currentPage = index % _groups.length;
             });
           },
-          itemCount: _groups.length * multiplier,
+          itemCount: _groups.length,
           itemBuilder: (context, index) {
             final int actualIndex = index % _groups.length;
             final GroupData group = _groups[actualIndex];
