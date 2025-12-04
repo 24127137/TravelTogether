@@ -47,6 +47,7 @@ class _ChatboxScreenState extends State<ChatboxScreen> with WidgetsBindingObserv
   bool _isAutoScrolling = false; // === THÊM MỚI: Cờ để tránh mark seen khi auto scroll ===
   Map<int, GlobalKey> _messageKeys = {}; // === THÊM MỚI: keys per message for ensureVisible ===
   bool _showScrollToBottomButton = false; // === THÊM MỚI: Hiển thị nút scroll xuống ===
+  String? _selectedImageUrl; // === THÊM MỚI: Ảnh đã chọn để preview trước khi gửi ===
 
   @override
   void initState() {
@@ -730,28 +731,6 @@ class _ChatboxScreenState extends State<ChatboxScreen> with WidgetsBindingObserv
     }
   }
 
-  // === SỬA ĐỔI: Gửi tin nhắn qua WebSocket thay vì HTTP POST ===
-  Future<void> _sendMessage() async {
-    final text = _controller.text.trim();
-    if (text.isEmpty || _channel == null) return;
-
-    try {
-      // Gửi tin nhắn qua WebSocket
-      _channel!.sink.add(jsonEncode({
-        "message_type": "text",
-        "content": text,
-      }));
-
-      _controller.clear();
-
-      print('📤 Message sent via WebSocket');
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('${'chat_error_send'.tr()}: $e')),
-      );
-    }
-  }
-
   // === THÊM MỚI: Hiển thị bottom sheet để chọn nguồn ảnh ===
   Future<void> _showImageSourceSelection() async {
     showModalBottomSheet(
@@ -828,7 +807,7 @@ class _ChatboxScreenState extends State<ChatboxScreen> with WidgetsBindingObserv
     }
   }
 
-  // === THÊM MỚI (GĐ 13): Chọn và gửi ảnh ===
+  // === THÊM MỚI: Chọn ảnh và hiển thị preview (không gửi ngay) ===
   Future<void> _pickAndSendImage({ImageSource source = ImageSource.gallery}) async {
     if (_channel == null) return;
 
@@ -860,17 +839,19 @@ class _ChatboxScreenState extends State<ChatboxScreen> with WidgetsBindingObserv
         return;
       }
 
-      // Gửi tin nhắn ảnh qua WebSocket
-      _channel!.sink.add(jsonEncode({
-        "message_type": "image",
-        "image_url": imageUrl,
-      }));
+      // Lưu ảnh để preview, không gửi ngay
+      setState(() {
+        _selectedImageUrl = imageUrl;
+      });
 
-      print('📤 Image message sent via WebSocket');
+      // Focus vào textfield để user có thể nhập text
+      _focusNode.requestFocus();
+
+      print('📤 Image uploaded and ready for preview: $imageUrl');
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Lỗi gửi ảnh: $e')),
+          SnackBar(content: Text('Lỗi chọn ảnh: $e')),
         );
       }
     } finally {
@@ -879,6 +860,59 @@ class _ChatboxScreenState extends State<ChatboxScreen> with WidgetsBindingObserv
           _isUploading = false;
         });
       }
+    }
+  }
+
+  // === THÊM MỚI: Hủy ảnh đã chọn ===
+  void _clearSelectedImage() {
+    setState(() {
+      _selectedImageUrl = null;
+    });
+  }
+
+  // === THÊM MỚI: Gửi tin nhắn (có thể kèm ảnh nếu có) ===
+  void _sendMessageWithOptionalImage() {
+    final text = _controller.text.trim();
+    final imageUrl = _selectedImageUrl;
+
+    // Phải có text hoặc ảnh mới được gửi
+    if (text.isEmpty && imageUrl == null) return;
+    if (_channel == null) return;
+
+    try {
+      if (imageUrl != null && text.isNotEmpty) {
+        // Gửi ảnh kèm text: gửi ảnh trước, text sau
+        _channel!.sink.add(jsonEncode({
+          "message_type": "image",
+          "image_url": imageUrl,
+          "content": text, // Gửi kèm text nếu API hỗ trợ
+        }));
+        print('📤 Image + text message sent via WebSocket');
+      } else if (imageUrl != null) {
+        // Chỉ gửi ảnh
+        _channel!.sink.add(jsonEncode({
+          "message_type": "image",
+          "image_url": imageUrl,
+        }));
+        print('📤 Image message sent via WebSocket');
+      } else {
+        // Chỉ gửi text
+        _channel!.sink.add(jsonEncode({
+          "message_type": "text",
+          "content": text,
+        }));
+        print('📤 Text message sent via WebSocket');
+      }
+
+      // Clear input và preview
+      setState(() {
+        _controller.clear();
+        _selectedImageUrl = null;
+      });
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('${'chat_error_send'.tr()}: $e')),
+      );
     }
   }
 
@@ -1182,58 +1216,127 @@ class _ChatboxScreenState extends State<ChatboxScreen> with WidgetsBindingObserv
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
                   color: Colors.white,
-                  child: Row(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      // === THÊM MỚI: Nút chọn ảnh - hiện bottom sheet để chọn camera/gallery ===
-                      Material(
-                        color: const Color(0xFFB99668),
-                        shape: const CircleBorder(),
-                        child: IconButton(
-                          icon: _isUploading
-                              ? const SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(
-                              color: Colors.white,
-                              strokeWidth: 2,
-                            ),
-                          )
-                              : const Icon(Icons.add_photo_alternate, color: Colors.white),
-                          onPressed: _isUploading ? null : _showImageSourceSelection,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
+                      // === THÊM MỚI: Preview ảnh đã chọn ===
+                      if (_selectedImageUrl != null)
+                        Container(
+                          margin: const EdgeInsets.only(bottom: 8),
+                          padding: const EdgeInsets.all(8),
                           decoration: BoxDecoration(
                             color: const Color(0xFFEBE3D7),
-                            borderRadius: BorderRadius.circular(30.0),
+                            borderRadius: BorderRadius.circular(12),
                           ),
-                          child: TextField(
-                            controller: _controller,
-                            focusNode: _focusNode,
-                            maxLines: null, // === SỬA: Cho phép nhiều dòng ===
-                            minLines: 1, // === SỬA: Bắt đầu với 1 dòng ===
-                            keyboardType: TextInputType.multiline, // === SỬA: Keyboard hỗ trợ multiline ===
-                            textInputAction: TextInputAction.newline, // === SỬA: Enter để xuống dòng ===
-                            decoration: InputDecoration(
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-                              hintText: 'enter_message'.tr(),
-                              hintStyle: const TextStyle(color: Colors.black38),
-                              border: InputBorder.none,
+                          child: Row(
+                            children: [
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(8),
+                                child: Image.network(
+                                  _selectedImageUrl!,
+                                  width: 60,
+                                  height: 60,
+                                  fit: BoxFit.cover,
+                                  loadingBuilder: (context, child, loadingProgress) {
+                                    if (loadingProgress == null) return child;
+                                    return Container(
+                                      width: 60,
+                                      height: 60,
+                                      color: Colors.grey[300],
+                                      child: const Center(
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          color: Color(0xFFB99668),
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                  errorBuilder: (context, error, stackTrace) {
+                                    return Container(
+                                      width: 60,
+                                      height: 60,
+                                      color: Colors.grey[300],
+                                      child: const Icon(Icons.error, color: Colors.red),
+                                    );
+                                  },
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Text(
+                                  'Ảnh đã chọn - Nhập tin nhắn và nhấn gửi',
+                                  style: TextStyle(
+                                    color: Colors.grey[600],
+                                    fontSize: 13,
+                                  ),
+                                ),
+                              ),
+                              IconButton(
+                                icon: const Icon(Icons.close, color: Colors.red, size: 20),
+                                onPressed: _clearSelectedImage,
+                                padding: EdgeInsets.zero,
+                                constraints: const BoxConstraints(),
+                              ),
+                            ],
+                          ),
+                        ),
+                      // Input row
+                      Row(
+                        children: [
+                          // === Nút chọn ảnh - hiện bottom sheet để chọn camera/gallery ===
+                          Material(
+                            color: const Color(0xFFB99668),
+                            shape: const CircleBorder(),
+                            child: IconButton(
+                              icon: _isUploading
+                                  ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  color: Colors.white,
+                                  strokeWidth: 2,
+                                ),
+                              )
+                                  : const Icon(Icons.add_photo_alternate, color: Colors.white),
+                              onPressed: _isUploading ? null : _showImageSourceSelection,
                             ),
                           ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Material(
-                        color: const Color(0xFFB99668),
-                        shape: const CircleBorder(),
-                        child: IconButton(
-                          icon: const Icon(Icons.send, color: Colors.white),
-                          onPressed: _sendMessage,
-                        ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFEBE3D7),
+                                borderRadius: BorderRadius.circular(30.0),
+                              ),
+                              child: TextField(
+                                controller: _controller,
+                                focusNode: _focusNode,
+                                maxLines: null, // === Cho phép nhiều dòng ===
+                                minLines: 1, // === Bắt đầu với 1 dòng ===
+                                keyboardType: TextInputType.multiline, // === Keyboard hỗ trợ multiline ===
+                                textInputAction: TextInputAction.newline, // === Enter để xuống dòng ===
+                                decoration: InputDecoration(
+                                  contentPadding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                                  hintText: _selectedImageUrl != null
+                                      ? 'Nhập tin nhắn đi kèm ảnh...'
+                                      : 'enter_message'.tr(),
+                                  hintStyle: const TextStyle(color: Colors.black38),
+                                  border: InputBorder.none,
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Material(
+                            color: const Color(0xFFB99668),
+                            shape: const CircleBorder(),
+                            child: IconButton(
+                              icon: const Icon(Icons.send, color: Colors.white),
+                              onPressed: _sendMessageWithOptionalImage,
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),
