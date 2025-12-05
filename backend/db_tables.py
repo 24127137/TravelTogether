@@ -139,3 +139,4 @@ class AIMessages(SQLModel, table=True):
     image_url: Optional[str] = Field(default=None, sa_column=Column(TEXT))
     
     created_at: Optional[datetime] = Field(default=None, sa_column_kwargs={"default": "NOW()"})
+

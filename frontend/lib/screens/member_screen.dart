@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../widgets/out_group_dialog.dart';
 
 class MemberScreenMember extends StatefulWidget {
+  final String groupId;
   final String groupName;
   final int currentMembers;
   final int maxMembers;
@@ -9,6 +10,7 @@ class MemberScreenMember extends StatefulWidget {
 
   const MemberScreenMember({
     super.key,
+    required this.groupId,
     required this.groupName,
     required this.currentMembers,
     required this.maxMembers,
@@ -117,6 +119,7 @@ class _MemberScreenMemberState extends State<MemberScreenMember> {
             onTap: () {
               OutGroupDialog.show(
                 context,
+                groupId: widget.groupId,
                 isHost: false,
                 onSuccess: () {
                   Navigator.of(context).pop();

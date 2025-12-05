@@ -17,7 +17,8 @@ import 'map_route_screen.dart';
 
 //màn hình lúc chat
 class ChatboxScreen extends StatefulWidget {
-  const ChatboxScreen({Key? key}) : super(key: key);
+  final Map<String, dynamic>? groupData;
+  const ChatboxScreen({Key? key, this.groupData}) : super(key: key);
 
   // === THÊM MỚI: Getter public để notification service có thể check ===
   static bool get isCurrentlyInChatScreen => _ChatboxScreenState.isInChatScreen;
@@ -38,6 +39,7 @@ class _ChatboxScreenState extends State<ChatboxScreen> with WidgetsBindingObserv
   bool _isUploading = false; // === THÊM MỚI: Trạng thái upload ===
   String? _accessToken;
   String? _currentUserId; // UUID của user hiện tại (lấy từ SharedPreferences khi login)
+  String? _groupId;
   WebSocketChannel? _channel; // === THÊM MỚI: WebSocket channel ===
   Map<String, String?> _userAvatars = {}; // === THÊM MỚI: Cache avatar của users ===
   String? _myAvatarUrl; // === THÊM MỚI: Avatar của mình ===
@@ -47,13 +49,17 @@ class _ChatboxScreenState extends State<ChatboxScreen> with WidgetsBindingObserv
   bool _isAutoScrolling = false; // === THÊM MỚI: Cờ để tránh mark seen khi auto scroll ===
   Map<int, GlobalKey> _messageKeys = {}; // === THÊM MỚI: keys per message for ensureVisible ===
   bool _showScrollToBottomButton = false; // === THÊM MỚI: Hiển thị nút scroll xuống ===
-  String? _selectedImageUrl; // === THÊM MỚI: Ảnh đã chọn để preview trước khi gửi ===
 
   @override
   void initState() {
     super.initState();
     isInChatScreen = true; // === THÊM MỚI: Đánh dấu đang ở trong chat screen ===
     WidgetsBinding.instance.addObserver(this); // === THÊM MỚI: Lắng nghe lifecycle ===
+
+    if (widget.groupData != null) {
+      _groupId = widget.groupData!['id']?.toString() ?? 
+                widget.groupData!['group_id']?.toString();
+    }
 
     _loadAccessToken();
     _focusNode.addListener(() {
@@ -356,58 +362,64 @@ class _ChatboxScreenState extends State<ChatboxScreen> with WidgetsBindingObserv
     }
   }
 
-  // === THÊM MỚI: Load thông tin members từ group để lấy avatar ===
   Future<void> _loadGroupMembers() async {
     if (_accessToken == null) return;
 
+    if (widget.groupData != null) {
+      final group = widget.groupData!;
+      final members = group['members'] ?? [];
+
+      setState(() {
+        _groupName = group['name']?.toString() ?? 'Nhóm chat';
+        _groupAvatarUrl = group['group_image_url']?.toString();
+      });
+
+      for (var member in members) {
+        final uuid = member['profile_uuid']?.toString();
+        final avatar = member['avatar_url']?.toString();
+        if (uuid != null && uuid.isNotEmpty) {
+          _groupMembers[uuid] = Map<String, dynamic>.from(member);
+          _userAvatars[uuid] = avatar;
+        }
+      }
+      print('✅ Load nhóm thành công từ MessagesScreen: $_groupName');
+      return;
+    }
+
     try {
-      final url = ApiConfig.getUri(ApiConfig.myGroup);
       final response = await http.get(
-        url,
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": "Bearer $_accessToken",
-        },
+        ApiConfig.getUri(ApiConfig.myGroup),
+        headers: {"Authorization": "Bearer $_accessToken"},
       );
 
       if (response.statusCode == 200) {
-        final data = jsonDecode(utf8.decode(response.bodyBytes));
+        final dynamic raw = jsonDecode(utf8.decode(response.bodyBytes));
+        final List<dynamic> list = raw is List ? raw : (raw is Map ? [raw] : []);
 
-        // Lưu thông tin group (tên và avatar)
-        // Backend trả về 'group_image_url' chứ không phải 'avatar_url'
-        final groupName = data['name'] as String?;
-        final groupAvatar = data['group_image_url'] as String?; // ✅ Sửa key này
-
-        print('🏔️ ===== GROUP INFO DEBUG =====');
-        print('🏔️ Group Name: $groupName');
-        print('🏔️ Group Avatar URL: $groupAvatar');
-        print('🏔️ Full data keys: ${data.keys}');
-        print('🏔️ ============================');
-
-        setState(() {
-          _groupName = groupName;
-          _groupAvatarUrl = groupAvatar;
-        });
-
-        final List<dynamic> members = data['members'] ?? [];
-
-        // Cache avatar theo profile_uuid
-        for (var member in members) {
-          final profileUuid = member['profile_uuid'] as String?;
-          final avatarUrl = member['avatar_url'] as String?;
-          if (profileUuid != null) {
-            _groupMembers[profileUuid] = member;
-            _userAvatars[profileUuid] = avatarUrl;
-          }
+        if (list.isEmpty) {
+          if (mounted) Navigator.of(context).pop();
+          return;
         }
 
-        print('✅ Group info loaded: $_groupName');
-        print('✅ Group avatar: $_groupAvatarUrl');
-        print('✅ Group members loaded: ${_groupMembers.length} members');
-        print('✅ User avatars: $_userAvatars');
+        final group = list[0];
+        final members = group['members'] ?? [];
+
+        setState(() {
+          _groupName = group['name']?.toString() ?? 'Nhóm chat';
+          _groupAvatarUrl = group['group_image_url']?.toString();
+        });
+
+        for (var member in members) {
+          final uuid = member['profile_uuid']?.toString();
+          final avatar = member['avatar_url']?.toString();
+          if (uuid != null && uuid.isNotEmpty) {
+            _groupMembers[uuid] = Map<String, dynamic>.from(member);
+            _userAvatars[uuid] = avatar;
+          }
+        }
       }
     } catch (e) {
-      print('❌ Error loading group members: $e');
+      print('Load group fallback error: $e');
     }
   }
 
@@ -731,6 +743,28 @@ class _ChatboxScreenState extends State<ChatboxScreen> with WidgetsBindingObserv
     }
   }
 
+  // === SỬA ĐỔI: Gửi tin nhắn qua WebSocket thay vì HTTP POST ===
+  Future<void> _sendMessage() async {
+    final text = _controller.text.trim();
+    if (text.isEmpty || _channel == null) return;
+
+    try {
+      // Gửi tin nhắn qua WebSocket
+      _channel!.sink.add(jsonEncode({
+        "message_type": "text",
+        "content": text,
+      }));
+
+      _controller.clear();
+
+      print('📤 Message sent via WebSocket');
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('${'chat_error_send'.tr()}: $e')),
+      );
+    }
+  }
+
   // === THÊM MỚI: Hiển thị bottom sheet để chọn nguồn ảnh ===
   Future<void> _showImageSourceSelection() async {
     showModalBottomSheet(
@@ -807,7 +841,7 @@ class _ChatboxScreenState extends State<ChatboxScreen> with WidgetsBindingObserv
     }
   }
 
-  // === THÊM MỚI: Chọn ảnh và hiển thị preview (không gửi ngay) ===
+  // === THÊM MỚI (GĐ 13): Chọn và gửi ảnh ===
   Future<void> _pickAndSendImage({ImageSource source = ImageSource.gallery}) async {
     if (_channel == null) return;
 
@@ -839,19 +873,17 @@ class _ChatboxScreenState extends State<ChatboxScreen> with WidgetsBindingObserv
         return;
       }
 
-      // Lưu ảnh để preview, không gửi ngay
-      setState(() {
-        _selectedImageUrl = imageUrl;
-      });
+      // Gửi tin nhắn ảnh qua WebSocket
+      _channel!.sink.add(jsonEncode({
+        "message_type": "image",
+        "image_url": imageUrl,
+      }));
 
-      // Focus vào textfield để user có thể nhập text
-      _focusNode.requestFocus();
-
-      print('📤 Image uploaded and ready for preview: $imageUrl');
+      print('📤 Image message sent via WebSocket');
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Lỗi chọn ảnh: $e')),
+          SnackBar(content: Text('Lỗi gửi ảnh: $e')),
         );
       }
     } finally {
@@ -863,83 +895,21 @@ class _ChatboxScreenState extends State<ChatboxScreen> with WidgetsBindingObserv
     }
   }
 
-  // === THÊM MỚI: Hủy ảnh đã chọn ===
-  void _clearSelectedImage() {
-    setState(() {
-      _selectedImageUrl = null;
-    });
-  }
-
-  // === THÊM MỚI: Gửi tin nhắn (có thể kèm ảnh nếu có) ===
-  void _sendMessageWithOptionalImage() {
-    final text = _controller.text.trim();
-    final imageUrl = _selectedImageUrl;
-
-    // Phải có text hoặc ảnh mới được gửi
-    if (text.isEmpty && imageUrl == null) return;
-    if (_channel == null) return;
-
-    try {
-      if (imageUrl != null && text.isNotEmpty) {
-        // Gửi ảnh kèm text: gửi ảnh trước, text sau
-        _channel!.sink.add(jsonEncode({
-          "message_type": "image",
-          "image_url": imageUrl,
-          "content": text, // Gửi kèm text nếu API hỗ trợ
-        }));
-        print('📤 Image + text message sent via WebSocket');
-      } else if (imageUrl != null) {
-        // Chỉ gửi ảnh
-        _channel!.sink.add(jsonEncode({
-          "message_type": "image",
-          "image_url": imageUrl,
-        }));
-        print('📤 Image message sent via WebSocket');
-      } else {
-        // Chỉ gửi text
-        _channel!.sink.add(jsonEncode({
-          "message_type": "text",
-          "content": text,
-        }));
-        print('📤 Text message sent via WebSocket');
-      }
-
-      // Clear input và preview
-      setState(() {
-        _controller.clear();
-        _selectedImageUrl = null;
-      });
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('${'chat_error_send'.tr()}: $e')),
-      );
-    }
-  }
-
   Future<void> _navigateToMembersScreen() async {
     _accessToken = await AuthService.getValidAccessToken();
 
-    try {
-      final groupUrl = ApiConfig.getUri(ApiConfig.myGroup);
-      final groupResponse = await http.get(
-        groupUrl,
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": "Bearer $_accessToken",
-        },
-      );
-
-      if (groupResponse.statusCode != 200) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Lỗi load thông tin nhóm')),
-          );
-        }
-        return;
+    if (_groupId == null || _groupId!.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Lỗi: Không có thông tin nhóm')),
+        );
       }
+      return;
+    }
 
-      final groupData = jsonDecode(utf8.decode(groupResponse.bodyBytes));
-
+    if (widget.groupData != null) {
+      final groupData = widget.groupData!;
+      
       final groupName = groupData['name']?.toString() ?? 'Unknown Group';
       final currentMembers = groupData['member_count'] as int? ?? 0;
       final maxMembers = groupData['max_members'] as int? ?? 0;
@@ -958,6 +928,7 @@ class _ChatboxScreenState extends State<ChatboxScreen> with WidgetsBindingObserv
 
       final List<host.Member> ownerMembers = [];
       final List<member.Member> memberMembers = [];
+      
       for (var memberData in membersList) {
         try {
           final profileUuid = memberData['profile_uuid']?.toString();
@@ -965,9 +936,7 @@ class _ChatboxScreenState extends State<ChatboxScreen> with WidgetsBindingObserv
           final email = memberData['email']?.toString();
           final avatarUrl = memberData['avatar_url']?.toString();
 
-          if (profileUuid == null || profileUuid.isEmpty) {
-            continue;
-          }
+          if (profileUuid == null || profileUuid.isEmpty) continue;
 
           if (currentUserRole?.toLowerCase() == 'owner') {
             ownerMembers.add(host.Member(
@@ -992,11 +961,12 @@ class _ChatboxScreenState extends State<ChatboxScreen> with WidgetsBindingObserv
 
       if (mounted) {
         if (currentUserRole?.toLowerCase() == 'owner') {
-          print('🚀 Navigating to MemberScreenHost (Owner)');
+          print('🚀 Navigating to MemberScreenHost with groupId: $_groupId');
           await Navigator.push(
             context,
             MaterialPageRoute(
               builder: (context) => host.MemberScreenHost(
+                groupId: _groupId!,
                 groupName: groupName,
                 currentMembers: currentMembers,
                 maxMembers: maxMembers,
@@ -1005,11 +975,111 @@ class _ChatboxScreenState extends State<ChatboxScreen> with WidgetsBindingObserv
             ),
           );
         } else {
-          print('🚀 Navigating to MemberScreenMember (Member)');
+          print('🚀 Navigating to MemberScreenMember with groupId: $_groupId');
           await Navigator.push(
             context,
             MaterialPageRoute(
               builder: (context) => member.MemberScreenMember(
+                groupId: _groupId!,
+                groupName: groupName,
+                currentMembers: currentMembers,
+                maxMembers: maxMembers,
+                members: memberMembers,
+              ),
+            ),
+          );
+        }
+      }
+      return;
+    }
+
+    try {
+      final groupUrl = Uri.parse('${ApiConfig.baseUrl}/groups/$_groupId/detail');
+      final groupResponse = await http.get(
+        groupUrl,
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer $_accessToken",
+        },
+      );
+
+      if (groupResponse.statusCode != 200) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Lỗi load thông tin nhóm')),
+          );
+        }
+        return;
+      }
+
+      final groupData = jsonDecode(utf8.decode(groupResponse.bodyBytes)) as Map<String, dynamic>;
+      final groupName = groupData['name']?.toString() ?? 'Unknown Group';
+      final currentMembers = groupData['member_count'] as int? ?? 0;
+      final maxMembers = groupData['max_members'] as int? ?? 0;
+
+      String? currentUserRole;
+      final List<dynamic> membersList = groupData['members'] ?? [];
+
+      for (var memberData in membersList) {
+        final profileUuid = memberData['profile_uuid']?.toString();
+        if (profileUuid == _currentUserId) {
+          currentUserRole = memberData['role']?.toString();
+          break;
+        }
+      }
+
+      final List<host.Member> ownerMembers = [];
+      final List<member.Member> memberMembers = [];
+      
+      for (var memberData in membersList) {
+        try {
+          final profileUuid = memberData['profile_uuid']?.toString();
+          final fullname = memberData['fullname']?.toString();
+          final email = memberData['email']?.toString();
+          final avatarUrl = memberData['avatar_url']?.toString();
+
+          if (profileUuid == null || profileUuid.isEmpty) continue;
+
+          if (currentUserRole?.toLowerCase() == 'owner') {
+            ownerMembers.add(host.Member(
+              id: profileUuid,
+              name: fullname ?? 'Unknown',
+              email: email ?? 'no-email@example.com',
+              avatarUrl: avatarUrl,
+            ));
+          } else {
+            memberMembers.add(member.Member(
+              id: profileUuid,
+              name: fullname ?? 'Unknown',
+              email: email ?? 'no-email@example.com',
+              avatarUrl: avatarUrl ?? '',
+            ));
+          }
+        } catch (e) {
+          continue;
+        }
+      }
+
+      if (mounted) {
+        if (currentUserRole?.toLowerCase() == 'owner') {
+          await Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => host.MemberScreenHost(
+                groupId: _groupId!, 
+                groupName: groupName,
+                currentMembers: currentMembers,
+                maxMembers: maxMembers,
+                members: ownerMembers,
+              ),
+            ),
+          );
+        } else {
+          await Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => member.MemberScreenMember(
+                groupId: _groupId!, 
                 groupName: groupName,
                 currentMembers: currentMembers,
                 maxMembers: maxMembers,
@@ -1076,13 +1146,44 @@ class _ChatboxScreenState extends State<ChatboxScreen> with WidgetsBindingObserv
         actions: [
           IconButton(
             icon: const Icon(Icons.map, color: Colors.white, size: 28),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const MapRouteScreen(),
-                ),
-              );
+            onPressed: () async {
+              String? preferredCity;
+
+              if (widget.groupData != null) {
+                preferredCity = widget.groupData!['preferred_city']?.toString();
+              } 
+
+              else if (_groupId != null && _accessToken != null) {
+                try {
+                  final groupUrl = Uri.parse('${ApiConfig.baseUrl}/groups/$_groupId/detail');
+                  final response = await http.get(
+                    groupUrl,
+                    headers: {
+                      "Content-Type": "application/json",
+                      "Authorization": "Bearer $_accessToken",
+                    },
+                  );
+                  
+                  if (response.statusCode == 200) {
+                    final groupData = jsonDecode(utf8.decode(response.bodyBytes));
+                    preferredCity = groupData['preferred_city']?.toString();
+                  }
+                } catch (e) {
+                  print('❌ Error fetching group data: $e');
+                }
+              }
+
+              if (mounted) {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => MapRouteScreen(
+                      cityFilter: preferredCity,
+                      groupId: _groupId != null ? int.tryParse(_groupId!) : null,
+                    ),
+                  ),
+                );
+              }
             },
             tooltip: 'Xem lộ trình',
           ),
@@ -1216,127 +1317,58 @@ class _ChatboxScreenState extends State<ChatboxScreen> with WidgetsBindingObserv
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
                   color: Colors.white,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
+                  child: Row(
                     children: [
-                      // === THÊM MỚI: Preview ảnh đã chọn ===
-                      if (_selectedImageUrl != null)
-                        Container(
-                          margin: const EdgeInsets.only(bottom: 8),
-                          padding: const EdgeInsets.all(8),
+                      // === THÊM MỚI: Nút chọn ảnh - hiện bottom sheet để chọn camera/gallery ===
+                      Material(
+                        color: const Color(0xFFB99668),
+                        shape: const CircleBorder(),
+                        child: IconButton(
+                          icon: _isUploading
+                              ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
+                              strokeWidth: 2,
+                            ),
+                          )
+                              : const Icon(Icons.add_photo_alternate, color: Colors.white),
+                          onPressed: _isUploading ? null : _showImageSourceSelection,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
                           decoration: BoxDecoration(
                             color: const Color(0xFFEBE3D7),
-                            borderRadius: BorderRadius.circular(12),
+                            borderRadius: BorderRadius.circular(30.0),
                           ),
-                          child: Row(
-                            children: [
-                              ClipRRect(
-                                borderRadius: BorderRadius.circular(8),
-                                child: Image.network(
-                                  _selectedImageUrl!,
-                                  width: 60,
-                                  height: 60,
-                                  fit: BoxFit.cover,
-                                  loadingBuilder: (context, child, loadingProgress) {
-                                    if (loadingProgress == null) return child;
-                                    return Container(
-                                      width: 60,
-                                      height: 60,
-                                      color: Colors.grey[300],
-                                      child: const Center(
-                                        child: CircularProgressIndicator(
-                                          strokeWidth: 2,
-                                          color: Color(0xFFB99668),
-                                        ),
-                                      ),
-                                    );
-                                  },
-                                  errorBuilder: (context, error, stackTrace) {
-                                    return Container(
-                                      width: 60,
-                                      height: 60,
-                                      color: Colors.grey[300],
-                                      child: const Icon(Icons.error, color: Colors.red),
-                                    );
-                                  },
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Text(
-                                  'Ảnh đã chọn - Nhập tin nhắn và nhấn gửi',
-                                  style: TextStyle(
-                                    color: Colors.grey[600],
-                                    fontSize: 13,
-                                  ),
-                                ),
-                              ),
-                              IconButton(
-                                icon: const Icon(Icons.close, color: Colors.red, size: 20),
-                                onPressed: _clearSelectedImage,
-                                padding: EdgeInsets.zero,
-                                constraints: const BoxConstraints(),
-                              ),
-                            ],
+                          child: TextField(
+                            controller: _controller,
+                            focusNode: _focusNode,
+                            maxLines: null, // === SỬA: Cho phép nhiều dòng ===
+                            minLines: 1, // === SỬA: Bắt đầu với 1 dòng ===
+                            keyboardType: TextInputType.multiline, // === SỬA: Keyboard hỗ trợ multiline ===
+                            textInputAction: TextInputAction.newline, // === SỬA: Enter để xuống dòng ===
+                            decoration: InputDecoration(
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                              hintText: 'enter_message'.tr(),
+                              hintStyle: const TextStyle(color: Colors.black38),
+                              border: InputBorder.none,
+                            ),
                           ),
                         ),
-                      // Input row
-                      Row(
-                        children: [
-                          // === Nút chọn ảnh - hiện bottom sheet để chọn camera/gallery ===
-                          Material(
-                            color: const Color(0xFFB99668),
-                            shape: const CircleBorder(),
-                            child: IconButton(
-                              icon: _isUploading
-                                  ? const SizedBox(
-                                width: 20,
-                                height: 20,
-                                child: CircularProgressIndicator(
-                                  color: Colors.white,
-                                  strokeWidth: 2,
-                                ),
-                              )
-                                  : const Icon(Icons.add_photo_alternate, color: Colors.white),
-                              onPressed: _isUploading ? null : _showImageSourceSelection,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFEBE3D7),
-                                borderRadius: BorderRadius.circular(30.0),
-                              ),
-                              child: TextField(
-                                controller: _controller,
-                                focusNode: _focusNode,
-                                maxLines: null, // === Cho phép nhiều dòng ===
-                                minLines: 1, // === Bắt đầu với 1 dòng ===
-                                keyboardType: TextInputType.multiline, // === Keyboard hỗ trợ multiline ===
-                                textInputAction: TextInputAction.newline, // === Enter để xuống dòng ===
-                                decoration: InputDecoration(
-                                  contentPadding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-                                  hintText: _selectedImageUrl != null
-                                      ? 'Nhập tin nhắn đi kèm ảnh...'
-                                      : 'enter_message'.tr(),
-                                  hintStyle: const TextStyle(color: Colors.black38),
-                                  border: InputBorder.none,
-                                ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Material(
-                            color: const Color(0xFFB99668),
-                            shape: const CircleBorder(),
-                            child: IconButton(
-                              icon: const Icon(Icons.send, color: Colors.white),
-                              onPressed: _sendMessageWithOptionalImage,
-                            ),
-                          ),
-                        ],
+                      ),
+                      const SizedBox(width: 8),
+                      Material(
+                        color: const Color(0xFFB99668),
+                        shape: const CircleBorder(),
+                        child: IconButton(
+                          icon: const Icon(Icons.send, color: Colors.white),
+                          onPressed: _sendMessage,
+                        ),
                       ),
                     ],
                   ),

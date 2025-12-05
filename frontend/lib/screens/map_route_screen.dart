@@ -56,21 +56,20 @@ class _MapRouteScreenState extends State<MapRouteScreen> {
     });
 
     try {
-      if (widget.cityFilter != null) {
-        // TRƯỜNG HỢP 1: CỦA BẠN (Xem theo thành phố cụ thể)
-        // Gọi hàm mới chúng ta sẽ viết bên dưới
+      if (widget.groupId != null && widget.groupId! > 0) {
+        await _fetchSpecificGroupPlan(widget.groupId!);
+      } 
+
+      else if (widget.cityFilter != null) {
         await _fetchMyPersonalRoute(widget.cityFilter!);
-      } else {
-        // TRƯỜNG HỢP 2: CỦA BẠN BẠN (Logic cũ)
-        // Giữ nguyên hàm này, không đụng vào nội dung bên trong nó
+      } 
+
+      else {
         await _fetchGroupPlan();
       }
 
       if (_selectedPoints.length >= 2) {
-        // 1. Tối ưu hóa: Thử tất cả điểm làm điểm bắt đầu
         _optimizeRouteMultiStartNN();
-
-        // 2. Vẽ đường theo kết quả tốt nhất
         await _fetchRoute();
       }
     } catch (e) {
@@ -82,6 +81,19 @@ class _MapRouteScreenState extends State<MapRouteScreen> {
         _isLoading = false;
       });
     }
+  }
+
+  Future<void> _fetchSpecificGroupPlan(int groupId) async {
+    final token = await AuthService.getValidAccessToken();
+    if (token == null) throw Exception('Vui lòng đăng nhập');
+
+    final groupPlan = await _groupService.getGroupPlanById(token, groupId);
+    if (groupPlan == null) throw Exception('Không tìm thấy kế hoạch nhóm');
+
+    final itineraryData = groupPlan['itinerary'];
+    final preferredCity = groupPlan['preferred_city'];
+
+    await _parseItineraryData(itineraryData, preferredCity, true);
   }
 
   // ===============================================================

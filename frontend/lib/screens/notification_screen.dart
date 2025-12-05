@@ -7,6 +7,7 @@ import '../config/api_config.dart';
 import '../services/notification_service.dart'; // === THÊM MỚI: Import notification service ===
 import 'chatbox_screen.dart'; // === THÊM MỚI: Import chatbox screen ===
 import '../screens/host_member_screen.dart';
+import '../services/auth_service.dart'; 
 
 //File này là screen tên là <Notification> trong figma
 class NotificationScreen extends StatefulWidget {
@@ -20,6 +21,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
   List<NotificationData> _notifications = [];
   bool _isLoading = true;
   String? _accessToken;
+  String? _groupId;
 
   @override
   void initState() {
@@ -36,192 +38,134 @@ class _NotificationScreenState extends State<NotificationScreen> {
 
   Future<void> _loadNotifications() async {
     final prefs = await SharedPreferences.getInstance();
-    _accessToken = prefs.getString('access_token');
     final currentUserId = prefs.getString('user_id');
-    final lastSeenMessageId = prefs.getString('last_seen_message_id');
-
-    print('🔍 Loading notifications - lastSeenMessageId: $lastSeenMessageId');
+    
+    // Luôn lấy token tươi nhất (tự động refresh nếu hết hạn)
+    final accessToken = await AuthService.getValidAccessToken();
+    if (accessToken == null) {
+      setState(() => _isLoading = false);
+      return;
+    }
 
     List<NotificationData> notifications = [];
 
-    // Load thông báo tin nhắn mới từ group chat
-    if (_accessToken != null) {
-      try {
-        final url = ApiConfig.getUri(ApiConfig.chatHistory);
-        final response = await http.get(
-          url,
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": "Bearer $_accessToken",
-          },
-        );
+    // === 1. LẤY DANH SÁCH GROUP + PLAN + UNREAD MESSAGES CHO TỪNG GROUP ===
+    try {
+      final groupsResponse = await http.get(
+        ApiConfig.getUri(ApiConfig.myGroup), // GET /groups/mine
+        headers: {"Authorization": "Bearer $accessToken"},
+      );
 
-        if (response.statusCode == 200) {
-          final List<dynamic> messages = jsonDecode(utf8.decode(response.bodyBytes));
+      if (groupsResponse.statusCode != 200) throw Exception("Không tải được groups");
 
-          // Đếm số tin nhắn chưa đọc - CHỈ đếm từ tin nhắn SAU last_seen_message_id
-          int unreadCount = 0;
-          String? lastMessageContent;
-          String? lastMessageTime;
-          String? groupName;
-          String? groupId;
+      final List<dynamic> groups = jsonDecode(utf8.decode(groupsResponse.bodyBytes));
+      
+      for (var group in groups) {
+        final String groupId = group['id'].toString();
+        final String groupName = group['name']?.toString() ?? 'Nhóm chat';
+        final String? groupImageUrl = group['group_image_url']?.toString();
 
-          print('📊 Total messages in history: ${messages.length}');
-          print('📊 Last seen message ID: $lastSeenMessageId');
+        // Cache group mới nhất (cho background notification & mở chat nhanh)
+        await prefs.setString('cached_group_id', groupId);
+        await prefs.setString('cached_group_name', groupName);
 
-          // Duyệt từ CŨ nhất đến MỚI nhất để tìm vị trí last_seen
-          int lastSeenIndex = -1;
-          if (lastSeenMessageId != null) {
-            for (int i = 0; i < messages.length; i++) {
-              if (messages[i]['id']?.toString() == lastSeenMessageId) {
-                lastSeenIndex = i;
-                print('📍 Found last_seen at index: $i');
-                break;
+        // === Lấy lịch sử tin nhắn của riêng group này ===
+        try {
+          final historyResponse = await http.get(
+            Uri.parse('${ApiConfig.baseUrl}/chat/$groupId/history'),
+            headers: {"Authorization": "Bearer $accessToken"},
+          );
+
+          if (historyResponse.statusCode == 200) {
+            final List<dynamic> messages = jsonDecode(utf8.decode(historyResponse.bodyBytes));
+
+            final lastSeenId = prefs.getString('last_seen_message_id_$groupId'); // riêng từng group
+            int lastSeenIndex = -1;
+
+            if (lastSeenId != null) {
+              for (int i = 0; i < messages.length; i++) {
+                if (messages[i]['id'].toString() == lastSeenId) {
+                  lastSeenIndex = i;
+                  break;
+                }
               }
             }
-          }
 
-          // Đếm tin nhắn chưa đọc: chỉ những tin nhắn SAU last_seen_message_id
-          for (int i = lastSeenIndex + 1; i < messages.length; i++) {
-            final msg = messages[i];
-            final senderId = msg['sender_id']?.toString() ?? '';
-            final messageId = msg['id']?.toString() ?? '';
-            final isMyMessage = (currentUserId != null && senderId == currentUserId);
+            int unreadCount = 0;
+            String? lastMessageContent;
+            String? lastMessageTime;
 
-            print('📨 Checking message [$i]: id=$messageId, sender=$senderId, isMyMessage=$isMyMessage');
+            for (int i = lastSeenIndex + 1; i < messages.length; i++) {
+              final msg = messages[i];
+              final senderId = msg['sender_id']?.toString();
 
-            // Bỏ qua tin nhắn của mình
-            if (isMyMessage) {
-              print('   ⏩ Skipping: My message');
-              continue;
+              if (senderId == currentUserId) continue; // bỏ qua tin của mình
+
+              unreadCount++;
+              lastMessageContent = msg['content']?.toString() ?? 'Đã gửi một ảnh';
+              final time = DateTime.parse(msg['created_at']).toLocal();
+              lastMessageTime = _formatTime(time);
             }
 
-            // Đây là tin nhắn từ người khác, sau last_seen => chưa đọc
-            unreadCount++;
-            print('   📬 Unread message #$unreadCount');
+            if (unreadCount > 0) {
+              notifications.add(NotificationData(
+                icon: 'assets/images/message.jpg',
+                title: groupName,
+                subtitle: unreadCount > 1 ? ' • $unreadCount tin nhắn mới' : ' • 1 tin nhắn mới',
+                type: NotificationType.message,
+                time: lastMessageTime,
+                unreadCount: unreadCount,
+                payloadId: groupId, // để khi tap thì mở đúng group
+              ));
 
-            // Lưu tin nhắn MỚI NHẤT chưa đọc
-            lastMessageContent = msg['content'] ?? '';
-            final createdAtUtc = DateTime.parse(msg['created_at']);
-            final createdAtLocal = createdAtUtc.toLocal();
-            lastMessageTime = _formatTime(createdAtLocal);
-          }
-
-          print('📊 Total unread messages: $unreadCount');
-
-          // Load group name
-          try {
-            final groupUrl = ApiConfig.getUri(ApiConfig.myGroup);
-            final groupResponse = await http.get(
-              groupUrl,
-              headers: {
-                "Content-Type": "application/json",
-                "Authorization": "Bearer $_accessToken",
-              },
-            );
-
-            if (groupResponse.statusCode == 200) {
-              final groupData = jsonDecode(utf8.decode(groupResponse.bodyBytes));
-              groupName = groupData['name'] ?? 'Nhóm chat';
-              groupId = groupData['id']?.toString();
-
-              // Cache group name cho background service
-              final prefs = await SharedPreferences.getInstance();
-              await prefs.setString('cached_group_name', groupName ?? 'Nhóm chat');
-              if (groupId != null) {
-                await prefs.setString('cached_group_id', groupId);
-              }
-            }
-          } catch (e) {
-            print('Error loading group name: $e');
-            groupName = 'Nhóm chat';
-          }
-
-          // Nếu có tin nhắn chưa đọc, thêm vào danh sách thông báo
-          if (unreadCount > 0) {
-            notifications.add(NotificationData(
-              icon: 'assets/images/message.jpg',
-              title: groupName ?? 'Nhóm chat',
-              subtitle: unreadCount > 1
-                  ? ' - $unreadCount tin nhắn mới'
-                  : ' - 1 tin nhắn mới',
-              type: NotificationType.message,
-              time: lastMessageTime,
-              unreadCount: unreadCount,
-            ));
-
-            // Gửi system notification chỉ khi có tin nhắn mới
-            try {
+              // Gửi system notification (chỉ gửi cho group có tin mới)
               await NotificationService().showMessageNotification(
-                groupName: groupName ?? 'Nhóm chat',
+                groupName: groupName,
                 message: lastMessageContent ?? '',
                 unreadCount: unreadCount,
                 groupId: groupId,
               );
-              debugPrint('📬 System notification sent: $unreadCount unread messages');
-            } catch (e) {
-              debugPrint('❌ Error sending system notification: $e');
             }
-          } else {
-            print('✅ No unread messages');
+          }
+        } catch (e) {
+          print('Lỗi load history group $groupId: $e');
+        }
+
+        // === LẤY YÊU CẦU THAM GIA NHÓM (chỉ owner mới thấy) ===
+        if (group['role']?.toString().toLowerCase() == 'owner') {
+          try {
+            final reqResponse = await http.get(
+              Uri.parse('${ApiConfig.baseUrl}/groups/$groupId/requests'),
+              headers: {"Authorization": "Bearer $accessToken"},
+            );
+
+            if (reqResponse.statusCode == 200) {
+              final List<dynamic> requests = jsonDecode(utf8.decode(reqResponse.bodyBytes));
+              if (requests.isNotEmpty) {
+                notifications.add(NotificationData(
+                  icon: 'assets/images/add_user_icon.jpg',
+                  title: 'Yêu cầu tham gia nhóm',
+                  subtitle: 'Có ${requests.length} người muốn vào "$groupName"',
+                  type: NotificationType.groupRequest,
+                  time: 'Vừa xong',
+                  unreadCount: requests.length,
+                  payloadId: groupId,
+                ));
+              }
+            }
+          } catch (e) {
+            print('Lỗi load requests group $groupId: $e');
           }
         }
-      } catch (e) {
-        print('Error loading chat notifications: $e');
       }
-      // --- THÊM MỚI: LẤY DANH SÁCH YÊU CẦU THAM GIA NHÓM ---
-      try {
-        final requestUrl = ApiConfig.getUri(ApiConfig.groupManageRequests);
-        final requestResponse = await http.get(
-          requestUrl,
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": "Bearer $_accessToken",
-          },
-        );
-
-        if (requestResponse.statusCode == 200) {
-          final List<dynamic> requests = jsonDecode(utf8.decode(requestResponse.bodyBytes));
-
-          // Nếu có request, thêm vào danh sách thông báo
-          if (requests.isNotEmpty) {
-            // Có thể gộp chung hoặc hiển thị từng request. Ở đây hiển thị số lượng tổng.
-            notifications.add(NotificationData(
-              icon: 'assets/images/add_user_icon.jpg', // Hãy chắc chắn bạn có icon này hoặc dùng icon có sẵn
-              title: 'Yêu cầu tham gia nhóm',
-              subtitle: 'Có ${requests.length} người muốn vào nhóm của bạn',
-              type: NotificationType.groupRequest,
-              time: 'Mới nhất',
-              unreadCount: requests.length,
-            ));
-          }
-        }
-      } catch (e) {
-        print('Error loading group requests: $e');
-      }
+    } catch (e) {
+      print('Lỗi tải danh sách group: $e');
     }
 
-    // === MOCK DATA CŨ (COMMENTED) ===
-    /*
-    notifications.addAll([
-      NotificationData(
-        icon: 'assets/images/heart.jpg',
-        title: 'Tìm nhóm thành công',
-        type: NotificationType.matching,
-      ),
-      NotificationData(
-        icon: 'assets/images/message.jpg',
-        title: '1 tháng 2 lần',
-        subtitle: ' nhắn tin',
-        type: NotificationType.message,
-      ),
-      NotificationData(
-        icon: 'assets/images/alert.png',
-        title: 'Bảo mật',
-        type: NotificationType.security,
-      ),
-    ]);
-    */
+    // Nếu không có thông báo nào → hiện mock nhẹ hoặc để trống
+    if (notifications.isEmpty) {
+      // Có thể thêm thông báo kiểu "Mọi thứ yên bình" ở đây nếu muốn
+    }
 
     setState(() {
       _notifications = notifications;
@@ -230,7 +174,13 @@ class _NotificationScreenState extends State<NotificationScreen> {
   }
 
   Future<void> _handleGroupRequestTap() async {
-    // Hiện loading
+    if (_groupId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Không tìm thấy thông tin nhóm')),
+      );
+      return;
+    }
+
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -238,27 +188,17 @@ class _NotificationScreenState extends State<NotificationScreen> {
     );
 
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString('access_token');
-      if (token == null) return;
+      final token = _accessToken ?? await AuthService.getValidAccessToken();
+      if (token == null) throw Exception("No token");
 
-      // Cần gọi API lấy chi tiết nhóm để nạp vào MemberScreenHost
-      final url = ApiConfig.getUri(ApiConfig.myGroup);
-      final response = await http.get(
-        url,
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": "Bearer $token",
-        },
-      );
+      final url = Uri.parse('${ApiConfig.baseUrl}/groups/$_groupId/detail'); // hoặc /my-group nếu cần
+      final response = await http.get(url, headers: {"Authorization": "Bearer $token"});
 
-      Navigator.of(context).pop(); // Tắt loading
+      Navigator.of(context).pop(); // tắt loading
 
       if (response.statusCode == 200) {
         final data = jsonDecode(utf8.decode(response.bodyBytes));
 
-        // Parse dữ liệu thành viên
-        // Lưu ý: Cấu trúc JSON trả về của bạn cần khớp với logic này
         final List<dynamic> memberListJson = data['members'] ?? [];
         final List<Member> members = memberListJson.map((m) => Member(
           id: m['profile_uuid'] ?? '',
@@ -267,27 +207,27 @@ class _NotificationScreenState extends State<NotificationScreen> {
           avatarUrl: m['avatar_url'],
         )).toList();
 
-        // Chuyển màn hình
         if (mounted) {
           Navigator.push(
             context,
             MaterialPageRoute(
               builder: (context) => MemberScreenHost(
+                groupId: _groupId!,
                 groupName: data['name'] ?? 'Nhóm của tôi',
-                currentMembers: members.length, // Hoặc data['current_members']
-                maxMembers: data['max_members'] ?? 4,
+                currentMembers: members.length,
+                maxMembers: data['max_members'] ?? 10,
                 members: members,
-                openPendingTab: true, // <=== QUAN TRỌNG: Mở ngay tab pending
+                openPendingTab: true, // ← Mở thẳng tab "Yêu cầu tham gia"
               ),
             ),
           );
         }
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Không thể tải thông tin nhóm')));
       }
     } catch (e) {
-      Navigator.of(context).pop(); // Tắt loading nếu lỗi
-      print('Error accessing group details: $e');
+      Navigator.of(context).pop();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Lỗi: $e')),
+      );
     }
   }
 
