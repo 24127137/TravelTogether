@@ -3,8 +3,8 @@
 class ApiConfig {
   // Base URL for the API
   // static const String baseUrl = 'https://ddl23gmg-8000.asse.devtunnels.ms';
-  // static const String baseUrl = 'http://10.132.240.17:8000'; // server local
-  static const String baseUrl = 'http://10.132.240.17:8000'; // emulator local
+  // static const String baseUrl = 'http://172.25.19.7:8000';
+  static const String baseUrl = 'http://10.0.2.2:8000'; // emulator local
 
   static const String supabaseUrl = 'https://meuqntvawakdzntewscp.supabase.co';
   static const String supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1ldXFudHZhd2FrZHpudGV3c2NwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE2MzUxOTEsImV4cCI6MjA3NzIxMTE5MX0.w0wtRkKTelo9iHQfLtJ61H5xLCUu2VVMKr8BV4Ljcgw';
@@ -20,11 +20,11 @@ class ApiConfig {
 
   // Chat endpoints
   static const String chatHistory = '$baseUrl/chat/history';
-  // static const String chatWebSocket = 'ws://10.132.240.17:8000/chat/ws'; // WebSocket endpoint
-  static const String chatWebSocket = 'ws://10.132.240.17:8000/chat/ws'; // emulator local
+  // static const String chatWebSocket = 'ws://172.25.19.7:8000/chat/ws'; // Websocket endpoint
+  static const String chatWebSocket = 'ws://10.0.2.2:8000/chat/ws'; // emulator local
 
   // Group endpoints
-  static const String myGroup = '$baseUrl/groups/my-group';
+  static const String myGroup = '$baseUrl/groups/mine';
   static const String createGroup = '$baseUrl/groups/create';
   static const String suggest = '$baseUrl/groups/suggest';
   static const String joinGroup = '$baseUrl/groups/request-join';
@@ -37,7 +37,7 @@ class ApiConfig {
   static const String aiSend = '$baseUrl/ai/send';
 
   // Feedback endpoints
-  static const String feedbackBaseUrl = "http://10.132.240.17:8000/feedbacks";
+  static const String feedbackBaseUrl = '$baseUrl/feedbacks';
 
   // Helper method to parse URI
   static Uri getUri(String endpoint) {

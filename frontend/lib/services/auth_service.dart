@@ -27,20 +27,25 @@ class AuthService {
     }
   }
 
-  static Future<String?> getValidAccessToken() async {
+  static Future<String?> getValidAccessToken({bool forceRefreshIfExpired = true}) async {
     final prefs = await SharedPreferences.getInstance();
 
     String? access = prefs.getString('access_token');
     String? refresh = prefs.getString('refresh_token');
 
-    if (isTokenValid(access)) return access;
+    if (access != null && isTokenValid(access)) {
+      return access;
+    }
 
-    if (isTokenValid(refresh)) {
-      final newAccess = await refreshAccessToken(refresh!);
-      if (newAccess != null) return newAccess;
+    if (refresh == null || !isTokenValid(refresh)) {
       await clearTokens();
       _triggerAuthFailure();
       return null;
+    }
+
+    final newAccess = await refreshAccessToken(refresh);
+    if (newAccess != null) {
+      return newAccess;
     }
 
     await clearTokens();

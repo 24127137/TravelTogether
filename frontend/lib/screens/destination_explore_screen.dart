@@ -5,10 +5,164 @@ import '../models/destination_explore_item.dart';
 import '../widgets/enter_bar.dart';
 import '../services/recommendation_service.dart';
 import '../services/user_service.dart';
+import '../services/auth_service.dart';
+import '../config/api_config.dart';
 import 'destination_search_screen.dart';
 import 'before_group_screen.dart';
 import 'dart:ui'; // Để dùng ImageFilter.blur
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+
+class ExploreCacheManager {
+  static final ExploreCacheManager _instance = ExploreCacheManager._internal();
+  factory ExploreCacheManager() => _instance;
+  ExploreCacheManager._internal();
+
+  // Cache cho từng cityId
+  final Map<String, CachedExploreData> _cacheByCity = {};
+  
+  // Thời gian hết hạn cache (30 phút)
+  static const Duration _cacheDuration = Duration(minutes: 30);
+  
+  // Key để lưu interests trong SharedPreferences
+  static const String _interestsKey = 'cached_user_interests';
+
+  Future<CachedExploreData?> getCache(String cityId) async {
+    final cached = _cacheByCity[cityId];
+    if (cached == null) return null;
+
+    // Kiểm tra hết hạn
+    if (DateTime.now().difference(cached.timestamp) > _cacheDuration) {
+      _cacheByCity.remove(cityId);
+      print("⏰ [Cache] Cache đã hết hạn cho cityId: $cityId");
+      return null;
+    }
+
+    // Kiểm tra interests có thay đổi không
+    final isInterestsChanged = await _checkAndUpdateInterests();
+    if (isInterestsChanged) {
+      print("🔄 [Cache] Interests đã thay đổi, invalidate cache");
+      clearAll();
+      return null;
+    }
+
+    print("✅ [Cache] Hit cho cityId: $cityId");
+    return cached;
+  }
+
+  Future<void> setCache(
+    String cityId,
+    Map<String, int> scores,
+    List<String> savedNames,
+    List<String> interests,
+  ) async {
+    _cacheByCity[cityId] = CachedExploreData(
+      scores: scores,
+      savedNames: savedNames,
+      interests: interests,
+      timestamp: DateTime.now(),
+    );
+    print("💾 [Cache] Đã lưu cache cho cityId: $cityId");
+  }
+
+  void invalidateCity(String cityId) {
+    _cacheByCity.remove(cityId);
+    print("🗑️ [Cache] Đã xóa cache cho cityId: $cityId");
+  }
+
+  void clearAll() {
+    _cacheByCity.clear();
+    print("🗑️ [Cache] Đã xóa toàn bộ cache");
+  }
+
+  /// Kiểm tra interests từ API với interests đã lưu trong SharedPreferences
+  /// Trả về true nếu có thay đổi (cần reset cache)
+  Future<bool> _checkAndUpdateInterests() async {
+    try {
+      // 1. Lấy interests từ API trực tiếp
+      String? accessToken = await AuthService.getValidAccessToken();
+      
+      if (accessToken == null) {
+        print("⚠️ Không có access token, skip kiểm tra interests");
+        return false;
+      }
+
+      final url = ApiConfig.getUri(ApiConfig.userProfile);
+      
+      final response = await http.get(
+        url,
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer $accessToken",
+        },
+      );
+
+      if (response.statusCode != 200) {
+        print("⚠️ API /users/me trả về status ${response.statusCode}");
+        return false;
+      }
+
+      final data = jsonDecode(response.body);
+      final apiInterests = List<String>.from(data['interests'] ?? []);
+      
+      // 2. Lấy interests đã lưu trong SharedPreferences
+      final prefs = await SharedPreferences.getInstance();
+      final savedInterestsJson = prefs.getString(_interestsKey);
+      
+      List<String> savedInterests = [];
+      if (savedInterestsJson != null) {
+        try {
+          savedInterests = List<String>.from(jsonDecode(savedInterestsJson));
+        } catch (e) {
+          print("⚠️ Lỗi parse interests từ SharedPreferences: $e");
+        }
+      }
+      
+      // 3. So sánh
+      final hasChanged = !_areInterestsEqual(apiInterests, savedInterests);
+      
+      if (hasChanged) {
+        print("🔄 [Cache] Interests thay đổi:");
+        print("   Cũ: $savedInterests");
+        print("   Mới: $apiInterests");
+        
+        // 4. Cập nhật interests mới vào SharedPreferences
+        await prefs.setString(_interestsKey, jsonEncode(apiInterests));
+        print("💾 [Cache] Đã cập nhật interests mới vào SharedPreferences");
+      } else {
+        print("✅ [Cache] Interests không thay đổi");
+      }
+      
+      return hasChanged;
+    } catch (e) {
+      print("⚠️ Lỗi kiểm tra interests: $e");
+      return false; // Nếu có lỗi, giữ nguyên cache
+    }
+  }
+
+  bool _areInterestsEqual(List<String> a, List<String> b) {
+    if (a.length != b.length) return false;
+    final setA = Set.from(a);
+    final setB = Set.from(b);
+    return setA.difference(setB).isEmpty && setB.difference(setA).isEmpty;
+  }
+}
+
+class CachedExploreData {
+  final Map<String, int> scores;
+  final List<String> savedNames;
+  final List<String> interests;
+  final DateTime timestamp;
+
+  CachedExploreData({
+    required this.scores,
+    required this.savedNames,
+    required this.interests,
+    required this.timestamp,
+  });
+}
 
 class DestinationExploreScreen extends StatefulWidget {
   final String cityId;
@@ -38,12 +192,14 @@ class DestinationExploreScreen extends StatefulWidget {
 class _DestinationExploreScreenState extends State<DestinationExploreScreen> {
   final RecommendationService _recommendService = RecommendationService();
   final UserService _userService = UserService();
+  final ExploreCacheManager _cacheManager = ExploreCacheManager();
 
   List<DestinationExploreItem> _displayItems = [];
   Map<String, int> _compatibilityScores = {};
   bool _isLoading = true;
   bool _hasLoadedOnce = false;
   String? _userAvatar;
+  List<String> _currentInterests = [];
 
   Key _enterButtonKey = UniqueKey();
 
@@ -74,66 +230,131 @@ class _DestinationExploreScreenState extends State<DestinationExploreScreen> {
     if (mounted) setState(() => _isLoading = true);
 
     try {
-      print("🚀 [Explore] Bắt đầu load dữ liệu...");
+      print("🚀 [Explore] Bắt đầu load dữ liệu cho cityId: ${widget.cityId}");
 
+      // 1. Kiểm tra cache (bên trong sẽ tự check interests)
+      final cached = await _cacheManager.getCache(widget.cityId);
+      
+      if (cached != null) {
+        // Sử dụng cache
+        print("⚡ [Cache] Sử dụng dữ liệu cache");
+        _compatibilityScores = cached.scores;
+        _currentInterests = cached.interests;
+        _applySavedNames(cached.savedNames);
+        _sortAndUpdate();
+        return;
+      }
+
+      // 2. Không có cache -> Call API
+      print("📡 [API] Đang gọi API...");
+      
       final results = await Future.wait([
-        _recommendService.getMyRecommendations(), // Index 0
-        _userService.getSavedItineraryNames(),    // Index 1
+        _userService.getUserProfile(),              // Index 0 - Lấy interests
+        _recommendService.getMyRecommendations(),   // Index 1
+        _userService.getSavedItineraryNames(),      // Index 2
       ]);
 
-      final recommendations = results[0] as List<RecommendationOutput>;
-      final savedNames = results[1] as List<String>;
+      final profile = results[0] as Map<String, dynamic>?;
+      final recommendations = results[1] as List<RecommendationOutput>;
+      final savedNames = results[2] as List<String>;
 
-      print("📥 Server trả về ${savedNames.length} địa điểm đã lưu: $savedNames");
+      _currentInterests = List<String>.from(profile?['interests'] ?? []);
+      
+      print("📥 Nhận được ${recommendations.length} recommendations");
+      print("📥 Nhận được ${savedNames.length} địa điểm đã lưu");
+      print("📥 Interests hiện tại: $_currentInterests");
 
-      // 1. Xử lý điểm số AI
+      // 3. Xử lý điểm số AI
       _compatibilityScores.clear();
       for (var rec in recommendations) {
         _compatibilityScores[_normalizeName(rec.locationName)] = rec.score;
       }
 
-      // 2. Xử lý đồng bộ Tim (Sync Favorites)
-      int matchCount = 0;
-      for (var item in _displayItems) {
-        String itemNormal = _normalizeName(item.name);
+      // 4. Lưu vào cache
+      await _cacheManager.setCache(
+        widget.cityId,
+        Map.from(_compatibilityScores),
+        List.from(savedNames),
+        List.from(_currentInterests),
+      );
 
-        // So sánh tên item với danh sách đã lưu
-        bool isSaved = savedNames.any((savedName) {
-          String savedNormal = _normalizeName(savedName);
-          // Log kiểm tra nếu thấy nghi ngờ
-          // if (itemNormal.contains("rồng")) print("So sánh: '$itemNormal' vs '$savedNormal'");
-          return savedNormal == itemNormal;
-        });
+      // 5. Đồng bộ Tim
+      _applySavedNames(savedNames);
 
-        if (isSaved) {
-          item.isFavorite = true;
-          matchCount++;
-        } else {
-          item.isFavorite = false;
-        }
-      }
+      // 6. Sắp xếp và update UI
+      _sortAndUpdate();
 
-      print("✅ Đã đồng bộ xong. Có $matchCount thẻ được tim đỏ.");
-
-      // 3. Sắp xếp lại
-      List<DestinationExploreItem> sortedItems = List.from(_displayItems);
-      sortedItems.sort((a, b) {
-        int scoreA = _getScore(a.name);
-        int scoreB = _getScore(b.name);
-        return scoreB.compareTo(scoreA);
-      });
-
-      _hasLoadedOnce = true;
-
-      if (mounted) {
-        setState(() {
-          _displayItems = sortedItems;
-          _isLoading = false;
-        });
-      }
     } catch (e) {
       print("⚠️ Lỗi load data: $e");
       if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _refreshSavedNamesOnly() async {
+    try {
+      print("🔄 [Refresh] Chỉ cập nhật trạng thái tim...");
+      
+      // Chỉ gọi API lấy savedNames
+      final savedNames = await _userService.getSavedItineraryNames();
+      
+      print("📥 Nhận được ${savedNames.length} địa điểm đã lưu");
+      
+      // Cập nhật trạng thái tim
+      _applySavedNames(savedNames);
+      
+      // Cập nhật cache với savedNames mới (giữ nguyên scores)
+      if (_cacheManager._cacheByCity.containsKey(widget.cityId)) {
+        final oldCache = _cacheManager._cacheByCity[widget.cityId]!;
+        await _cacheManager.setCache(
+          widget.cityId,
+          oldCache.scores,
+          List.from(savedNames),
+          oldCache.interests,
+        );
+      }
+      
+      // Chỉ cần setState để update UI, không cần sort lại
+      if (mounted) setState(() {});
+      
+      print("✅ [Refresh] Đã cập nhật trạng thái tim");
+    } catch (e) {
+      print("⚠️ Lỗi refresh savedNames: $e");
+    }
+  }
+
+  void _applySavedNames(List<String> savedNames) {
+    int matchCount = 0;
+    for (var item in _displayItems) {
+      String itemNormal = _normalizeName(item.name);
+      bool isSaved = savedNames.any((savedName) {
+        return _normalizeName(savedName) == itemNormal;
+      });
+
+      if (isSaved) {
+        item.isFavorite = true;
+        matchCount++;
+      } else {
+        item.isFavorite = false;
+      }
+    }
+    print("✅ Đã đồng bộ xong. Có $matchCount thẻ được tim đỏ.");
+  }
+
+  void _sortAndUpdate() {
+    List<DestinationExploreItem> sortedItems = List.from(_displayItems);
+    sortedItems.sort((a, b) {
+      int scoreA = _getScore(a.name);
+      int scoreB = _getScore(b.name);
+      return scoreB.compareTo(scoreA);
+    });
+
+    _hasLoadedOnce = true;
+
+    if (mounted) {
+      setState(() {
+        _displayItems = sortedItems;
+        _isLoading = false;
+      });
     }
   }
 
@@ -198,7 +419,7 @@ class _DestinationExploreScreenState extends State<DestinationExploreScreen> {
       ),
     );
     // Khi quay lại từ Search, reload lại data để cập nhật tim nếu có thay đổi bên search
-    _loadAllData();
+    await _refreshSavedNamesOnly();
   }
 
   void _handleBack() {

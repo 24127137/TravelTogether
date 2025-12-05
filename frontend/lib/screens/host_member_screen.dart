@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../widgets/out_group_dialog.dart';
 import '../config/api_config.dart';
 import '../services/auth_service.dart';
 
 class MemberScreenHost extends StatefulWidget {
+  final String groupId;
   final String groupName;
   final int currentMembers;
   final int maxMembers;
@@ -15,6 +15,7 @@ class MemberScreenHost extends StatefulWidget {
 
   const MemberScreenHost({
     super.key,
+    required this.groupId,
     required this.groupName,
     required this.currentMembers,
     required this.maxMembers,
@@ -93,7 +94,7 @@ class _MemberScreenHostState extends State<MemberScreenHost> with WidgetsBinding
       // === SỬA: Refresh token trước mỗi API call ===
       _accessToken = await AuthService.getValidAccessToken();
 
-      final url = ApiConfig.getUri(ApiConfig.groupManageRequests);
+      final url = Uri.parse('${ApiConfig.baseUrl}/groups/${widget.groupId}/requests');
       final response = await http.get(
         url,
         headers: {
@@ -328,6 +329,7 @@ class _MemberScreenHostState extends State<MemberScreenHost> with WidgetsBinding
       final url = ApiConfig.getUri(ApiConfig.groupManage);
 
       final requestBody = {
+        "group_id": widget.groupId,
         "profile_uuid": profileUuid,
         "action": action,
       };
@@ -542,6 +544,7 @@ class _MemberScreenHostState extends State<MemberScreenHost> with WidgetsBinding
               if (_showMembers) {
                 OutGroupDialog.show(
                   context,
+                  groupId: widget.groupId,
                   isHost: true,
                   onSuccess: () {
                     Navigator.of(context).pop();

@@ -7,15 +7,18 @@ import '../services/auth_service.dart';
 class OutGroupDialog extends StatelessWidget {
   final VoidCallback? onConfirm;
   final bool isHost;
+  final String groupId;
 
   const OutGroupDialog({
     super.key,
     this.onConfirm,
     this.isHost = false,
+    required this.groupId,
   });
 
   static void show(
     BuildContext context, {
+    required String groupId,
     bool isHost = false,
     VoidCallback? onSuccess,
   }) {
@@ -23,6 +26,7 @@ class OutGroupDialog extends StatelessWidget {
       context: context,
       barrierDismissible: true,
       builder: (dialogContext) => OutGroupDialog(
+        groupId: groupId,
         isHost: isHost,
         onConfirm: onSuccess,
       ),
@@ -34,7 +38,9 @@ class OutGroupDialog extends StatelessWidget {
 
     try {
       final accessToken = await AuthService.getValidAccessToken();
-      final endpoint = isHost ? '/groups/dissolve' : '/groups/leave';
+      final endpoint = isHost 
+                              ? '/groups/$groupId/dissolve'  // Owner
+                              : '/groups/$groupId/leave';     // Member
       final url = Uri.parse('${ApiConfig.baseUrl}$endpoint');
 
       print('🔄 Calling $endpoint');
