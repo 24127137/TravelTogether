@@ -1,12 +1,11 @@
 // file: lib/screens/travel_plan_screen.dart
 
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart'; // Để format ngày đẹp
+import '../services/user_service.dart';
 import '../services/auth_service.dart';
-import '../config/api_config.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
-import 'map_route_screen.dart';
+import '../data/mock_destinations.dart'; // Import để lấy ảnh đại diện thành phố
+import 'map_route_screen.dart'; // Import để navigate
+import 'dart:ui'; // Để dùng ImageFilter nếu cần làm mờ
 
 class TravelPlanScreen extends StatefulWidget {
   final VoidCallback? onBack;
@@ -18,128 +17,92 @@ class TravelPlanScreen extends StatefulWidget {
 }
 
 class _TravelPlanScreenState extends State<TravelPlanScreen> {
-  List<Map<String, dynamic>> _plans = []; // Mỗi phần tử là một group plan
+  final UserService _userService = UserService();
+
+  // List chứa các thành phố có trong itinerary của user
+  // Cấu trúc: { "name": "Đà Nẵng", "image": "assets/...", "count": "3 địa điểm" }
+  List<Map<String, dynamic>> _savedCities = [];
   bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    _loadGroupPlans();
+    _loadUserItinerary();
   }
 
-  Future<void> _loadGroupPlans() async {
+  Future<void> _loadUserItinerary() async {
     setState(() => _isLoading = true);
-
     try {
       final token = await AuthService.getValidAccessToken();
-      if (token == null) throw Exception("Vui lòng đăng nhập lại");
+      if (token == null) throw Exception("Vui lòng đăng nhập");
 
-      final groupsResponse = await http.get(
-        ApiConfig.getUri(ApiConfig.myGroup),
-        headers: {"Authorization": "Bearer $token"},
-      );
+      final profile = await _userService.getUserProfile();
+      if (profile == null) throw Exception("Lỗi tải thông tin");
 
-      if (groupsResponse.statusCode != 200) throw Exception("Không tải được danh sách nhóm");
+      final itinerary = profile['itinerary'];
 
-      final dynamic rawGroups = jsonDecode(utf8.decode(groupsResponse.bodyBytes));
-      List<dynamic> groupsList = rawGroups is List ? rawGroups : (rawGroups is Map ? [rawGroups] : []);
+      // Logic gom nhóm địa điểm theo thành phố
+      Map<String, int> cityCounts = {};
 
-      List<Map<String, dynamic>> tempPlans = [];
-
-      for (var group in groupsList) {
-        final groupId = group['id'] ?? group['group_id'];
-        if (groupId == null) continue;
-
-        try {
-          final planResponse = await http.get(
-            Uri.parse('${ApiConfig.baseUrl}/groups/$groupId/public-plan'),
-            headers: {"Authorization": "Bearer $token"},
-          );
-
-          print(planResponse.body);
-
-          if (planResponse.statusCode == 200) {
-            final planData = jsonDecode(utf8.decode(planResponse.bodyBytes));
-
-            final String groupName = planData['group_name']?.toString().trim().isNotEmpty == true
-                ? planData['group_name'].toString()
-                : 'Nhóm chat';
-
-            final String city = planData['preferred_city']?.toString().trim().isNotEmpty == true
-                ? planData['preferred_city'].toString()
-                : 'Chưa chọn thành phố';
-
-            final String? groupImageUrl = planData['group_image_url']?.toString().trim().isNotEmpty == true
-                ? planData['group_image_url'].toString()
-                : null;
-
-            final dynamic travelDatesRaw = planData['travel_dates'];
-            final String travelDatesFormatted = _formatTravelDates(travelDatesRaw);
-
-            tempPlans.add({
-              "group_id": groupId,
-              "group_name": groupName,
-              "city": city,
-              "travel_dates": travelDatesFormatted,
-              "image_url": groupImageUrl,
-              "itinerary": Map<String, dynamic>.from(planData['itinerary'] ?? {}),
-              "interests": List<String>.from(planData['interests'] ?? []),
-            });
+      if (itinerary != null && itinerary is Map) {
+        itinerary.forEach((key, value) {
+          String strKey = key.toString();
+          // Key format: "CityName_Index" (Ví dụ: Đà Nẵng_1)
+          if (strKey.contains('_')) {
+            String cityName = strKey.split('_')[0]; // Lấy phần "Đà Nẵng"
+            if (cityCounts.containsKey(cityName)) {
+              cityCounts[cityName] = cityCounts[cityName]! + 1;
+            } else {
+              cityCounts[cityName] = 1;
+            }
           }
+        });
+      }
+
+      // Chuyển Map thành List để hiển thị
+      List<Map<String, dynamic>> tempCities = [];
+
+      for (var entry in cityCounts.entries) {
+        String cityName = entry.key;
+        int count = entry.value;
+
+        // Tìm ảnh đại diện cho thành phố từ mock data
+        String imageUrl = 'assets/images/default_city.jpg'; // Ảnh fallback
+        try {
+          // Tìm trong mockDestinations xem có thành phố nào trùng tên không
+          final mockCity = mockDestinations.firstWhere(
+                (d) => d.name.toLowerCase() == cityName.toLowerCase(),
+            orElse: () => mockDestinations[0], // Fallback
+          );
+          imageUrl = mockCity.imagePath;
         } catch (e) {
-          print("Lỗi tải plan cho group $groupId: $e");
-          tempPlans.add({
-            "group_id": groupId,
-            "group_name": group['name']?.toString() ?? 'Nhóm chat',
-            "city": 'Chưa có kế hoạch',
-            "travel_dates": '',
-            "image_url": group['group_image_url']?.toString(),
-          });
+          // Nếu không tìm thấy thì dùng ảnh default hoặc placeholder online
+          imageUrl = "https://placehold.co/600x400/E37547/FFFFFF?text=$cityName";
         }
+
+        tempCities.add({
+          "name": cityName,
+          "image": imageUrl,
+          "count": count,
+        });
       }
 
       if (mounted) {
         setState(() {
-          _plans = tempPlans;
+          _savedCities = tempCities;
           _isLoading = false;
         });
       }
+
     } catch (e) {
-      print("Error loading group plans: $e");
+      print("Error loading plan: $e");
       if (mounted) setState(() => _isLoading = false);
-    }
-  }
-
-  String _formatTravelDates(dynamic raw) {
-    final String? lowerStr = raw['lower'];
-    final String? upperStr = raw['upper'];
-
-    if (lowerStr == null || lowerStr.isEmpty) {
-      return 'Chưa chọn ngày';
-    }
-
-    try {
-      final DateTime start = DateTime.parse(lowerStr);
-
-      if (upperStr == null || upperStr.isEmpty || upperStr == lowerStr) {
-        return DateFormat('dd/MM/yyyy').format(start);
-      }
-
-      final DateTime end = DateTime.parse(upperStr);
-
-      if (start.year == end.year && start.month == end.month) {
-        return '${start.day} – ${end.day}/${DateFormat('MM/yyyy').format(end)}';
-      }
-
-      return '${DateFormat('dd/MM/yyyy').format(start)} – ${DateFormat('dd/MM/yyyy').format(end)}';
-    } catch (e) {
-      print('Lỗi parse travel_dates: $e | Raw: $raw');
-      return 'Ngày không hợp lệ';
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    // Lấy kích thước màn hình để căn chỉnh
     final size = MediaQuery.of(context).size;
     final topPadding = MediaQuery.of(context).padding.top;
 
@@ -147,30 +110,37 @@ class _TravelPlanScreenState extends State<TravelPlanScreen> {
       body: Stack(
         fit: StackFit.expand,
         children: [
-          // Nền cô gái cầm ống nhòm
+          // 1. NỀN: HÌNH CÔ GÁI CẦM ỐNG NHÒM
           Image.asset(
-            'assets/images/happy.jpg',
+            'assets/images/happy.jpg', // Nhớ đổi tên file ảnh của bạn thành tên này
             fit: BoxFit.cover,
           ),
 
-          // Khung danh sách kế hoạch
+          // 2. KHUNG CHỨA LIST THÀNH PHỐ (Ở phần bầu trời trống phía trên)
           Positioned(
-            top: topPadding + 90,
+            top: topPadding + 90, // Cách đỉnh một chút
             left: 20,
             right: 20,
+            // Chiều cao khung chứa khoảng 50% màn hình để không che mất cô gái
             height: size.height * 0.66,
             child: Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
+                // Hiệu ứng kính mờ hoặc màu trắng bán trong suốt
                 color: Colors.black.withOpacity(0.55),
                 borderRadius: BorderRadius.circular(24),
-                border: Border.all(color: const Color(0xFFB64B12), width: 1.5),
+                border: Border.all(color: const Color(0xFFB64B12), width: 1.5), // Viền cam đất
                 boxShadow: [
-                  BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 10, offset: const Offset(0, 5))
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 10,
+                    offset: const Offset(0, 5),
+                  )
                 ],
               ),
               child: Column(
                 children: [
+                  // Tiêu đề
                   const Text(
                     "KẾ HOẠCH CỦA TÔI",
                     style: TextStyle(
@@ -182,30 +152,31 @@ class _TravelPlanScreenState extends State<TravelPlanScreen> {
                     ),
                   ),
                   const SizedBox(height: 4),
-                  Container(height: 2, width: 40, color: Color(0xFFB64B12)),
+                  Container(height: 2, width: 40, color: const Color(0xFFB64B12)),
                   const SizedBox(height: 16),
 
+                  // Danh sách thành phố
                   Expanded(
                     child: _isLoading
                         ? const Center(child: CircularProgressIndicator(color: Color(0xFFB64B12)))
-                        : _plans.isEmpty
-                            ? _buildEmptyState()
-                            : ListView.separated(
-                                padding: EdgeInsets.zero,
-                                itemCount: _plans.length,
-                                separatorBuilder: (_, __) => const SizedBox(height: 12),
-                                itemBuilder: (context, index) {
-                                  final plan = _plans[index];
-                                  return _buildPlanCard(plan);
-                                },
-                              ),
+                        : _savedCities.isEmpty
+                        ? _buildEmptyState()
+                        : ListView.separated(
+                      padding: EdgeInsets.zero,
+                      itemCount: _savedCities.length,
+                      separatorBuilder: (_, __) => const SizedBox(height: 12),
+                      itemBuilder: (context, index) {
+                        final city = _savedCities[index];
+                        return _buildCityCard(city);
+                      },
+                    ),
                   ),
                 ],
               ),
             ),
           ),
 
-          // Nút back
+          // 3. NÚT BACK (Góc trái trên)
           Positioned(
             top: topPadding + 10,
             left: 16,
@@ -213,7 +184,10 @@ class _TravelPlanScreenState extends State<TravelPlanScreen> {
               onTap: widget.onBack ?? () => Navigator.pop(context),
               child: Container(
                 padding: const EdgeInsets.all(8),
-                decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                  shape: BoxShape.circle,
+                ),
                 child: const Icon(Icons.arrow_back, color: Colors.black),
               ),
             ),
@@ -227,107 +201,105 @@ class _TravelPlanScreenState extends State<TravelPlanScreen> {
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        Icon(Icons.travel_explore, size: 48, color: Colors.grey[400]),
+        Icon(Icons.map_outlined, size: 48, color: Colors.grey[400]),
         const SizedBox(height: 10),
         Text(
-          "Bạn chưa có kế hoạch du lịch nào",
+          "Chưa có địa điểm nào được tim.",
           textAlign: TextAlign.center,
-          style: TextStyle(color: Colors.grey[300], fontSize: 15),
+          style: TextStyle(color: Colors.grey[600], fontSize: 14),
         ),
         const SizedBox(height: 5),
         Text(
-          "Tham gia nhóm chat để cùng bạn bè lên kế hoạch nhé!",
+          "Hãy khám phá và thả tim các địa điểm bạn thích nhé!",
           textAlign: TextAlign.center,
-          style: TextStyle(color: Colors.grey[400], fontSize: 13),
+          style: TextStyle(color: Colors.grey[500], fontSize: 12),
         ),
       ],
     );
   }
 
-  Widget _buildPlanCard(Map<String, dynamic> plan) {
-    final imageUrl = plan['image_url'] as String?;
-    final hasImage = imageUrl != null && imageUrl.isNotEmpty;
-
+  Widget _buildCityCard(Map<String, dynamic> city) {
     return GestureDetector(
       onTap: () {
+        // NAVIGATE SANG MAP VỚI FILTER LÀ TÊN THÀNH PHỐ
         Navigator.push(
           context,
           MaterialPageRoute(
             builder: (context) => MapRouteScreen(
-              cityFilter: plan['city'],
-              groupId: plan['group_id'], 
+              cityFilter: city['name'], // Truyền tên thành phố (VD: Đà Nẵng)
             ),
           ),
         );
       },
       child: Container(
-        height: 90,
+        height: 80,
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
-            BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 5, offset: const Offset(0, 2)),
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 5,
+              offset: const Offset(0, 2),
+            )
           ],
         ),
         child: Row(
           children: [
-            // Ảnh nhóm hoặc fallback đẹp
+            // Ảnh thành phố (bên trái)
             ClipRRect(
               borderRadius: const BorderRadius.only(
                 topLeft: Radius.circular(16),
                 bottomLeft: Radius.circular(16),
               ),
-              child: hasImage
-                  ? Image.network(
-                      imageUrl!,
-                      width: 90,
-                      height: 90,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => _defaultGroupImage(),
-                    )
-                  : _defaultGroupImage(),
+              child: Image.asset( // Hoặc Image.network tùy dữ liệu
+                city['image'],
+                width: 80,
+                height: 80,
+                fit: BoxFit.cover,
+                errorBuilder: (_,__,___) => Container(
+                  width: 80, height: 80, color: Colors.grey[300],
+                  child: const Icon(Icons.location_city, color: Colors.grey),
+                ),
+              ),
             ),
 
-            // Thông tin kế hoạch
+            // Thông tin (ở giữa)
             Expanded(
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      plan['group_name'],
+                      city['name'],
                       style: const TextStyle(
-                        fontSize: 16.5,
+                        fontSize: 16,
                         fontWeight: FontWeight.bold,
                         color: Color(0xFF3E3322),
                       ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 4),
-                    Text(
-                      plan['city'],
-                      style: const TextStyle(
-                        fontSize: 15,
-                        color: Color(0xFFE37547),
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      plan['travel_dates'],
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: Colors.grey[700],
-                      ),
+                    Row(
+                      children: [
+                        const Icon(Icons.place, size: 14, color: Color(0xFFE37547)),
+                        const SizedBox(width: 4),
+                        Text(
+                          "${city['count']} địa điểm",
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: Colors.grey[600],
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
               ),
             ),
 
+            // Icon mũi tên (bên phải)
             Padding(
               padding: const EdgeInsets.only(right: 16),
               child: Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey[400]),
@@ -335,15 +307,6 @@ class _TravelPlanScreenState extends State<TravelPlanScreen> {
           ],
         ),
       ),
-    );
-  }
-
-  Widget _defaultGroupImage() {
-    return Container(
-      width: 90,
-      height: 90,
-      color: const Color(0xFFFFE5D9),
-      child: const Icon(Icons.groups_2, size: 40, color: Color(0xFFE37547)),
     );
   }
 }

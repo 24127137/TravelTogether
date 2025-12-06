@@ -57,8 +57,8 @@ class _ChatboxScreenState extends State<ChatboxScreen> with WidgetsBindingObserv
     WidgetsBinding.instance.addObserver(this); // === THÊM MỚI: Lắng nghe lifecycle ===
 
     if (widget.groupData != null) {
-      _groupId = widget.groupData!['id']?.toString() ?? 
-                widget.groupData!['group_id']?.toString();
+      _groupId = widget.groupData!['id']?.toString() ??
+          widget.groupData!['group_id']?.toString();
     }
 
     _loadAccessToken();
@@ -909,7 +909,7 @@ class _ChatboxScreenState extends State<ChatboxScreen> with WidgetsBindingObserv
 
     if (widget.groupData != null) {
       final groupData = widget.groupData!;
-      
+
       final groupName = groupData['name']?.toString() ?? 'Unknown Group';
       final currentMembers = groupData['member_count'] as int? ?? 0;
       final maxMembers = groupData['max_members'] as int? ?? 0;
@@ -928,7 +928,7 @@ class _ChatboxScreenState extends State<ChatboxScreen> with WidgetsBindingObserv
 
       final List<host.Member> ownerMembers = [];
       final List<member.Member> memberMembers = [];
-      
+
       for (var memberData in membersList) {
         try {
           final profileUuid = memberData['profile_uuid']?.toString();
@@ -1030,7 +1030,7 @@ class _ChatboxScreenState extends State<ChatboxScreen> with WidgetsBindingObserv
 
       final List<host.Member> ownerMembers = [];
       final List<member.Member> memberMembers = [];
-      
+
       for (var memberData in membersList) {
         try {
           final profileUuid = memberData['profile_uuid']?.toString();
@@ -1066,7 +1066,7 @@ class _ChatboxScreenState extends State<ChatboxScreen> with WidgetsBindingObserv
             context,
             MaterialPageRoute(
               builder: (context) => host.MemberScreenHost(
-                groupId: _groupId!, 
+                groupId: _groupId!,
                 groupName: groupName,
                 currentMembers: currentMembers,
                 maxMembers: maxMembers,
@@ -1079,7 +1079,7 @@ class _ChatboxScreenState extends State<ChatboxScreen> with WidgetsBindingObserv
             context,
             MaterialPageRoute(
               builder: (context) => member.MemberScreenMember(
-                groupId: _groupId!, 
+                groupId: _groupId!,
                 groupName: groupName,
                 currentMembers: currentMembers,
                 maxMembers: maxMembers,
@@ -1151,7 +1151,7 @@ class _ChatboxScreenState extends State<ChatboxScreen> with WidgetsBindingObserv
 
               if (widget.groupData != null) {
                 preferredCity = widget.groupData!['preferred_city']?.toString();
-              } 
+              }
 
               else if (_groupId != null && _accessToken != null) {
                 try {
@@ -1163,7 +1163,7 @@ class _ChatboxScreenState extends State<ChatboxScreen> with WidgetsBindingObserv
                       "Authorization": "Bearer $_accessToken",
                     },
                   );
-                  
+
                   if (response.statusCode == 200) {
                     final groupData = jsonDecode(utf8.decode(response.bodyBytes));
                     preferredCity = groupData['preferred_city']?.toString();
