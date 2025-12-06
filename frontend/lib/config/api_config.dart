@@ -19,9 +19,15 @@ class ApiConfig {
   static const String userProfile = '$baseUrl/users/me';
 
   // Chat endpoints
-  static const String chatHistory = '$baseUrl/chat/history';
+  static const String chatHistory = '$baseUrl/chat/history'; // Deprecated, use chatHistoryByGroup
   // static const String chatWebSocket = 'ws://172.25.19.7:8000/chat/ws'; // Websocket endpoint
   static const String chatWebSocket = 'ws://10.132.240.17:8000/chat/ws'; // emulator local
+
+  // Helper method to get chat history URL with group_id
+  static String chatHistoryByGroup(String groupId) => '$baseUrl/chat/$groupId/history';
+
+  // Helper method to get WebSocket URL with group_id
+  static String chatWebSocketByGroup(String groupId) => 'ws://10.132.240.17:8000/chat/$groupId';
 
   // Group endpoints
   static const String myGroup = '$baseUrl/groups/mine';
