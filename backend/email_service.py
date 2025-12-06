@@ -1,20 +1,16 @@
 # email_service.py
 from fastapi_mail import FastMail, MessageSchema, ConnectionConfig, MessageType
 from typing import List
-
+from backend.config import Settings
 # Cấu hình kết nối
-MAIL_USERNAME = "apptraveltogether@gmail.com"
-MAIL_PASSWORD = "okgi nsdg lkhb cspa"
-MAIL_PORT = 587
-MAIL_SERVER = "smtp.gmail.com"
-MAIL_FROM_NAME = "Travel Security Alert"
+
 
 conf = ConnectionConfig(
-    MAIL_USERNAME=MAIL_USERNAME,
-    MAIL_PASSWORD=MAIL_PASSWORD,
-    MAIL_FROM=MAIL_USERNAME,
-    MAIL_PORT=MAIL_PORT,
-    MAIL_SERVER=MAIL_SERVER,
+    MAIL_USERNAME=Settings.MAIL_USERNAME,
+    MAIL_PASSWORD=Settings.MAIL_PASSWORD,
+    MAIL_FROM=Settings.MAIL_USERNAME,
+    MAIL_PORT=Settings.MAIL_PORT,
+    MAIL_SERVER=Settings.MAIL_SERVER,
     MAIL_STARTTLS=True,
     MAIL_SSL_TLS=False,
     USE_CREDENTIALS=True,
