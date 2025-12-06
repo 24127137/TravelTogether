@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../widgets/out_group_dialog.dart';
+import 'main_app_screen.dart';
+import '../services/auth_service.dart';
 
 class MemberScreenMember extends StatefulWidget {
   final String groupId;
@@ -116,20 +118,40 @@ class _MemberScreenMemberState extends State<MemberScreenMember> {
 
           // Exit button
           GestureDetector(
-            onTap: () {
+            onTap: () async {
+              // Lấy tên user hiện tại để gửi system message
+              final memberName = await AuthService.getCurrentUserName();
+              print('🔍 DEBUG: Got memberName for leave group: "$memberName"');
+
+              if (!context.mounted) return;
+
               OutGroupDialog.show(
                 context,
                 groupId: widget.groupId,
                 isHost: false,
-                onSuccess: () {
-                  Navigator.of(context).pop();
-                  Navigator.of(context).pop();
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Đã rời nhóm thành công'),
-                      backgroundColor: Colors.green,
-                    ),
-                  );
+                memberName: memberName,
+                onSuccess: () async {
+                  // Lấy accessToken để navigate về MainAppScreen
+                  final accessToken = await AuthService.getValidAccessToken() ?? '';
+
+                  // Navigate về MessagesScreen (index 2) và refresh
+                  if (context.mounted) {
+                    Navigator.of(context).pushAndRemoveUntil(
+                      MaterialPageRoute(
+                        builder: (context) => MainAppScreen(
+                          initialIndex: 2,
+                          accessToken: accessToken,
+                        ),
+                      ),
+                      (route) => false, // Remove tất cả routes cũ
+                    );
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Đã rời nhóm thành công'),
+                        backgroundColor: Colors.green,
+                      ),
+                    );
+                  }
                 },
               );
             },

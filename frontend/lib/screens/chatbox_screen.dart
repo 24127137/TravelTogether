@@ -10,6 +10,8 @@ import 'package:image_picker/image_picker.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 import 'package:web_socket_channel/io.dart';
 import '../services/auth_service.dart';
+import '../services/chat_system_message_service.dart';
+import '../services/chat_cache_service.dart';
 import '../config/api_config.dart';
 import '../models/message.dart';
 import 'host_member_screen.dart' as host;
@@ -61,6 +63,9 @@ class _ChatboxScreenState extends State<ChatboxScreen> with WidgetsBindingObserv
       _groupId = widget.groupData!['id']?.toString() ??
           widget.groupData!['group_id']?.toString();
     }
+
+    // === THÊM MỚI: Nếu không có groupData, đọc từ SharedPreferences ===
+    _initGroupId();
 
     _loadAccessToken();
     _focusNode.addListener(() {
@@ -114,6 +119,20 @@ class _ChatboxScreenState extends State<ChatboxScreen> with WidgetsBindingObserv
     });
   }
 
+  // === THÊM MỚI: Đọc group_id từ SharedPreferences nếu không có groupData ===
+  Future<void> _initGroupId() async {
+    if (_groupId == null) {
+      final prefs = await SharedPreferences.getInstance();
+      final cachedGroupId = prefs.getString('cached_group_id');
+      if (cachedGroupId != null && cachedGroupId.isNotEmpty) {
+        print('📦 Loaded cached_group_id from SharedPreferences: $cachedGroupId');
+        setState(() {
+          _groupId = cachedGroupId;
+        });
+      }
+    }
+  }
+
   @override
   void dispose() {
     isInChatScreen = false; // === THÊM MỚI: Đánh dấu đã rời khỏi chat screen ===
@@ -155,8 +174,9 @@ class _ChatboxScreenState extends State<ChatboxScreen> with WidgetsBindingObserv
         if (messages.isNotEmpty) {
           final lastMessageId = messages.last['id']?.toString();
           if (lastMessageId != null) {
-            await prefs.setString('last_seen_message_id', lastMessageId);
-            print('💾 Saved last_seen_message_id on dispose: $lastMessageId');
+            // Sử dụng key theo group để match với notification_screen
+            await prefs.setString('last_seen_message_id_$_groupId', lastMessageId);
+            print('💾 Saved last_seen_message_id_$_groupId on dispose: $lastMessageId');
           }
         }
       }
@@ -486,6 +506,61 @@ class _ChatboxScreenState extends State<ChatboxScreen> with WidgetsBindingObserv
     return null;
   }
 
+  // === THÊM MỚI: Helper method để xử lý messages data (dùng cho cả cache và server) ===
+  Future<void> _processMessagesData(List<dynamic> data) async {
+    // Collect unique sender IDs để fetch avatars
+    final Set<String> senderIds = {};
+    for (var msg in data) {
+      final senderId = msg['sender_id']?.toString();
+      if (senderId != null && senderId.isNotEmpty && senderId != _currentUserId) {
+        senderIds.add(senderId);
+      }
+    }
+
+    // Fetch avatars for all senders (parallel)
+    await Future.wait(senderIds.map((id) => _fetchUserAvatar(id)));
+
+    if (!mounted) return;
+
+    setState(() {
+      _messages = data.map((msg) {
+        final createdAtUtc = DateTime.parse(msg['created_at']);
+        final createdAtLocal = createdAtUtc.toLocal();
+        final timeStr = DateFormat('HH:mm').format(createdAtLocal);
+        final senderId = msg['sender_id'] ?? '';
+        var messageType = msg['message_type'] ?? 'text';
+        var senderName = msg['sender_name']?.toString();
+        var content = msg['content'] ?? '';
+
+        // Parse system message từ content prefix
+        final parsedSystem = ChatSystemMessageService.parseSystemMessage(content);
+        if (parsedSystem != null) {
+          messageType = parsedSystem['type']!;
+          senderName = parsedSystem['name'];
+          content = parsedSystem['display']!;
+        }
+
+        final isUser = _isSenderMe(senderId);
+        final senderAvatarUrl = isUser ? null : _userAvatars[senderId];
+
+        return Message(
+          sender: senderId,
+          message: content,
+          time: timeStr,
+          isOnline: true,
+          isUser: isUser,
+          imageUrl: msg['image_url'],
+          messageType: messageType,
+          senderAvatarUrl: senderAvatarUrl,
+          isSeen: true,
+          createdAt: createdAtLocal,
+          senderName: senderName,
+        );
+      }).toList();
+      _isLoading = false;
+    });
+  }
+
   Future<void> _loadChatHistory({bool silent = false}) async {
     if (_accessToken == null) return;
     if (_groupId == null) {
@@ -502,9 +577,24 @@ class _ChatboxScreenState extends State<ChatboxScreen> with WidgetsBindingObserv
       });
     }
 
+    // === THÊM MỚI: Load từ cache trước để hiển thị ngay ===
+    final cachedMessages = await ChatCacheService.getMessages(_groupId!);
+    if (cachedMessages != null && cachedMessages.isNotEmpty) {
+      print('⚡ Loading from cache first...');
+      await _processMessagesData(cachedMessages);
+
+      // Scroll to bottom ngay sau khi load cache
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (_scrollController.hasClients) {
+          _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
+        }
+      });
+    }
+
+    // === Load từ server (background) ===
     try {
       final url = ApiConfig.getUri(ApiConfig.chatHistoryByGroup(_groupId!));
-      print('📡 Loading chat history from: $url');
+      print('📡 Loading chat history from server: $url');
       final response = await http.get(
         url,
         headers: {
@@ -516,81 +606,21 @@ class _ChatboxScreenState extends State<ChatboxScreen> with WidgetsBindingObserv
       if (response.statusCode == 200) {
         final List<dynamic> data = jsonDecode(utf8.decode(response.bodyBytes));
 
-        // === THÊM MỚI: Collect unique sender IDs để fetch avatars ===
-        final Set<String> senderIds = {};
-        for (var msg in data) {
-          final senderId = msg['sender_id']?.toString();
-          if (senderId != null && senderId.isNotEmpty && senderId != _currentUserId) {
-            senderIds.add(senderId);
-          }
-        }
+        // === Lưu vào cache cho lần sau ===
+        await ChatCacheService.saveMessages(_groupId!, data);
 
-        // === THÊM MỚI: Fetch avatars for all senders (parallel) ===
-        await Future.wait(
-            senderIds.map((id) => _fetchUserAvatar(id))
-        );
+        print('📡 Server returned ${data.length} messages');
 
-        setState(() {
-          _messages = data.map((msg) {
-            // Parse UTC time và chuyển sang local time
-            final createdAtUtc = DateTime.parse(msg['created_at']);
-            final createdAtLocal = createdAtUtc.toLocal(); // Chuyển sang giờ địa phương
-            final timeStr = DateFormat('HH:mm').format(createdAtLocal);
-            final senderId = msg['sender_id'] ?? '';
+        // === Xử lý messages data ===
+        await _processMessagesData(data);
 
-            // === DEBUG: In ra createdAt để kiểm tra ===
-            print('\n📅 ===== MESSAGE DATE DEBUG =====');
-            print('📅 Message ID: ${msg['id']}');
-            print('📅 Created At UTC: ${msg['created_at']}');
-            print('📅 Created At Local: $createdAtLocal');
-            print('📅 Date: ${createdAtLocal.year}-${createdAtLocal.month}-${createdAtLocal.day}');
-            print('📅 Time: $timeStr');
-            print('📅 Content: "${msg['content']}"');
-            print('📅 ===============================\n');
-
-            // DEBUG: In ra để kiểm tra CHI TIẾT
-            print('\n🔍 ===== MESSAGE DEBUG =====');
-            print('🔍 Current User ID: "$_currentUserId"');
-            print('🔍 Sender ID: "$senderId"');
-            print('🔍 isSenderMe? ${_isSenderMe(senderId)}');
-            print('🔍 Message content: "${msg['content']}"');
-
-            // So sánh sender_id với current user_id để phân biệt tin nhắn
-            final isUser = _isSenderMe(senderId);
-
-            print('🔍 Result isUser: $isUser');
-            print('🔍 Will display on: ${isUser ? "RIGHT (bên phải)" : "LEFT (bên trái)"}');
-            print('🔍 =========================\n');
-
-            // === THÊM MỚI: Lấy avatar của sender từ cache ===
-            // Lấy avatar CÁ NHÂN của người gửi (không phải group avatar)
-            final senderAvatarUrl = isUser ? null : _userAvatars[senderId];
-
-            print('🖼️ Avatar Debug: isUser=$isUser, senderId=$senderId, senderAvatar=$senderAvatarUrl');
-
-            return Message(
-              sender: senderId,
-              message: msg['content'] ?? '',
-              time: timeStr,
-              isOnline: true,
-              isUser: isUser, // Gán đúng giá trị isUser
-              imageUrl: msg['image_url'], // === THÊM MỚI ===
-              messageType: msg['message_type'] ?? 'text', // === THÊM MỚI ===
-              senderAvatarUrl: senderAvatarUrl, // === THÊM MỚI ===
-              isSeen: isUser, // === THÊM MỚI: Tin nhắn của mình luôn seen, tin nhắn người khác chưa seen ===
-              createdAt: createdAtLocal, // === THÊM MỚI: Lưu thời gian tạo ===
-            );
-          }).toList();
-          _isLoading = false;
-        });
-
-        // === THÊM MỚI: Lưu ID của tin nhắn cuối cùng để mark as seen ===
+        // === Lưu ID của tin nhắn cuối cùng để mark as seen ===
         if (data.isNotEmpty) {
           final lastMessageId = data.last['id']?.toString();
           if (lastMessageId != null) {
             final prefs = await SharedPreferences.getInstance();
-            await prefs.setString('last_seen_message_id', lastMessageId);
-            print('💾 Saved last_seen_message_id: $lastMessageId');
+            await prefs.setString('last_seen_message_id_$_groupId', lastMessageId);
+            print('💾 Saved last_seen_message_id_$_groupId: $lastMessageId');
           }
         }
 
@@ -599,6 +629,7 @@ class _ChatboxScreenState extends State<ChatboxScreen> with WidgetsBindingObserv
           if (_scrollController.hasClients) {
             _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
           }
+          _markAllAsSeen();
         });
       } else {
         if (!silent) {
@@ -686,38 +717,77 @@ class _ChatboxScreenState extends State<ChatboxScreen> with WidgetsBindingObserv
       final createdAtLocal = createdAtUtc.toLocal();
       final timeStr = DateFormat('HH:mm').format(createdAtLocal);
       final senderId = data['sender_id'] ?? '';
+      var messageType = data['message_type'] ?? 'text';
+      var senderName = data['sender_name']?.toString(); // === THÊM MỚI: Lấy tên người gửi ===
+      var content = data['content'] ?? '';
       final isUser = _isSenderMe(senderId);
 
-      // Fetch avatar nếu là người khác
-      if (!isUser && !_userAvatars.containsKey(senderId)) {
+      // === THÊM MỚI: Parse system message từ content prefix ===
+      final parsedSystem = ChatSystemMessageService.parseSystemMessage(content);
+      if (parsedSystem != null) {
+        messageType = parsedSystem['type']!;
+        senderName = parsedSystem['name'];
+        content = parsedSystem['display']!;
+        print('🔔 WebSocket: Parsed system message: type=$messageType, name=$senderName, display=$content');
+      }
+
+      // === THÊM MỚI: Xử lý system message (leave_group, kick_member) ===
+      final isSystemMessage = messageType == 'system' ||
+                              messageType == 'leave_group' ||
+                              messageType == 'join_group' ||
+                              messageType == 'kick_member';
+
+      // Fetch avatar nếu là người khác và không phải system message
+      if (!isUser && !isSystemMessage && !_userAvatars.containsKey(senderId)) {
         _fetchUserAvatar(senderId);
       }
 
       // Lấy avatar CÁ NHÂN của người gửi (không phải group avatar)
       final senderAvatarUrl = isUser ? null : _userAvatars[senderId];
 
-      print('🖼️ WebSocket Avatar Debug: isUser=$isUser, senderId=$senderId, senderAvatar=$senderAvatarUrl');
+      print('🖼️ WebSocket Avatar Debug: isUser=$isUser, senderId=$senderId, senderAvatar=$senderAvatarUrl, messageType=$messageType');
+
+      // === SỬA: Kiểm tra xem user đang ở cuối chat không để quyết định isSeen ===
+      bool shouldMarkSeen = isUser || isSystemMessage; // System message luôn seen
+      if (!isUser && !isSystemMessage) {
+        if (_scrollController.hasClients) {
+          final currentPosition = _scrollController.position.pixels;
+          final maxScroll = _scrollController.position.maxScrollExtent;
+          // Nếu user đang ở gần cuối chat, mark seen ngay lập tức
+          if (maxScroll - currentPosition < 200) {
+            shouldMarkSeen = true;
+          }
+        } else {
+          // Nếu scroll controller chưa có client (chat mới load), mark seen luôn
+          shouldMarkSeen = true;
+        }
+      }
 
       final newMessage = Message(
         sender: senderId,
-        message: data['content'] ?? '',
+        message: content,
         time: timeStr,
         isOnline: true,
         isUser: isUser,
         imageUrl: data['image_url'],
-        messageType: data['message_type'] ?? 'text',
+        messageType: messageType,
         senderAvatarUrl: senderAvatarUrl,
-        isSeen: isUser, // === THÊM MỚI: Tin nhắn của mình luôn seen, tin nhắn người khác chưa seen ===
-        createdAt: createdAtLocal, // === THÊM MỚI: Lưu thời gian tạo ===
+        isSeen: shouldMarkSeen, // Mark seen nếu user đang xem
+        createdAt: createdAtLocal,
+        senderName: senderName, // === THÊM MỚI: Truyền tên người gửi ===
       );
 
-      // === DEBUG: Kiểm tra trạng thái isSeen ===
-      print('📬 NEW MESSAGE - isUser: $isUser, isSeen: ${newMessage.isSeen}, content: "${newMessage.message}"');
+      print('📬 NEW MESSAGE - content: "${newMessage.message}"');
 
       // Thêm vào danh sách và update UI
       setState(() {
         _messages.add(newMessage);
       });
+
+      // === THÊM MỚI: Cập nhật cache với tin nhắn mới ===
+      if (_groupId != null) {
+        await ChatCacheService.addMessage(_groupId!, data);
+      }
 
       // === THÊM MỚI: Lưu ID tin nhắn cuối cùng nếu đang ở cuối chat ===
       final messageId = data['id']?.toString();
@@ -728,8 +798,9 @@ class _ChatboxScreenState extends State<ChatboxScreen> with WidgetsBindingObserv
         // Nếu đang ở gần cuối (user đang xem), save last seen message ID
         if (maxScroll - currentPosition < 200) {
           final prefs = await SharedPreferences.getInstance();
-          await prefs.setString('last_seen_message_id', messageId);
-          print('💾 Saved last_seen_message_id from WebSocket: $messageId');
+          // Sử dụng key theo group để match với notification_screen
+          await prefs.setString('last_seen_message_id_$_groupId', messageId);
+          print('💾 Saved last_seen_message_id_$_groupId from WebSocket: $messageId');
         }
       }
 
@@ -1279,6 +1350,10 @@ class _ChatboxScreenState extends State<ChatboxScreen> with WidgetsBindingObserv
                                         ),
                                       ),
                                     ),
+                                  // === THÊM MỚI: Kiểm tra system message (leave_group, join_group) ===
+                                  if (m.isSystemMessage)
+                                    _SystemMessageWidget(message: m)
+                                  else
                                   // Message bubble wrapped with key and tap handler
                                   GestureDetector(
                                     onTap: () async {
@@ -1577,3 +1652,84 @@ class _MessageBubble extends StatelessWidget {
     );
   }
 }
+
+// === THÊM MỚI: Widget hiển thị system message (rời nhóm, tham gia nhóm, bị kick) ===
+class _SystemMessageWidget extends StatelessWidget {
+  final Message message;
+
+  const _SystemMessageWidget({
+    Key? key,
+    required this.message,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    // message.message đã được parse thành display text (ví dụ: "hellomoi đã rời khỏi nhóm")
+    String displayText = message.message;
+    IconData icon = Icons.info_outline;
+    Color bgColor = const Color(0xFFEBE3D7);
+    Color textColor = Colors.black54;
+
+    switch (message.messageType) {
+      case 'leave_group':
+        icon = Icons.exit_to_app;
+        bgColor = const Color(0xFFFFF3E0); // Màu cam nhạt
+        textColor = Colors.orange.shade700;
+        break;
+      case 'join_group':
+        icon = Icons.person_add;
+        bgColor = const Color(0xFFE8F5E9); // Màu xanh lá nhạt
+        textColor = Colors.green.shade700;
+        break;
+      case 'kick_member':
+        icon = Icons.person_remove;
+        bgColor = const Color(0xFFFFEBEE); // Màu đỏ nhạt
+        textColor = Colors.red.shade700;
+        break;
+      case 'system':
+      default:
+        // Sử dụng nội dung gốc nếu là system message chung
+        if (displayText.isEmpty) displayText = 'Thông báo hệ thống';
+        break;
+    }
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 12.0),
+      child: Center(
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 10.0),
+          decoration: BoxDecoration(
+            color: bgColor,
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withAlpha(13), // 0.05 * 255
+                blurRadius: 4,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 16, color: textColor),
+              const SizedBox(width: 8),
+              Flexible(
+                child: Text(
+                  displayText,
+                  style: TextStyle(
+                    color: textColor,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+

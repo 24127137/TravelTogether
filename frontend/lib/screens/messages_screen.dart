@@ -4,6 +4,8 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/auth_service.dart';
+import '../services/chat_system_message_service.dart';
+import '../services/chat_cache_service.dart';
 import '../config/api_config.dart';
 import 'chatbox_screen.dart';
 import 'ai_chatbot_screen.dart';
@@ -156,62 +158,109 @@ class _MessagesScreenState extends State<MessagesScreen> {
               print('   ⚠️ Không lấy được detail, dùng tên mặc định');
             }
 
-            final historyUri = Uri.parse('${ApiConfig.baseUrl}/chat/$groupId/history');
-            print('   📡 Gọi history API: $historyUri');
-            
-            final historyResponse = await http.get(
-              historyUri,
-              headers: {
-                "Content-Type": "application/json",
-                "Authorization": "Bearer $_accessToken",
-              },
-            );
-
             String messagePreview = 'Bắt đầu cuộc trò chuyện';
             String timeStr = '';
             bool hasUnseenMessages = false;
 
-            print('   📥 History response status: ${historyResponse.statusCode}');
-            
-            if (historyResponse.statusCode == 200) {
-              final List<dynamic> messages = jsonDecode(utf8.decode(historyResponse.bodyBytes));
+            // === THÊM MỚI: Thử load từ cache trước ===
+            List<dynamic>? messages = await ChatCacheService.getMessages(groupId.toString());
+
+            // Nếu không có cache, gọi API
+            if (messages == null) {
+              final historyUri = Uri.parse('${ApiConfig.baseUrl}/chat/$groupId/history');
+              print('   📡 Gọi history API: $historyUri');
+
+              final historyResponse = await http.get(
+                historyUri,
+                headers: {
+                  "Content-Type": "application/json",
+                  "Authorization": "Bearer $_accessToken",
+                },
+              );
+
+              print('   📥 History response status: ${historyResponse.statusCode}');
+
+              if (historyResponse.statusCode == 200) {
+                messages = jsonDecode(utf8.decode(historyResponse.bodyBytes));
+                // Lưu cache cho lần sau
+                if (messages != null) {
+                  await ChatCacheService.saveMessages(groupId.toString(), messages);
+                }
+              }
+            } else {
+              print('   ⚡ Loaded from cache');
+            }
+
+            if (messages != null && messages.isNotEmpty) {
               print('   ✓ Số tin nhắn: ${messages.length}');
 
-              if (messages.isNotEmpty) {
-                final lastMsg = messages.last as Map<String, dynamic>;
-                print('   ✓ Tin nhắn cuối: ${lastMsg['content']}');
+              final lastMsg = messages.last as Map<String, dynamic>;
+              print('   ✓ Tin nhắn cuối: ${lastMsg['content']}');
 
-                final createdAt = lastMsg['created_at'];
-                if (createdAt != null) {
-                  final createdAtLocal = DateTime.parse(createdAt.toString()).toLocal();
-                  final now = DateTime.now();
-                  final isToday = createdAtLocal.year == now.year &&
-                      createdAtLocal.month == now.month &&
-                      createdAtLocal.day == now.day;
+              final createdAt = lastMsg['created_at'];
+              if (createdAt != null) {
+                final createdAtLocal = DateTime.parse(createdAt.toString()).toLocal();
+                final now = DateTime.now();
+                final isToday = createdAtLocal.year == now.year &&
+                    createdAtLocal.month == now.month &&
+                    createdAtLocal.day == now.day;
 
-                  timeStr = isToday
-                      ? DateFormat('HH:mm').format(createdAtLocal)
-                      : DateFormat('d \'thg\' M').format(createdAtLocal);
-                }
+                timeStr = isToday
+                    ? DateFormat('HH:mm').format(createdAtLocal)
+                    : DateFormat('d \'thg\' M').format(createdAtLocal);
+              }
 
-                final messageType = lastMsg['message_type'] ?? 'text';
-                final senderId = lastMsg['sender_id']?.toString() ?? '';
-                final isMyMessage = senderId == _currentUserId;
+              final messageType = lastMsg['message_type'] ?? 'text';
+              final senderId = lastMsg['sender_id']?.toString() ?? '';
+              final isMyMessage = senderId == _currentUserId;
 
-                if (messageType == 'image') {
-                  messagePreview = isMyMessage ? 'Bạn đã gửi một ảnh' : 'Đã gửi một ảnh';
-                } else if (messageType == 'video') {
-                  messagePreview = isMyMessage ? 'Bạn đã gửi một video' : 'Đã gửi một video';
-                } else if (messageType == 'file') {
-                  messagePreview = isMyMessage ? 'Bạn đã gửi một tệp' : 'Đã gửi một tệp';
-                } else {
-                  final content = lastMsg['content']?.toString() ?? '';
-                  if (content.isNotEmpty) {
+              if (messageType == 'image') {
+                messagePreview = isMyMessage ? 'Bạn đã gửi một ảnh' : 'Đã gửi một ảnh';
+              } else if (messageType == 'video') {
+                messagePreview = isMyMessage ? 'Bạn đã gửi một video' : 'Đã gửi một video';
+              } else if (messageType == 'file') {
+                messagePreview = isMyMessage ? 'Bạn đã gửi một tệp' : 'Đã gửi một tệp';
+              } else {
+                final content = lastMsg['content']?.toString() ?? '';
+                if (content.isNotEmpty) {
+                  // === THÊM MỚI: Parse system message để hiển thị đẹp ===
+                  final parsedSystem = ChatSystemMessageService.parseSystemMessage(content);
+                  if (parsedSystem != null) {
+                    // Là system message, hiển thị display text
+                    messagePreview = parsedSystem['display']!;
+                  } else {
+                    // Tin nhắn bình thường
                     messagePreview = isMyMessage ? 'Bạn: $content' : content;
                   }
                 }
+              }
 
+              // === SỬA: Kiểm tra unseen dựa trên last_seen_message_id như notification_screen ===
+              final lastSeenId = prefs.getString('last_seen_message_id_$groupId');
+              if (lastSeenId != null) {
+                // Tìm index của last seen message
+                int lastSeenIndex = -1;
+                for (int i = 0; i < messages.length; i++) {
+                  if (messages[i]['id'].toString() == lastSeenId) {
+                    lastSeenIndex = i;
+                    break;
+                  }
+                }
+
+                // Đếm tin nhắn chưa đọc sau last seen (từ người khác)
+                int unreadCount = 0;
+                for (int i = lastSeenIndex + 1; i < messages.length; i++) {
+                  final msgSenderId = messages[i]['sender_id']?.toString();
+                  if (msgSenderId != _currentUserId) {
+                    unreadCount++;
+                  }
+                }
+                hasUnseenMessages = unreadCount > 0;
+                print('   ✓ Last seen ID: $lastSeenId, Unread count: $unreadCount');
+              } else {
+                // Chưa có last_seen_message_id -> coi như tất cả tin nhắn của người khác là chưa đọc
                 hasUnseenMessages = !isMyMessage;
+                print('   ⚠️ No last_seen_message_id, hasUnseenMessages based on lastMsg: $hasUnseenMessages');
               }
             } else {
               print('   ⚠️ Không lấy được history');
