@@ -73,6 +73,58 @@ def job_check_overdue_users():
         print(f"[Job Error] {e}")
     print("--- [Job End] ---")
 
+def job_check_24hour_confirmation():
+    """
+    === NEW JOB ===
+    Chạy mỗi 1 giờ để kiểm tra user nào chưa xác nhận trong 24 giờ.
+    - Tìm user có last_confirmation_ts cách hiện tại > 24 giờ
+    - Update status thành "waiting"
+    - Gửi notification/email nhắc nhở
+    """
+    print("--- [Job Start] Checking 24-hour unconfirmed users... ---")
+    try:
+        with Session(engine) as session:
+            # Tính time threshold: hiện tại - 24 giờ
+            threshold_time = datetime.now(timezone.utc) - timedelta(hours=24)
+            
+            # Query: Lấy user chưa confirm > 24 giờ và chưa ở trạng thái waiting/overdue
+            statement = select(UserSecurity, Profiles.email, Profiles.fullname)\
+                .join(Profiles, UserSecurity.user_id == Profiles.auth_user_id)\
+                .where(
+                    UserSecurity.last_confirmation_ts < threshold_time,
+                    UserSecurity.status.not_in(["waiting", "overdue"])  # Chưa được xử lý
+                )
+            
+            results = session.exec(statement).all()
+            
+            count = 0
+            for sec, email, full_name in results:
+                # Update status to "waiting"
+                sec.status = "waiting"
+                sec.updated_at = datetime.now(timezone.utc)
+                
+                print(f"User {sec.user_id} marked as waiting. Sending notification...")
+                
+                # GỬI NOTIFICATION (Email)
+                if email:
+                    run_async(EmailService.send_security_alert(
+                        email_to=[email],
+                        user_name=full_name or "Người dùng",
+                        alert_type="confirmation_reminder"  # Loại thông báo mới
+                    ))
+                
+                count += 1
+            
+            if count > 0:
+                session.commit()
+                print(f"[Job] Đã đánh dấu và gửi thông báo cho {count} user chưa xác nhận.")
+            else:
+                print("[Job] Không có user nào chưa xác nhận > 24 giờ.")
+
+    except Exception as e:
+        print(f"[Job Error] {e}")
+    print("--- [Job End] ---")
+
 # 3. Khởi tạo Scheduler
 scheduler = BackgroundScheduler()
 
@@ -82,5 +134,14 @@ scheduler.add_job(
     'interval', 
     minutes=30, 
     id='check_overdue_job',
+    replace_existing=True
+)
+
+# === JOB 2: Kiểm tra user chưa confirm 24 giờ ===
+scheduler.add_job(
+    job_check_24hour_confirmation,
+    'interval',
+    hours=1,  # Chạy mỗi 1 giờ
+    id='check_24hour_confirmation_job',
     replace_existing=True
 )
