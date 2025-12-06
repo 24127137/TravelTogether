@@ -4,6 +4,8 @@ import 'dart:convert';
 import '../widgets/out_group_dialog.dart';
 import '../config/api_config.dart';
 import '../services/auth_service.dart';
+import '../services/chat_system_message_service.dart';
+import 'main_app_screen.dart';
 
 class MemberScreenHost extends StatefulWidget {
   final String groupId;
@@ -218,6 +220,14 @@ class _MemberScreenHostState extends State<MemberScreenHost> with WidgetsBinding
 
       // Cập nhật UI sau khi hoàn thành
       if (successCount > 0) {
+        // === THÊM MỚI: Gửi system message cho mỗi thành viên mới ===
+        for (var request in approvedRequests) {
+          await ChatSystemMessageService.sendJoinGroupMessage(
+            groupId: widget.groupId,
+            memberName: request.name,
+          );
+        }
+
         setState(() {
           // Thêm các thành viên mới được approve vào danh sách members
           for (var request in approvedRequests) {
@@ -413,6 +423,12 @@ class _MemberScreenHostState extends State<MemberScreenHost> with WidgetsBinding
   Future<void> _kickMember(Member member) async {
     _accessToken = await AuthService.getValidAccessToken();
 
+    // === THÊM MỚI: Gửi system message TRƯỚC khi kick ===
+    await ChatSystemMessageService.sendKickMemberMessage(
+      groupId: widget.groupId,
+      memberName: member.name,
+    );
+
     final success = await _performMemberAction(member.id, 'kick');
 
     if (success) {
@@ -546,16 +562,28 @@ class _MemberScreenHostState extends State<MemberScreenHost> with WidgetsBinding
                   context,
                   groupId: widget.groupId,
                   isHost: true,
-                  onSuccess: () {
-                    Navigator.of(context).pop();
-                    Navigator.of(context).pop();
+                  onSuccess: () async {
+                    // Lấy accessToken để navigate về MainAppScreen
+                    final accessToken = await AuthService.getValidAccessToken() ?? '';
 
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Đã giải tán nhóm thành công'),
-                        backgroundColor: Colors.green,
-                      ),
-                    );
+                    // Navigate về MessagesScreen (index 2) và refresh
+                    if (context.mounted) {
+                      Navigator.of(context).pushAndRemoveUntil(
+                        MaterialPageRoute(
+                          builder: (context) => MainAppScreen(
+                            initialIndex: 2,
+                            accessToken: accessToken,
+                          ),
+                        ),
+                        (route) => false, // Remove tất cả routes cũ
+                      );
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Đã giải tán nhóm thành công'),
+                          backgroundColor: Colors.green,
+                        ),
+                      );
+                    }
                   },
                 );
               } else {

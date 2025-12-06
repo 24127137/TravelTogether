@@ -8,10 +8,11 @@ class Message {
   final bool isOnline;
   final bool isUser;
   final String? imageUrl;
-  final String messageType; // 'text' hoặc 'image'
+  final String messageType; // 'text', 'image', 'system', 'leave_group', 'join_group'
   final String? senderAvatarUrl; // === THÊM MỚI: Avatar của người gửi ===
   final bool isSeen; // === THÊM MỚI: Trạng thái đã seen hay chưa ===
   final DateTime? createdAt; // === THÊM MỚI: Thời gian tạo tin nhắn (để group theo ngày) ===
+  final String? senderName; // === THÊM MỚI: Tên người gửi (dùng cho system message) ===
 
   const Message({
     required this.sender,
@@ -24,7 +25,15 @@ class Message {
     this.senderAvatarUrl,
     this.isSeen = true,
     this.createdAt, // === THÊM MỚI ===
+    this.senderName, // === THÊM MỚI ===
   });
+
+  // === THÊM MỚI: Kiểm tra có phải system message không ===
+  bool get isSystemMessage =>
+      messageType == 'system' ||
+      messageType == 'leave_group' ||
+      messageType == 'join_group' ||
+      messageType == 'kick_member';
 
   /// Create a Message from a dynamic map (e.g., Firestore document) safely.
   factory Message.fromMap(Map<String, dynamic>? map) {
@@ -53,6 +62,7 @@ class Message {
     final imageUrl = map['image_url']?.toString();
     final messageType = map['message_type']?.toString() ?? 'text';
     final senderAvatarUrl = map['sender_avatar_url']?.toString();
+    final senderName = map['sender_name']?.toString(); // === THÊM MỚI ===
 
     // === THÊM MỚI: Parse createdAt ===
     DateTime? createdAt;
@@ -74,6 +84,7 @@ class Message {
       messageType: messageType,
       senderAvatarUrl: senderAvatarUrl,
       createdAt: createdAt, // === THÊM MỚI ===
+      senderName: senderName, // === THÊM MỚI ===
     );
   }
 }

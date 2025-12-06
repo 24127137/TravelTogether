@@ -84,11 +84,56 @@ class AuthService {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('access_token');
     await prefs.remove('refresh_token');
+    await prefs.remove('user_fullname'); // Clear cached user name
+    await prefs.remove('user_id'); // Clear cached user id
   }
 
   static void _triggerAuthFailure() {
     if (onAuthFailure != null) {
       onAuthFailure!();
+    }
+  }
+
+  /// Lấy tên hiển thị của user hiện tại
+  static Future<String?> getCurrentUserName() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+
+      // Luôn gọi API để lấy tên mới nhất
+      final accessToken = await getValidAccessToken();
+      if (accessToken == null) {
+        // Nếu không có token, thử lấy từ cache
+        return prefs.getString('user_fullname');
+      }
+
+      final url = ApiConfig.getUri(ApiConfig.userProfile);
+      final response = await http.get(
+        url,
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer $accessToken",
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(utf8.decode(response.bodyBytes));
+        final fullname = data['fullname']?.toString();
+
+        // Lưu vào cache
+        if (fullname != null && fullname.isNotEmpty) {
+          await prefs.setString('user_fullname', fullname);
+          print('✅ Got user fullname from API: $fullname');
+          return fullname;
+        }
+      }
+
+      // Fallback to cache if API fails
+      return prefs.getString('user_fullname');
+    } catch (e) {
+      print('❌ Error getting current user name: $e');
+      // Fallback to cache on error
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.getString('user_fullname');
     }
   }
 }
