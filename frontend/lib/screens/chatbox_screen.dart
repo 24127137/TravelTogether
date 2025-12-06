@@ -8,6 +8,7 @@ import 'dart:io';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
+import 'package:web_socket_channel/io.dart';
 import '../services/auth_service.dart';
 import '../config/api_config.dart';
 import '../models/message.dart';
@@ -135,12 +136,12 @@ class _ChatboxScreenState extends State<ChatboxScreen> with WidgetsBindingObserv
   // === THÊM MỚI: Lưu ID của tin nhắn cuối cùng khi rời khỏi màn hình ===
   Future<void> _saveLastSeenMessage() async {
     if (_messages.isEmpty) return;
-
+    if (_groupId == null) return; // Cần groupId để gọi API
 
     // Tìm ID của tin nhắn từ server (cần load lại từ history)
     try {
       final prefs = await SharedPreferences.getInstance();
-      final url = ApiConfig.getUri(ApiConfig.chatHistory);
+      final url = ApiConfig.getUri(ApiConfig.chatHistoryByGroup(_groupId!));
       final response = await http.get(
         url,
         headers: {
@@ -487,6 +488,13 @@ class _ChatboxScreenState extends State<ChatboxScreen> with WidgetsBindingObserv
 
   Future<void> _loadChatHistory({bool silent = false}) async {
     if (_accessToken == null) return;
+    if (_groupId == null) {
+      print('❌ Error: groupId is null, cannot load chat history');
+      setState(() {
+        _isLoading = false;
+      });
+      return;
+    }
 
     if (!silent) {
       setState(() {
@@ -495,7 +503,8 @@ class _ChatboxScreenState extends State<ChatboxScreen> with WidgetsBindingObserv
     }
 
     try {
-      final url = ApiConfig.getUri(ApiConfig.chatHistory);
+      final url = ApiConfig.getUri(ApiConfig.chatHistoryByGroup(_groupId!));
+      print('📡 Loading chat history from: $url');
       final response = await http.get(
         url,
         headers: {
@@ -611,13 +620,23 @@ class _ChatboxScreenState extends State<ChatboxScreen> with WidgetsBindingObserv
   // === THÊM MỚI: Kết nối WebSocket ===
   void _connectWebSocket() {
     if (_accessToken == null) return;
+    if (_groupId == null) {
+      print('❌ Error: groupId is null, cannot connect WebSocket');
+      return;
+    }
 
     try {
-      // Tạo WebSocket URL với token
-      final wsUrl = '${ApiConfig.chatWebSocket}?token=$_accessToken';
+      // Tạo WebSocket URL với group_id
+      final wsUrl = ApiConfig.chatWebSocketByGroup(_groupId!);
       print('🔌 Connecting to WebSocket: $wsUrl');
 
-      _channel = WebSocketChannel.connect(Uri.parse(wsUrl));
+      // Sử dụng IOWebSocketChannel để gửi headers
+      _channel = IOWebSocketChannel.connect(
+        Uri.parse(wsUrl),
+        headers: {
+          'Authorization': 'Bearer $_accessToken',
+        },
+      );
 
       // Lắng nghe tin nhắn từ server
       _channel!.stream.listen(
