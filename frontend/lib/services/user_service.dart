@@ -259,4 +259,3 @@ class _ItineraryTask {
 
   _ItineraryTask(this.placeName, this.isAdding, this.completer);
 }
-

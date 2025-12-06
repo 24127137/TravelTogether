@@ -498,7 +498,7 @@ class _DestinationExploreScreenState extends State<DestinationExploreScreen> {
                   margin: const EdgeInsets.all(20),
                   padding: const EdgeInsets.all(24),
                   decoration: BoxDecoration(
-        // Thay bằng ảnh nền da cam kết hợp lớp phủ màu kem
+                    // Thay bằng ảnh nền da cam kết hợp lớp phủ màu kem
                     image: DecorationImage(
                       image: const AssetImage('assets/images/description.png'),
                       fit: BoxFit.cover,

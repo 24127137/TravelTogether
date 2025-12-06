@@ -14,7 +14,12 @@ class HomePage extends StatefulWidget {
   final void Function(Destination)? onDestinationTap;
   final VoidCallback? onSettingsTap;
   final void Function(int index)? onTabChangeRequest;
-  const HomePage({Key? key, this.onDestinationTap, this.onSettingsTap, this.onTabChangeRequest,}) : super(key: key);
+  const HomePage({
+    Key? key,
+    this.onDestinationTap,
+    this.onSettingsTap,
+    this.onTabChangeRequest,
+  }) : super(key: key);
 
   @override
   _HomePageState createState() => _HomePageState();
@@ -36,7 +41,71 @@ class _HomePageState extends State<HomePage> {
   void initState() {
     super.initState();
     _loadUserInfo();
-    _checkNewGroupAcceptance();
+
+    // Gọi hàm kiểm tra nhóm mới ngay khi widget được build xong
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkNewGroupAcceptance();
+    });
+  }
+
+  // === [UPDATED] LOGIC KIỂM TRA NHÓM MỚI ĐỂ HIỆN POPUP ===
+  Future<void> _checkNewGroupAcceptance() async {
+    try {
+      final token = await AuthService.getValidAccessToken();
+      if (token == null) return;
+
+      // 1. Lấy thông tin user mới nhất từ API
+      final profile = await _userService.getUserProfile();
+      if (profile == null) return;
+
+      final List<dynamic> currentJoinedGroups = profile['joined_groups'] ?? [];
+
+      // 2. Lấy danh sách ID nhóm đã lưu trong Cache (Lần mở app trước)
+      final prefs = await SharedPreferences.getInstance();
+      final List<String> cachedIds = prefs.getStringList('joined_group_ids_cache') ?? [];
+
+      // 3. Tìm nhóm MỚI (Có trong Current nhưng KHÔNG có trong Cache)
+      for (var group in currentJoinedGroups) {
+        final String groupId = (group['group_id'] ?? group['id']).toString();
+        final String groupName = group['name'] ?? 'Nhóm mới';
+
+        // Nếu ID này chưa từng thấy trong cache -> Đây là nhóm mới được duyệt!
+        if (!cachedIds.contains(groupId)) {
+          if (!mounted) return;
+
+          // 4. Hiện Popup "Vào Thôi!"
+          Navigator.of(context).push(MaterialPageRoute(
+            builder: (_) => GroupMatchingAnnouncementScreen(
+              groupName: groupName,
+              groupId: groupId,
+              onBack: () => Navigator.of(context).pop(),
+              onGoToChat: () {
+                Navigator.of(context).pop(); // Tắt popup
+                // Chuyển sang tab Chat (Index 2)
+                if (widget.onTabChangeRequest != null) {
+                  widget.onTabChangeRequest!(2);
+                }
+              },
+            ),
+          ));
+
+          // Chỉ hiện 1 popup mỗi lần để tránh spam
+          break;
+        }
+      }
+
+      // 5. Cập nhật lại Cache mới nhất cho lần sau
+      // (Lưu tất cả ID nhóm hiện tại vào máy)
+      List<String> newIds = currentJoinedGroups
+          .map((g) => (g['group_id'] ?? g['id']).toString())
+          .toList()
+          .cast<String>();
+
+      await prefs.setStringList('joined_group_ids_cache', newIds);
+
+    } catch (e) {
+      print('❌ Lỗi check nhóm mới: $e');
+    }
   }
 
   Future<void> _loadUserInfo() async {
@@ -53,8 +122,7 @@ class _HomePageState extends State<HomePage> {
         _userName = cachedFirstName;
         _userAvatar = cachedAvatar;
         _preferredCity = cachedCity;
-        
-        // Parse travel_dates từ cache
+
         if (cachedDates != null && cachedDates.isNotEmpty) {
           _parseTravelDates(cachedDates);
         }
@@ -73,11 +141,6 @@ class _HomePageState extends State<HomePage> {
       String? preferredCity = profile['preferred_city']?.toString();
       String? travelDates = profile['travel_dates']?.toString();
 
-      print('🔍 API Response:');
-      print('  - fullname: $fullName');
-      print('  - preferred_city: $preferredCity');
-      print('  - travel_dates: $travelDates');
-
       String firstName = fullName.trim().contains(' ')
           ? fullName.trim().split(' ').last
           : fullName.trim();
@@ -88,13 +151,13 @@ class _HomePageState extends State<HomePage> {
       } else {
         await prefs.remove('user_avatar');
       }
-      
+
       if (preferredCity != null && preferredCity.isNotEmpty) {
         await prefs.setString('user_preferred_city', preferredCity);
       } else {
         await prefs.remove('user_preferred_city');
       }
-      
+
       if (travelDates != null && travelDates.isNotEmpty) {
         await prefs.setString('user_travel_dates', travelDates);
       } else {
@@ -114,11 +177,6 @@ class _HomePageState extends State<HomePage> {
             _rangeEnd = null;
           }
         });
-
-        print('✅ UI Updated:');
-        print('  - _preferredCity: $_preferredCity');
-        print('  - _rangeStart: $_rangeStart');
-        print('  - _rangeEnd: $_rangeEnd');
       }
     } catch (e) {
       print('❌ Lỗi load user info: $e');
@@ -132,11 +190,10 @@ class _HomePageState extends State<HomePage> {
             .replaceAll('{', '')
             .replaceAll('}', '')
             .replaceAll(' ', '');
-        
+
         String? lower;
         String? upper;
-        
-        // Extract lower và upper values
+
         final parts = cleaned.split(',');
         for (var part in parts) {
           if (part.startsWith('lower:')) {
@@ -145,16 +202,10 @@ class _HomePageState extends State<HomePage> {
             upper = part.replaceAll('upper:', '');
           }
         }
-        
+
         if (lower != null && upper != null) {
           _rangeStart = DateTime.parse(lower);
-
           _rangeEnd = DateTime.parse(upper);
-          
-          print('📅 Parsed travel_dates (JSON format):');
-          print('  - Raw: $dateRange');
-          print('  - Start: $lower → $_rangeStart (${DateFormat('dd/MM/yyyy').format(_rangeStart!)})');
-          print('  - End: $upper → $_rangeEnd (${DateFormat('dd/MM/yyyy').format(_rangeEnd!)})');
           return;
         }
       }
@@ -162,24 +213,17 @@ class _HomePageState extends State<HomePage> {
       if (dateRange.startsWith('[') && dateRange.endsWith(')')) {
         final cleaned = dateRange.replaceAll('[', '').replaceAll(')', '');
         final parts = cleaned.split(',');
-        
+
         if (parts.length == 2) {
           _rangeStart = DateTime.parse(parts[0].trim());
-
           _rangeEnd = DateTime.parse(parts[1].trim());
-          
-          print('📅 Parsed travel_dates (bracket format):');
-          print('  - Raw: $dateRange');
-          print('  - Start: $_rangeStart (${DateFormat('dd/MM/yyyy').format(_rangeStart!)})');
-          print('  - End: $_rangeEnd (${DateFormat('dd/MM/yyyy').format(_rangeEnd!)})');
           return;
         }
       }
 
-      print('⚠️ Invalid travel_dates format: $dateRange');
       _rangeStart = null;
       _rangeEnd = null;
-      
+
     } catch (e) {
       print('❌ Lỗi parse travel_dates: $e');
       _rangeStart = null;
@@ -189,43 +233,12 @@ class _HomePageState extends State<HomePage> {
 
   Future<void> _handleRefresh() async {
     await _loadUserInfo();
+    // Check lại popup khi refresh
+    await _checkNewGroupAcceptance();
     await Future.delayed(const Duration(milliseconds: 500));
   }
 
-  Future<void> _checkNewGroupAcceptance() async {
-    final token = await AuthService.getValidAccessToken();
-    if (token == null) return;
-
-    final profile = await _userService.getUserProfile();
-    if (profile == null) return;
-
-    List joined = profile['joined_groups'] ?? [];
-
-    if (joined.isNotEmpty) {
-      var group = joined[0];
-      String groupName = group['name'] ?? "Nhóm của bạn";
-      int groupId = group['group_id'];
-
-      final prefs = await SharedPreferences.getInstance();
-      String key = 'seen_announcement_group_$groupId';
-      bool hasSeen = prefs.getBool(key) ?? false;
-
-      if (!hasSeen) {
-        if (!mounted) return;
-
-        await prefs.setBool(key, true);
-
-        Navigator.of(context).push(MaterialPageRoute(
-          builder: (_) => GroupMatchingAnnouncementScreen(
-            groupName: groupName,
-            groupId: groupId.toString(),
-            onBack: () => Navigator.of(context).pop(),
-          ),
-        ));
-      }
-    }
-  }
-
+  // Hàm xử lý nút cái loa (Thông báo thủ công)
   void _handleAnnouncementTap() async {
     final token = await AuthService.getValidAccessToken();
     if (token == null) {
@@ -239,7 +252,7 @@ class _HomePageState extends State<HomePage> {
     List joined = profile['joined_groups'] ?? [];
 
     if (joined.isNotEmpty) {
-      var group = joined[0];
+      var group = joined[0]; // Mở nhóm đầu tiên hoặc logic khác tùy bạn
 
       Navigator.of(context).push(MaterialPageRoute(
         builder: (_) => GroupMatchingAnnouncementScreen(
@@ -269,30 +282,20 @@ class _HomePageState extends State<HomePage> {
   }
 
   String get _durationText {
-    print('🔍 _durationText called:');
-    print('  - _rangeStart: $_rangeStart');
-    print('  - _rangeEnd: $_rangeEnd');
-
     if (_rangeStart != null && _rangeEnd != null) {
       final format = DateFormat('dd/MM');
-      final result = '${format.format(_rangeStart!)} - ${format.format(_rangeEnd!)}';
-      print('  - Result: $result');
-      return result;
+      return '${format.format(_rangeStart!)} - ${format.format(_rangeEnd!)}';
     }
 
     if (_rangeStart != null) {
       final format = DateFormat('dd/MM');
-      final result = format.format(_rangeStart!);
-      print('  - Result (start only): $result');
-      return result;
+      return format.format(_rangeStart!);
     }
-
-    print('  - Result: placeholder');
     return 'travel_time'.tr();
   }
 
   void _showCalendar() => setState(() => _isCalendarVisible = true);
-  
+
   void _hideCalendar() {
     setState(() => _isCalendarVisible = false);
     _loadUserInfo();
@@ -414,6 +417,8 @@ class _HomePageState extends State<HomePage> {
     );
   }
 }
+
+// === CÁC WIDGET PHỤ (Giữ nguyên như cũ) ===
 
 class _TopSection extends StatelessWidget {
   final String destinationText;
@@ -554,9 +559,7 @@ class _SelectionButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     const accentColor = Color(0xFFA15C20);
-
     final textColor = accentColor;
-
     final fontWeight = FontWeight.w500;
 
     return Material(
@@ -564,10 +567,7 @@ class _SelectionButton extends StatelessWidget {
       borderRadius: BorderRadius.circular(10),
       child: InkWell(
         borderRadius: BorderRadius.circular(10),
-        onTap: () {
-          print('SelectionButton tapped: $hint');
-          onTap();
-        },
+        onTap: onTap,
         child: Container(
           height: 43,
           padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -691,11 +691,11 @@ class _CalendarOverlay extends StatelessWidget {
           child: GestureDetector(
             onTap: () {},
             child: CalendarCard(
-              focusedDay: focusedDay,
-              initialRangeStart: rangeStart,
-              initialRangeEnd: rangeEnd,
-              onClose: onClose,
-              accentColor: const Color(0xFFB99668)
+                focusedDay: focusedDay,
+                initialRangeStart: rangeStart,
+                initialRangeEnd: rangeEnd,
+                onClose: onClose,
+                accentColor: const Color(0xFFB99668)
             ),
           ),
         ),
