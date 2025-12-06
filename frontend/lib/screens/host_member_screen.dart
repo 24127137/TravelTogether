@@ -616,10 +616,12 @@ class _MemberScreenHostState extends State<MemberScreenHost> with WidgetsBinding
   }
 
   Widget _buildTabButtons() {
+    bool hasPending = _pendingRequests.isNotEmpty;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
       child: Row(
         children: [
+          // Nút Thành viên
           Expanded(
             child: GestureDetector(
               onTap: () => setState(() => _showMembers = true),
@@ -647,29 +649,52 @@ class _MemberScreenHostState extends State<MemberScreenHost> with WidgetsBinding
             ),
           ),
           const SizedBox(width: 6),
+
+          // Nút Chờ xác nhận (CÓ CHẤM CAM)
           Expanded(
             child: GestureDetector(
               onTap: () => setState(() => _showMembers = false),
-              child: Container(
-                height: 54,
-                decoration: ShapeDecoration(
-                  color: !_showMembers ? const Color(0xFFDCC9A7) : Colors.white,
-                  shape: RoundedRectangleBorder(
-                    side: const BorderSide(color: Color(0xFFB99668)),
-                    borderRadius: BorderRadius.circular(30),
-                  ),
-                ),
-                child: const Center(
-                  child: Text(
-                    'Chờ xác nhận',
-                    style: TextStyle(
-                      color: Colors.black,
-                      fontSize: 18,
-                      fontFamily: 'Alumni Sans',
-                      fontWeight: FontWeight.w400,
+              child: Stack( // Dùng Stack để đè chấm cam lên
+                clipBehavior: Clip.none,
+                children: [
+                  Container(
+                    height: 54,
+                    decoration: ShapeDecoration(
+                      color: !_showMembers ? const Color(0xFFDCC9A7) : Colors.white,
+                      shape: RoundedRectangleBorder(
+                        side: const BorderSide(color: Color(0xFFB99668)),
+                        borderRadius: BorderRadius.circular(30),
+                      ),
+                    ),
+                    child: const Center(
+                      child: Text(
+                        'Chờ xác nhận',
+                        style: TextStyle(
+                          color: Colors.black,
+                          fontSize: 18,
+                          fontFamily: 'Alumni Sans',
+                          fontWeight: FontWeight.w400,
+                        ),
+                      ),
                     ),
                   ),
-                ),
+
+                  // DOT MÀU CAM
+                  if (hasPending)
+                    Positioned(
+                      top: 0,
+                      right: 0,
+                      child: Container(
+                        width: 16,
+                        height: 16,
+                        decoration: BoxDecoration(
+                          color: Colors.redAccent, // Hoặc màu cam: Colors.orange
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white, width: 2),
+                        ),
+                      ),
+                    ),
+                ],
               ),
             ),
           ),

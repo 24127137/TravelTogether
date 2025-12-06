@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'dart:async';
 import '../config/api_config.dart';
@@ -188,6 +189,71 @@ class BackgroundNotificationService {
     _accessToken = null;
     _currentUserId = null;
   }
+
+// Thêm vào BackgroundNotificationService
+
+  Timer? _pollingTimer;
+  int _lastPendingCount = 0;
+
+  Future<void> _startPollingGroupRequests() async {
+    _pollingTimer?.cancel();
+    _pollingTimer = Timer.periodic(const Duration(seconds: 30), (timer) async {
+      await _checkNewGroupRequests();
+    });
+  }
+
+  Future<void> _checkNewGroupRequests() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('access_token');
+      if (token == null) return;
+
+      // Gọi API lấy danh sách nhóm của host
+      final url = Uri.parse('${ApiConfig.baseUrl}/groups/mine');
+      final response = await http.get(
+        url,
+        headers: {'Authorization': 'Bearer $token'},
+      );
+
+      if (response.statusCode == 200) {
+        final List<dynamic> groups = jsonDecode(response.body);
+
+        int totalPending = 0;
+        String? latestGroupName;
+
+        for (var group in groups) {
+          if (group['role'] == 'host') {
+            final groupId = group['group_id'];
+            final pendingUrl = Uri.parse('${ApiConfig.baseUrl}/groups/$groupId/requests');
+            final pendingRes = await http.get(
+              pendingUrl,
+              headers: {'Authorization': 'Bearer $token'},
+            );
+
+            if (pendingRes.statusCode == 200) {
+              final List<dynamic> pending = jsonDecode(pendingRes.body);
+              totalPending += pending.length;
+              if (pending.isNotEmpty) {
+                latestGroupName = group['name'];
+              }
+            }
+          }
+        }
+
+        // Nếu có request mới hơn lần check trước
+        if (totalPending > _lastPendingCount && latestGroupName != null) {
+          await NotificationService().showGroupRequestNotification(
+            userName: 'Có người',
+            groupName: latestGroupName,
+          );
+        }
+        _lastPendingCount = totalPending;
+      }
+    } catch (e) {
+      debugPrint('❌ Error polling group requests: $e');
+    }
+  }
+
 
   /// Kiểm tra trạng thái kết nối
   bool get isConnected => _isConnected;
