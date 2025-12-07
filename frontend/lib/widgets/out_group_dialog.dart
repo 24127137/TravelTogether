@@ -45,7 +45,7 @@ class OutGroupDialog extends StatelessWidget {
     try {
       final accessToken = await AuthService.getValidAccessToken();
 
-      // === THÊM MỚI: Gửi system message TRƯỚC khi rời nhóm ===
+      //  Gửi system message TRƯỚC khi rời nhóm
       if (memberName != null && memberName!.isNotEmpty && !isHost) {
         print('📤 Sending leave group system message for: $memberName');
         await ChatSystemMessageService.sendLeaveGroupMessage(
@@ -75,7 +75,7 @@ class OutGroupDialog extends StatelessWidget {
       if (response.statusCode == 200) {
         print('✅ Success!');
 
-        // === THÊM MỚI: Xóa cached data của group đã rời ===
+        //  Xóa cached data của group đã rời
         try {
           final prefs = await SharedPreferences.getInstance();
           final cachedGroupId = prefs.getString('cached_group_id');

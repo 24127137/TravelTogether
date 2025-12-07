@@ -25,7 +25,6 @@ class DestinationCard extends StatelessWidget {
             destination.imagePath,
             fit: BoxFit.cover,
           ),
-          // Gradient overlay for text readability
           Container(
             decoration: const BoxDecoration(
               gradient: LinearGradient(

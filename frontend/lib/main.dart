@@ -7,9 +7,9 @@ import 'screens/onboarding.dart';
 import 'screens/first_of_all.dart';
 import 'screens/main_app_screen.dart';
 import 'services/auth_service.dart';
-import 'services/notification_service.dart'; // === THÊM MỚI: Import notification service ===
+import 'services/notification_service.dart'; // Import notification service
 
-// === THÊM MỚI: Global Navigator Key để navigate từ notification ===
+// Global Navigator Key để navigate từ notification
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 void main() async {
@@ -26,7 +26,7 @@ void main() async {
     anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1ldXFudHZhd2FrZHpudGV3c2NwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE2MzUxOTEsImV4cCI6MjA3NzIxMTE5MX0.w0wtRkKTelo9iHQfLtJ61H5xLCUu2VVMKr8BV4Ljcgw',
   );
 
-  // === THÊM MỚI: Set up auth failure callback to navigate to onboarding ===
+  // Set up auth failure callback to navigate to onboarding
   AuthService.onAuthFailure = () {
     navigatorKey.currentState?.pushAndRemoveUntil(
       MaterialPageRoute(builder: (_) => const OnboardingScreen()),
@@ -34,7 +34,7 @@ void main() async {
     );
   };
 
-  // === THÊM MỚI: Initialize Notification Service ===
+  // Initialize Notification Service
   try {
     await NotificationService().initialize();
     debugPrint('✅ Notification service initialized successfully');
@@ -133,7 +133,7 @@ class _SplashScreenState extends State<SplashScreen> {
               'assets/images/logo.png',
               width: 150,
               height: 150,
-            ), // đến đây thôi
+            ),
           ],
         ),
       ),
