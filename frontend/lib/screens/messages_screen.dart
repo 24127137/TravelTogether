@@ -20,14 +20,48 @@ class MessagesScreen extends StatefulWidget {
 
 class _MessagesScreenState extends State<MessagesScreen> {
   List<ConversationItem> _conversations = [];
+  List<ConversationItem> _filteredConversations = []; // === THÊM: Danh sách đã lọc ===
   bool _isLoading = true;
   String? _accessToken;
   String? _currentUserId;
 
+  // === THÊM: Search controller ===
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
+
   @override
   void initState() {
     super.initState();
+    _searchController.addListener(_onSearchChanged);
     _loadConversations();
+  }
+
+  @override
+  void dispose() {
+    _searchController.removeListener(_onSearchChanged);
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  // === THÊM: Xử lý khi search text thay đổi ===
+  void _onSearchChanged() {
+    setState(() {
+      _searchQuery = _searchController.text.toLowerCase().trim();
+      _filterConversations();
+    });
+  }
+
+  // === THÊM: Lọc conversations theo search query ===
+  void _filterConversations() {
+    if (_searchQuery.isEmpty) {
+      _filteredConversations = List.from(_conversations);
+    } else {
+      _filteredConversations = _conversations.where((conv) {
+        final senderMatch = conv.sender.toLowerCase().contains(_searchQuery);
+        final messageMatch = conv.message.toLowerCase().contains(_searchQuery);
+        return senderMatch || messageMatch;
+      }).toList();
+    }
   }
 
   @override
@@ -303,6 +337,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
     
     setState(() {
       _conversations = conversations;
+      _filterConversations(); // === THÊM: Lọc conversations ===
       _isLoading = false;
     });
     
@@ -350,7 +385,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
                       Expanded(
                         child: _isLoading
                             ? const Center(child: CircularProgressIndicator(color: Color(0xFFC69A61)))
-                            : _conversations.isEmpty
+                            : _filteredConversations.isEmpty
                                 ? RefreshIndicator(
                                     onRefresh: _handleRefresh,
                                     color: const Color(0xFFC69A61),
@@ -359,7 +394,12 @@ class _MessagesScreenState extends State<MessagesScreen> {
                                       child: SizedBox(
                                         height: MediaQuery.of(context).size.height * 0.6,
                                         child: Center(
-                                          child: Text('no_conversation_yet'.tr(), style: const TextStyle(fontSize: 16, color: Colors.grey)),
+                                          child: Text(
+                                            _searchQuery.isNotEmpty
+                                              ? 'Không tìm thấy cuộc trò chuyện'
+                                              : 'no_conversation_yet'.tr(),
+                                            style: const TextStyle(fontSize: 16, color: Colors.grey),
+                                          ),
                                         ),
                                       ),
                                     ),
@@ -369,10 +409,10 @@ class _MessagesScreenState extends State<MessagesScreen> {
                                     color: const Color(0xFFC69A61),
                                     child: ListView.separated(
                                       physics: const AlwaysScrollableScrollPhysics(),
-                                      itemCount: _conversations.length,
+                                      itemCount: _filteredConversations.length,
                                       separatorBuilder: (_, __) => SizedBox(height: spacing),
                                       itemBuilder: (context, index) {
-                                        final conv = _conversations[index];
+                                        final conv = _filteredConversations[index];
                                         return _MessageTile(
                                           sender: conv.sender,
                                           message: conv.message,
@@ -409,6 +449,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
         boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 6, offset: const Offset(0, 2))],
       ),
       child: TextField(
+        controller: _searchController, // === THÊM: Controller ===
         textAlignVertical: TextAlignVertical.center,
         decoration: InputDecoration(
           contentPadding: EdgeInsets.only(top: 16 * scaleFactor, bottom: 8 * scaleFactor),
@@ -420,6 +461,15 @@ class _MessagesScreenState extends State<MessagesScreen> {
             child: Icon(Icons.search, color: const Color(0xFF7C838D), size: 20 * scaleFactor),
           ),
           prefixIconConstraints: BoxConstraints(minWidth: 40 * scaleFactor),
+          // === THÊM: Clear button ===
+          suffixIcon: _searchQuery.isNotEmpty
+              ? IconButton(
+                  icon: Icon(Icons.clear, color: const Color(0xFF7C838D), size: 18 * scaleFactor),
+                  onPressed: () {
+                    _searchController.clear();
+                  },
+                )
+              : null,
         ),
       ),
     );

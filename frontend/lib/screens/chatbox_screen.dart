@@ -45,6 +45,7 @@ class _ChatboxScreenState extends State<ChatboxScreen> with WidgetsBindingObserv
   String? _groupId;
   WebSocketChannel? _channel; // === THÊM MỚI: WebSocket channel ===
   Map<String, String?> _userAvatars = {}; // === THÊM MỚI: Cache avatar của users ===
+  Map<String, String?> _userNames = {}; // === THÊM MỚI: Cache tên của users ===
   String? _myAvatarUrl; // === THÊM MỚI: Avatar của mình ===
   String? _groupAvatarUrl; // === THÊM MỚI: Avatar của nhóm ===
   String? _groupName; // === THÊM MỚI: Tên nhóm ===
@@ -328,7 +329,36 @@ class _ChatboxScreenState extends State<ChatboxScreen> with WidgetsBindingObserv
     return 'THG $month';
   }
 
-  // === THÊM MỚI: Kiểm tra có nên hiển thị avatar không (Message Grouping) ===
+  // === THÊM MỚI: Kiểm tra có nên hiển thị TÊN người gửi không (tin nhắn ĐẦU TIÊN trong nhóm) ===
+  bool _shouldShowSenderName(int index) {
+    if (index >= _messages.length) return false;
+
+    final currentMsg = _messages[index];
+
+    // Tin nhắn của mình không hiển thị tên
+    if (_isSenderMe(currentMsg.sender)) return false;
+
+    // Tin nhắn đầu tiên luôn hiển thị tên
+    if (index == 0) return true;
+
+    // Kiểm tra tin nhắn trước đó
+    final prevMsg = _messages[index - 1];
+
+    // Nếu người gửi khác nhau, hiển thị tên
+    if (currentMsg.sender != prevMsg.sender) return true;
+
+    // Nếu cùng người gửi, kiểm tra khoảng thời gian
+    if (currentMsg.createdAt != null && prevMsg.createdAt != null) {
+      final timeDiff = currentMsg.createdAt!.difference(prevMsg.createdAt!);
+      // Nếu cách nhau > 2 phút, hiển thị tên
+      if (timeDiff.inMinutes.abs() >= 2) return true;
+    }
+
+    // Không hiển thị tên (gộp với tin nhắn trước)
+    return false;
+  }
+
+  // === Kiểm tra có nên hiển thị AVATAR không (tin nhắn CUỐI CÙNG trong nhóm) ===
   bool _shouldShowAvatar(int index) {
     if (index >= _messages.length) return false;
 
@@ -398,9 +428,11 @@ class _ChatboxScreenState extends State<ChatboxScreen> with WidgetsBindingObserv
       for (var member in members) {
         final uuid = member['profile_uuid']?.toString();
         final avatar = member['avatar_url']?.toString();
+        final fullname = member['fullname']?.toString();
         if (uuid != null && uuid.isNotEmpty) {
           _groupMembers[uuid] = Map<String, dynamic>.from(member);
           _userAvatars[uuid] = avatar;
+          _userNames[uuid] = fullname; // === THÊM MỚI: Lưu tên ===
         }
       }
       print('✅ Load nhóm thành công từ MessagesScreen: $_groupName');
@@ -433,9 +465,11 @@ class _ChatboxScreenState extends State<ChatboxScreen> with WidgetsBindingObserv
         for (var member in members) {
           final uuid = member['profile_uuid']?.toString();
           final avatar = member['avatar_url']?.toString();
+          final fullname = member['fullname']?.toString();
           if (uuid != null && uuid.isNotEmpty) {
             _groupMembers[uuid] = Map<String, dynamic>.from(member);
             _userAvatars[uuid] = avatar;
+            _userNames[uuid] = fullname; // === THÊM MỚI: Lưu tên ===
           }
         }
       }
@@ -529,7 +563,8 @@ class _ChatboxScreenState extends State<ChatboxScreen> with WidgetsBindingObserv
         final timeStr = DateFormat('HH:mm').format(createdAtLocal);
         final senderId = msg['sender_id'] ?? '';
         var messageType = msg['message_type'] ?? 'text';
-        var senderName = msg['sender_name']?.toString();
+        // === SỬA: Lấy sender_name từ API, nếu không có thì lấy từ _userNames cache ===
+        var senderName = msg['sender_name']?.toString() ?? _userNames[senderId];
         var content = msg['content'] ?? '';
 
         // Parse system message từ content prefix
@@ -718,7 +753,8 @@ class _ChatboxScreenState extends State<ChatboxScreen> with WidgetsBindingObserv
       final timeStr = DateFormat('HH:mm').format(createdAtLocal);
       final senderId = data['sender_id'] ?? '';
       var messageType = data['message_type'] ?? 'text';
-      var senderName = data['sender_name']?.toString(); // === THÊM MỚI: Lấy tên người gửi ===
+      // === SỬA: Lấy sender_name từ WebSocket, nếu không có thì lấy từ _userNames cache ===
+      var senderName = data['sender_name']?.toString() ?? _userNames[senderId];
       var content = data['content'] ?? '';
       final isUser = _isSenderMe(senderId);
 
@@ -1322,7 +1358,8 @@ class _ChatboxScreenState extends State<ChatboxScreen> with WidgetsBindingObserv
                             itemBuilder: (context, index) {
                               final m = _messages[index];
                               final dateSeparator = _getDateSeparator(index);
-                              final shouldShowAvatar = _shouldShowAvatar(index); // === THÊM MỚI: Message grouping ===
+                              final shouldShowAvatar = _shouldShowAvatar(index); // Avatar ở cuối nhóm
+                              final shouldShowSenderName = _shouldShowSenderName(index); // Tên ở đầu nhóm
 
                               // Ensure we have a GlobalKey for this index
                               _messageKeys[index] = _messageKeys[index] ?? GlobalKey();
@@ -1390,7 +1427,8 @@ class _ChatboxScreenState extends State<ChatboxScreen> with WidgetsBindingObserv
                                         message: m,
                                         senderAvatarUrl: m.senderAvatarUrl,
                                         currentUserId: _currentUserId,
-                                        shouldShowAvatar: shouldShowAvatar, // === THÊM MỚI: Truyền thông tin grouping ===
+                                        shouldShowAvatar: shouldShowAvatar, // Avatar ở cuối nhóm
+                                        shouldShowSenderName: shouldShowSenderName, // Tên ở đầu nhóm
                                       ),
                                     ),
                                   ),
@@ -1513,14 +1551,16 @@ class _MessageBubble extends StatelessWidget {
   final Message message;
   final String? senderAvatarUrl; // === THÊM MỚI: Avatar của người gửi ===
   final String? currentUserId; // === THÊM MỚI: current user id để so sánh chính xác ===
-  final bool shouldShowAvatar; // === THÊM MỚI: Có nên hiển thị avatar không (message grouping) ===
+  final bool shouldShowAvatar; // === Avatar ở cuối nhóm tin nhắn ===
+  final bool shouldShowSenderName; // === Tên ở đầu nhóm tin nhắn ===
 
   const _MessageBubble({
     Key? key,
     required this.message,
     this.senderAvatarUrl,
     this.currentUserId,
-    this.shouldShowAvatar = true, // === THÊM MỚI: Mặc định hiển thị avatar ===
+    this.shouldShowAvatar = true,
+    this.shouldShowSenderName = true, // === THÊM MỚI: Mặc định hiển thị tên ===
   }) : super(key: key);
 
   @override
@@ -1543,110 +1583,128 @@ class _MessageBubble extends StatelessWidget {
         top: 2.0, // === SỬA: Giảm padding top để gộp tin nhắn gần nhau hơn ===
         bottom: shouldShowAvatar ? 6.0 : 2.0, // === SỬA: Padding bottom lớn hơn nếu có avatar (kết thúc nhóm) ===
       ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.end,
-        mainAxisAlignment: isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
+      child: Column(
+        crossAxisAlignment: isUser ? CrossAxisAlignment.end : CrossAxisAlignment.start,
         children: [
-          // === SỬA MỚI: Hiển thị avatar hoặc khoảng trống để canh chỉnh ===
-          if (!isUser) ...[
-            SizedBox(
-              width: 48, // === Chiều rộng cố định cho vùng avatar ===
-              child: showAvatar
-                  ? Padding(
-                padding: const EdgeInsets.only(right: 8.0),
-                child: CircleAvatar(
-                  radius: 20,
-                  backgroundColor: const Color(0xFFD9CBB3),
-                  backgroundImage: senderAvatarUrl != null && senderAvatarUrl!.isNotEmpty
-                      ? NetworkImage(senderAvatarUrl!)
-                      : null,
-                  child: senderAvatarUrl == null || senderAvatarUrl!.isEmpty
-                      ? const Icon(Icons.person, size: 24, color: Colors.white)
-                      : null,
+          // === Hiển thị tên người gửi nếu là tin nhắn ĐẦU TIÊN trong nhóm ===
+          if (!isUser && shouldShowSenderName && message.senderName != null && message.senderName!.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(left: 56.0, bottom: 4.0), // 48 (avatar width) + 8 (spacing)
+              child: Text(
+                message.senderName!,
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF8A724C),
                 ),
-              )
-                  : const SizedBox(), // === Khoảng trống để canh chỉnh ===
-            ),
-          ],
-          Flexible(
-            child: Container(
-              constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.75),
-              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 10.0),
-              decoration: BoxDecoration(
-                color: bubbleColor,
-                borderRadius: BorderRadius.only(
-                  topLeft: const Radius.circular(20),
-                  topRight: const Radius.circular(20),
-                  bottomLeft: isUser ? const Radius.circular(20) : const Radius.circular(0),
-                  bottomRight: isUser ? const Radius.circular(0) : const Radius.circular(20),
-                ),
-                boxShadow: [BoxShadow(color: Colors.black.withAlpha((0.05 * 255).toInt()), blurRadius: 2, offset: const Offset(0, 1))],
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  // === THÊM MỚI: Hiển thị ảnh nếu là tin nhắn ảnh ===
-                  if (message.messageType == 'image' && message.imageUrl != null) ...[
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(12),
-                      child: Image.network(
-                        message.imageUrl!,
-                        fit: BoxFit.cover,
-                        width: MediaQuery.of(context).size.width * 0.6,
-                        loadingBuilder: (context, child, loadingProgress) {
-                          if (loadingProgress == null) return child;
-                          return Container(
-                            width: MediaQuery.of(context).size.width * 0.6,
-                            height: 200,
-                            color: Colors.grey[300],
-                            child: Center(
-                              child: CircularProgressIndicator(
-                                value: loadingProgress.expectedTotalBytes != null
-                                    ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
-                                    : null,
-                                color: bubbleColor,
-                              ),
-                            ),
-                          );
-                        },
-                        errorBuilder: (context, error, stackTrace) {
-                          return Container(
-                            width: MediaQuery.of(context).size.width * 0.6,
-                            height: 200,
-                            color: Colors.grey[300],
-                            child: const Icon(Icons.broken_image, size: 50, color: Colors.grey),
-                          );
-                        },
-                      ),
+            ),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            mainAxisAlignment: isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
+            children: [
+              // === SỬA MỚI: Hiển thị avatar hoặc khoảng trống để canh chỉnh ===
+              if (!isUser) ...[
+                SizedBox(
+                  width: 48, // === Chiều rộng cố định cho vùng avatar ===
+                  child: showAvatar
+                      ? Padding(
+                    padding: const EdgeInsets.only(right: 8.0),
+                    child: CircleAvatar(
+                      radius: 20,
+                      backgroundColor: const Color(0xFFD9CBB3),
+                      backgroundImage: senderAvatarUrl != null && senderAvatarUrl!.isNotEmpty
+                          ? NetworkImage(senderAvatarUrl!)
+                          : null,
+                      child: senderAvatarUrl == null || senderAvatarUrl!.isEmpty
+                          ? const Icon(Icons.person, size: 24, color: Colors.white)
+                          : null,
                     ),
-                    if (message.message.isNotEmpty) const SizedBox(height: 8),
-                  ],
-                  // Hiển thị text (nếu có)
-                  if (message.message.isNotEmpty)
-                    Text(
-                      message.message,
-                      style: TextStyle(
-                        color: textColor,
-                        fontSize: 16,
-                        fontWeight: !isUser && !message.isSeen
-                            ? FontWeight.bold  // === THÊM MỚI: In đậm nếu chưa seen ===
-                            : FontWeight.normal,
-                      ),
-                    ),
-                  const SizedBox(height: 6),
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(message.time, style: TextStyle(color: textColor.withAlpha((0.7 * 255).toInt()), fontSize: 11)),
-                      const SizedBox(width: 6),
-                      Icon(Icons.done_all, size: 14, color: textColor.withAlpha((0.7 * 255).toInt())),
-                    ],
                   )
-                ],
+                      : const SizedBox(), // === Khoảng trống để canh chỉnh ===
+                ),
+              ],
+              Flexible(
+                child: Container(
+                  constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.75),
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 10.0),
+                  decoration: BoxDecoration(
+                    color: bubbleColor,
+                    borderRadius: BorderRadius.only(
+                      topLeft: const Radius.circular(20),
+                      topRight: const Radius.circular(20),
+                      bottomLeft: isUser ? const Radius.circular(20) : const Radius.circular(0),
+                      bottomRight: isUser ? const Radius.circular(0) : const Radius.circular(20),
+                    ),
+                    boxShadow: [BoxShadow(color: Colors.black.withAlpha((0.05 * 255).toInt()), blurRadius: 2, offset: const Offset(0, 1))],
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      // === THÊM MỚI: Hiển thị ảnh nếu là tin nhắn ảnh ===
+                      if (message.messageType == 'image' && message.imageUrl != null) ...[
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(12),
+                          child: Image.network(
+                            message.imageUrl!,
+                            fit: BoxFit.cover,
+                            width: MediaQuery.of(context).size.width * 0.6,
+                            loadingBuilder: (context, child, loadingProgress) {
+                              if (loadingProgress == null) return child;
+                              return Container(
+                                width: MediaQuery.of(context).size.width * 0.6,
+                                height: 200,
+                                color: Colors.grey[300],
+                                child: Center(
+                                  child: CircularProgressIndicator(
+                                    value: loadingProgress.expectedTotalBytes != null
+                                        ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
+                                        : null,
+                                    color: bubbleColor,
+                                  ),
+                                ),
+                              );
+                            },
+                            errorBuilder: (context, error, stackTrace) {
+                              return Container(
+                                width: MediaQuery.of(context).size.width * 0.6,
+                                height: 200,
+                                color: Colors.grey[300],
+                                child: const Icon(Icons.broken_image, size: 50, color: Colors.grey),
+                              );
+                            },
+                          ),
+                        ),
+                        if (message.message.isNotEmpty) const SizedBox(height: 8),
+                      ],
+                      // Hiển thị text (nếu có)
+                      if (message.message.isNotEmpty)
+                        Text(
+                          message.message,
+                          style: TextStyle(
+                            color: textColor,
+                            fontSize: 16,
+                            fontWeight: !isUser && !message.isSeen
+                                ? FontWeight.bold  // === THÊM MỚI: In đậm nếu chưa seen ===
+                                : FontWeight.normal,
+                          ),
+                        ),
+                      const SizedBox(height: 6),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(message.time, style: TextStyle(color: textColor.withAlpha((0.7 * 255).toInt()), fontSize: 11)),
+                          const SizedBox(width: 6),
+                          Icon(Icons.done_all, size: 14, color: textColor.withAlpha((0.7 * 255).toInt())),
+                        ],
+                      )
+                    ],
+                  ),
+                ),
               ),
-            ),
+              // === SỬA MỚI: Không hiển thị avatar cho tin nhắn của mình ===
+            ],
           ),
-          // === SỬA MỚI: Không hiển thị avatar cho tin nhắn của mình ===
         ],
       ),
     );
