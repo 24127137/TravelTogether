@@ -3,13 +3,13 @@ class AiMessage {
   final String role; // "user" or "assistant"
   final String text;
   final String time;
-  final String? imageUrl; // === THÊM MỚI: Hỗ trợ tin nhắn ảnh ===
+  final String? imageUrl; // Hỗ trợ tin nhắn ảnh
 
   AiMessage({
     required this.role,
     required this.text,
     required this.time,
-    this.imageUrl, // === THÊM MỚI ===
+    this.imageUrl, 
   });
 
   Map<String, dynamic> toJson() {
@@ -17,7 +17,7 @@ class AiMessage {
       'role': role,
       'text': text,
       'time': time,
-      'imageUrl': imageUrl, // === THÊM MỚI ===
+      'imageUrl': imageUrl, 
     };
   }
 
@@ -26,7 +26,7 @@ class AiMessage {
       role: json['role'] ?? 'user',
       text: json['text'] ?? '',
       time: json['time'] ?? '',
-      imageUrl: json['imageUrl'], // === THÊM MỚI ===
+      imageUrl: json['imageUrl'], 
     );
   }
 
