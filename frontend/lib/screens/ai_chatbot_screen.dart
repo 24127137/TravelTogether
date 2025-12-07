@@ -28,9 +28,9 @@ class _AiChatbotScreenState extends State<AiChatbotScreen> {
   bool _isSending = false;
   bool _isUploading = false;
   String? _userId;
-  String? _accessToken; // === THÊM MỚI: Access token để upload ảnh ===
+  String? _accessToken; //Access token để upload ảnh
 
-  // === THÊM MỚI: Biến lưu ảnh đã chọn để preview trước khi gửi ===
+  //Biến lưu ảnh đã chọn để preview trước khi gửi
   String? _selectedImageUrl;
 
   Map<int, GlobalKey> _messageKeys = {};
@@ -166,7 +166,7 @@ class _AiChatbotScreenState extends State<AiChatbotScreen> {
     }
   }
 
-  // === Helper: Trích xuất URL ảnh từ content ===
+  // Helper: Trích xuất URL ảnh từ content
   String? _extractImageUrlFromContent(String content) {
     // Pattern để tìm URL ảnh Supabase trong content
     final supabasePattern = RegExp(
@@ -193,7 +193,7 @@ class _AiChatbotScreenState extends State<AiChatbotScreen> {
     return null;
   }
 
-  // === Helper: Làm sạch content nếu chứa URL ảnh ===
+  // Helper: Làm sạch content nếu chứa URL ảnh
   String _cleanContentWithImageUrl(String content) {
     // Các pattern text mặc định khi gửi ảnh
     final patternsToRemove = [
@@ -250,7 +250,7 @@ class _AiChatbotScreenState extends State<AiChatbotScreen> {
     });
   }
 
-  // === THÊM MỚI: Hiển thị bottom sheet để chọn nguồn ảnh ===
+  //Hiển thị bottom sheet để chọn nguồn ảnh
   Future<void> _showImageSourceSelection() async {
     showModalBottomSheet(
       context: context,
@@ -289,7 +289,7 @@ class _AiChatbotScreenState extends State<AiChatbotScreen> {
     );
   }
 
-  // === Upload ảnh lên Supabase Storage (sử dụng Access Token để authenticated) ===
+  // Upload ảnh lên Supabase Storage (sử dụng Access Token để authenticated)
   Future<String?> _uploadImageToSupabase(File imageFile) async {
     if (_accessToken == null) {
       print('❌ No access token available for upload');
@@ -405,7 +405,7 @@ class _AiChatbotScreenState extends State<AiChatbotScreen> {
     }
   }
 
-  // === THÊM MỚI: Hủy ảnh đã chọn ===
+  //Hủy ảnh đã chọn
   void _clearSelectedImage() {
     setState(() {
       _selectedImageUrl = null;
@@ -598,7 +598,7 @@ class _AiChatbotScreenState extends State<AiChatbotScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      resizeToAvoidBottomInset: true, // === SỬA: true để UI resize khi keyboard mở ===
+      resizeToAvoidBottomInset: true, // true để UI resize khi keyboard mở
       appBar: AppBar(
         backgroundColor: const Color(0xFFB99668),
         elevation: 0,
@@ -773,7 +773,7 @@ class _AiChatbotScreenState extends State<AiChatbotScreen> {
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            // === THÊM MỚI: Preview ảnh đã chọn ===
+                            //Preview ảnh đã chọn
                             if (_selectedImageUrl != null)
                               Container(
                                 margin: const EdgeInsets.only(bottom: 8),
@@ -837,7 +837,7 @@ class _AiChatbotScreenState extends State<AiChatbotScreen> {
                             // Input row
                             Row(
                               children: [
-                                // === Nút chọn ảnh ===
+                                // Nút chọn ảnh
                                 Material(
                                   color: const Color(0xFFB99668),
                                   shape: const CircleBorder(),
@@ -991,7 +991,7 @@ class _AiMessageBubble extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  // === THÊM MỚI: Hiển thị ảnh nếu có ===
+                  //Hiển thị ảnh nếu có
                   if (message.imageUrl != null) ...[
                     ClipRRect(
                       borderRadius: BorderRadius.circular(12),

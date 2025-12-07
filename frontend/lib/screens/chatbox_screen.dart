@@ -23,7 +23,7 @@ class ChatboxScreen extends StatefulWidget {
   final Map<String, dynamic>? groupData;
   const ChatboxScreen({Key? key, this.groupData}) : super(key: key);
 
-  // === THÊM MỚI: Getter public để notification service có thể check ===
+  // : Getter public để notification service có thể check 
   static bool get isCurrentlyInChatScreen => _ChatboxScreenState.isInChatScreen;
 
   @override
@@ -31,47 +31,47 @@ class ChatboxScreen extends StatefulWidget {
 }
 
 class _ChatboxScreenState extends State<ChatboxScreen> with WidgetsBindingObserver {
-  static bool isInChatScreen = false; // === THÊM MỚI: Track xem có đang ở trong chat screen không ===
+  static bool isInChatScreen = false; // : Track xem có đang ở trong chat screen không 
 
   final TextEditingController _controller = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   final FocusNode _focusNode = FocusNode();
-  final ImagePicker _imagePicker = ImagePicker(); // === THÊM MỚI: ImagePicker ===
+  final ImagePicker _imagePicker = ImagePicker(); // : ImagePicker 
   List<Message> _messages = [];
   bool _isLoading = true;
-  bool _isUploading = false; // === THÊM MỚI: Trạng thái upload ===
+  bool _isUploading = false; // : Trạng thái upload 
   String? _accessToken;
   String? _currentUserId; // UUID của user hiện tại (lấy từ SharedPreferences khi login)
   String? _groupId;
-  WebSocketChannel? _channel; // === THÊM MỚI: WebSocket channel ===
-  Map<String, String?> _userAvatars = {}; // === THÊM MỚI: Cache avatar của users ===
-  Map<String, String?> _userNames = {}; // === THÊM MỚI: Cache tên của users ===
-  String? _myAvatarUrl; // === THÊM MỚI: Avatar của mình ===
-  String? _groupAvatarUrl; // === THÊM MỚI: Avatar của nhóm ===
-  String? _groupName; // === THÊM MỚI: Tên nhóm ===
-  Map<String, Map<String, dynamic>> _groupMembers = {}; // === THÊM MỚI: Lưu thông tin members từ group ===
-  bool _isAutoScrolling = false; // === THÊM MỚI: Cờ để tránh mark seen khi auto scroll ===
-  Map<int, GlobalKey> _messageKeys = {}; // === THÊM MỚI: keys per message for ensureVisible ===
-  bool _showScrollToBottomButton = false; // === THÊM MỚI: Hiển thị nút scroll xuống ===
+  WebSocketChannel? _channel; // : WebSocket channel 
+  Map<String, String?> _userAvatars = {}; // : Cache avatar của users 
+  Map<String, String?> _userNames = {}; // : Cache tên của users 
+  String? _myAvatarUrl; // : Avatar của mình 
+  String? _groupAvatarUrl; // : Avatar của nhóm 
+  String? _groupName; // : Tên nhóm 
+  Map<String, Map<String, dynamic>> _groupMembers = {}; // : Lưu thông tin members từ group 
+  bool _isAutoScrolling = false; // : Cờ để tránh mark seen khi auto scroll 
+  Map<int, GlobalKey> _messageKeys = {}; // : keys per message for ensureVisible 
+  bool _showScrollToBottomButton = false; // : Hiển thị nút scroll xuống 
 
   @override
   void initState() {
     super.initState();
-    isInChatScreen = true; // === THÊM MỚI: Đánh dấu đang ở trong chat screen ===
-    WidgetsBinding.instance.addObserver(this); // === THÊM MỚI: Lắng nghe lifecycle ===
+    isInChatScreen = true; // : Đánh dấu đang ở trong chat screen 
+    WidgetsBinding.instance.addObserver(this); // : Lắng nghe lifecycle 
 
     if (widget.groupData != null) {
       _groupId = widget.groupData!['id']?.toString() ??
           widget.groupData!['group_id']?.toString();
     }
 
-    // === THÊM MỚI: Nếu không có groupData, đọc từ SharedPreferences ===
+    // : Nếu không có groupData, đọc từ SharedPreferences 
     _initGroupId();
 
     _loadAccessToken();
     _focusNode.addListener(() {
       if (_focusNode.hasFocus) {
-        // === SỬA: Thêm delay để đợi keyboard mở hoàn toàn ===
+        //  SỬA: Thêm delay để đợi keyboard mở hoàn toàn 
         Future.delayed(const Duration(milliseconds: 300), () {
           if (_scrollController.hasClients && mounted) {
             _scrollController.animateTo(
@@ -84,7 +84,7 @@ class _ChatboxScreenState extends State<ChatboxScreen> with WidgetsBindingObserv
       }
     });
 
-    // === SỬA ĐỔI: Lắng nghe scroll để mark messages as seen VÀ hiển thị nút scroll-to-bottom ===
+    //  SỬA ĐỔI: Lắng nghe scroll để mark messages as seen VÀ hiển thị nút scroll-to-bottom 
     _scrollController.addListener(() {
       // Logic hiển thị/ẩn nút scroll-to-bottom
       if (_scrollController.position.pixels < _scrollController.position.maxScrollExtent - 200) {
@@ -120,7 +120,7 @@ class _ChatboxScreenState extends State<ChatboxScreen> with WidgetsBindingObserv
     });
   }
 
-  // === THÊM MỚI: Đọc group_id từ SharedPreferences nếu không có groupData ===
+  // : Đọc group_id từ SharedPreferences nếu không có groupData 
   Future<void> _initGroupId() async {
     if (_groupId == null) {
       final prefs = await SharedPreferences.getInstance();
@@ -136,10 +136,10 @@ class _ChatboxScreenState extends State<ChatboxScreen> with WidgetsBindingObserv
 
   @override
   void dispose() {
-    isInChatScreen = false; // === THÊM MỚI: Đánh dấu đã rời khỏi chat screen ===
-    WidgetsBinding.instance.removeObserver(this); // === THÊM MỚI: Xóa lifecycle observer ===
+    isInChatScreen = false; // : Đánh dấu đã rời khỏi chat screen 
+    WidgetsBinding.instance.removeObserver(this); // : Xóa lifecycle observer 
 
-    // === THÊM MỚI: Lưu last_seen_message_id khi rời khỏi màn hình ===
+    // : Lưu last_seen_message_id khi rời khỏi màn hình 
     _saveLastSeenMessage();
 
     // Đóng WebSocket connection
@@ -153,7 +153,7 @@ class _ChatboxScreenState extends State<ChatboxScreen> with WidgetsBindingObserv
     super.dispose();
   }
 
-  // === THÊM MỚI: Lưu ID của tin nhắn cuối cùng khi rời khỏi màn hình ===
+  // : Lưu ID của tin nhắn cuối cùng khi rời khỏi màn hình 
   Future<void> _saveLastSeenMessage() async {
     if (_messages.isEmpty) return;
     if (_groupId == null) return; // Cần groupId để gọi API
@@ -192,17 +192,17 @@ class _ChatboxScreenState extends State<ChatboxScreen> with WidgetsBindingObserv
     _currentUserId = prefs.getString('user_id'); // Lấy user_id (UUID) đã lưu khi login
 
     // DEBUG: Kiểm tra SharedPreferences
-    print('🔍 ===== SHARED PREFERENCES DEBUG =====');
+    print('🔍 == SHARED PREFERENCES DEBUG ==');
     print('🔍 All keys: ${prefs.getKeys()}');
     print('🔍 Access Token exists: ${_accessToken != null}');
     print('🔍 Current User ID: "$_currentUserId"');
-    print('🔍 ====================================');
+    print('🔍 ');
 
     if (_accessToken != null) {
       await _loadMyProfile(); // Load avatar của mình
-      await _loadGroupMembers(); // === THÊM MỚI: Load members từ group ===
+      await _loadGroupMembers(); // : Load members từ group 
       await _loadChatHistory();
-      _connectWebSocket(); // === THÊM MỚI: Kết nối WebSocket sau khi load history ===
+      _connectWebSocket(); // : Kết nối WebSocket sau khi load history 
     } else {
       setState(() {
         _isLoading = false;
@@ -213,14 +213,14 @@ class _ChatboxScreenState extends State<ChatboxScreen> with WidgetsBindingObserv
     }
   }
 
-  // === Helper kiểm tra senderId có phải là user hiện tại hay không ===
+  //  Helper kiểm tra senderId có phải là user hiện tại hay không 
   bool _isSenderMe(String? senderId) {
     if (senderId == null || _currentUserId == null) return false;
     // So sánh với currentUserId (đã lưu từ login)
     return senderId.toString().trim() == _currentUserId!.toString().trim();
   }
 
-  // === THÊM MỚI: Format date separator như Messenger ===
+  // : Format date separator như Messenger 
   String? _getDateSeparator(int index) {
     if (index >= _messages.length) return null;
 
@@ -239,7 +239,7 @@ class _ChatboxScreenState extends State<ChatboxScreen> with WidgetsBindingObserv
 
     print('📅 Current message date: ${msgDate.year}-${msgDate.month}-${msgDate.day} ${DateFormat('HH:mm').format(msgDate)}');
 
-    // === Kiểm tra với tin nhắn TRƯỚC ĐÓ ===
+    //  Kiểm tra với tin nhắn TRƯỚC ĐÓ 
     // Messages được sort từ CŨ → MỚI, nên index 0 = cũ nhất
     bool shouldShowSeparator = false;
 
@@ -270,12 +270,12 @@ class _ChatboxScreenState extends State<ChatboxScreen> with WidgetsBindingObserv
       shouldShowSeparator = true; // Tin đầu tiên luôn hiện separator (trừ khi là hôm nay)
     }
 
-    // === Nếu KHÔNG cần hiện separator → return null ===
+    //  Nếu KHÔNG cần hiện separator → return null 
     if (!shouldShowSeparator) {
       return null;
     }
 
-    // === CẦN hiện separator → Format theo ngày ===
+    //  CẦN hiện separator → Format theo ngày 
     print('📅 Today: ${now.year}-${now.month}-${now.day}');
 
     final isToday = msgDate.year == now.year &&
@@ -290,7 +290,7 @@ class _ChatboxScreenState extends State<ChatboxScreen> with WidgetsBindingObserv
       return null;
     }
 
-    // === Hiện separator cho ngày cũ hơn ===
+    //  Hiện separator cho ngày cũ hơn 
     final difference = now.difference(msgDate).inDays;
     print('📅 Difference in days: $difference');
 
@@ -329,7 +329,7 @@ class _ChatboxScreenState extends State<ChatboxScreen> with WidgetsBindingObserv
     return 'THG $month';
   }
 
-  // === THÊM MỚI: Kiểm tra có nên hiển thị TÊN người gửi không (tin nhắn ĐẦU TIÊN trong nhóm) ===
+  // : Kiểm tra có nên hiển thị TÊN người gửi không (tin nhắn ĐẦU TIÊN trong nhóm) 
   bool _shouldShowSenderName(int index) {
     if (index >= _messages.length) return false;
 
@@ -358,7 +358,7 @@ class _ChatboxScreenState extends State<ChatboxScreen> with WidgetsBindingObserv
     return false;
   }
 
-  // === Kiểm tra có nên hiển thị AVATAR không (tin nhắn CUỐI CÙNG trong nhóm) ===
+  //  Kiểm tra có nên hiển thị AVATAR không (tin nhắn CUỐI CÙNG trong nhóm) 
   bool _shouldShowAvatar(int index) {
     if (index >= _messages.length) return false;
 
@@ -387,7 +387,7 @@ class _ChatboxScreenState extends State<ChatboxScreen> with WidgetsBindingObserv
     return false;
   }
 
-  // === THÊM MỚI: Load profile của mình để lấy avatar ===
+  // : Load profile của mình để lấy avatar 
   Future<void> _loadMyProfile() async {
     if (_accessToken == null) return;
 
@@ -432,7 +432,7 @@ class _ChatboxScreenState extends State<ChatboxScreen> with WidgetsBindingObserv
         if (uuid != null && uuid.isNotEmpty) {
           _groupMembers[uuid] = Map<String, dynamic>.from(member);
           _userAvatars[uuid] = avatar;
-          _userNames[uuid] = fullname; // === THÊM MỚI: Lưu tên ===
+          _userNames[uuid] = fullname; // : Lưu tên 
         }
       }
       print('✅ Load nhóm thành công từ MessagesScreen: $_groupName');
@@ -469,7 +469,7 @@ class _ChatboxScreenState extends State<ChatboxScreen> with WidgetsBindingObserv
           if (uuid != null && uuid.isNotEmpty) {
             _groupMembers[uuid] = Map<String, dynamic>.from(member);
             _userAvatars[uuid] = avatar;
-            _userNames[uuid] = fullname; // === THÊM MỚI: Lưu tên ===
+            _userNames[uuid] = fullname; // : Lưu tên 
           }
         }
       }
@@ -478,7 +478,7 @@ class _ChatboxScreenState extends State<ChatboxScreen> with WidgetsBindingObserv
     }
   }
 
-  // === THÊM MỚI: Mark tất cả tin nhắn là đã seen ===
+  // : Mark tất cả tin nhắn là đã seen 
   void _markAllAsSeen() {
     if (_messages.isEmpty) return;
 
@@ -511,7 +511,7 @@ class _ChatboxScreenState extends State<ChatboxScreen> with WidgetsBindingObserv
             messageType: msg.messageType,
             senderAvatarUrl: msg.senderAvatarUrl,
             isSeen: true, // Mark as seen
-            createdAt: msg.createdAt, // === THÊM MỚI: Giữ nguyên createdAt ===
+            createdAt: msg.createdAt, // : Giữ nguyên createdAt 
           );
         }
         return msg;
@@ -519,7 +519,7 @@ class _ChatboxScreenState extends State<ChatboxScreen> with WidgetsBindingObserv
     });
   }
 
-  // === THÊM MỚI: Load avatar của user khác ===
+  // : Load avatar của user khác 
   Future<String?> _fetchUserAvatar(String userId) async {
     if (_accessToken == null) return null;
 
@@ -540,7 +540,7 @@ class _ChatboxScreenState extends State<ChatboxScreen> with WidgetsBindingObserv
     return null;
   }
 
-  // === THÊM MỚI: Helper method để xử lý messages data (dùng cho cả cache và server) ===
+  // : Helper method để xử lý messages data (dùng cho cả cache và server) 
   Future<void> _processMessagesData(List<dynamic> data) async {
     // Collect unique sender IDs để fetch avatars
     final Set<String> senderIds = {};
@@ -563,7 +563,7 @@ class _ChatboxScreenState extends State<ChatboxScreen> with WidgetsBindingObserv
         final timeStr = DateFormat('HH:mm').format(createdAtLocal);
         final senderId = msg['sender_id'] ?? '';
         var messageType = msg['message_type'] ?? 'text';
-        // === SỬA: Lấy sender_name từ API, nếu không có thì lấy từ _userNames cache ===
+        //  SỬA: Lấy sender_name từ API, nếu không có thì lấy từ _userNames cache 
         var senderName = msg['sender_name']?.toString() ?? _userNames[senderId];
         var content = msg['content'] ?? '';
 
@@ -612,7 +612,7 @@ class _ChatboxScreenState extends State<ChatboxScreen> with WidgetsBindingObserv
       });
     }
 
-    // === THÊM MỚI: Load từ cache trước để hiển thị ngay ===
+    // : Load từ cache trước để hiển thị ngay 
     final cachedMessages = await ChatCacheService.getMessages(_groupId!);
     if (cachedMessages != null && cachedMessages.isNotEmpty) {
       print('⚡ Loading from cache first...');
@@ -626,7 +626,7 @@ class _ChatboxScreenState extends State<ChatboxScreen> with WidgetsBindingObserv
       });
     }
 
-    // === Load từ server (background) ===
+    //  Load từ server (background) 
     try {
       final url = ApiConfig.getUri(ApiConfig.chatHistoryByGroup(_groupId!));
       print('📡 Loading chat history from server: $url');
@@ -641,15 +641,15 @@ class _ChatboxScreenState extends State<ChatboxScreen> with WidgetsBindingObserv
       if (response.statusCode == 200) {
         final List<dynamic> data = jsonDecode(utf8.decode(response.bodyBytes));
 
-        // === Lưu vào cache cho lần sau ===
+        //  Lưu vào cache cho lần sau 
         await ChatCacheService.saveMessages(_groupId!, data);
 
         print('📡 Server returned ${data.length} messages');
 
-        // === Xử lý messages data ===
+        //  Xử lý messages data 
         await _processMessagesData(data);
 
-        // === Lưu ID của tin nhắn cuối cùng để mark as seen ===
+        //  Lưu ID của tin nhắn cuối cùng để mark as seen 
         if (data.isNotEmpty) {
           final lastMessageId = data.last['id']?.toString();
           if (lastMessageId != null) {
@@ -683,7 +683,7 @@ class _ChatboxScreenState extends State<ChatboxScreen> with WidgetsBindingObserv
     }
   }
 
-  // === THÊM MỚI: Kết nối WebSocket ===
+  // : Kết nối WebSocket 
   void _connectWebSocket() {
     if (_accessToken == null) return;
     if (_groupId == null) {
@@ -734,7 +734,7 @@ class _ChatboxScreenState extends State<ChatboxScreen> with WidgetsBindingObserv
     }
   }
 
-  // === THÊM MỚI: Xử lý tin nhắn nhận từ WebSocket ===
+  // : Xử lý tin nhắn nhận từ WebSocket 
   Future<void> _handleWebSocketMessage(dynamic message) async {
     try {
       final data = jsonDecode(message);
@@ -753,12 +753,12 @@ class _ChatboxScreenState extends State<ChatboxScreen> with WidgetsBindingObserv
       final timeStr = DateFormat('HH:mm').format(createdAtLocal);
       final senderId = data['sender_id'] ?? '';
       var messageType = data['message_type'] ?? 'text';
-      // === SỬA: Lấy sender_name từ WebSocket, nếu không có thì lấy từ _userNames cache ===
+      //  SỬA: Lấy sender_name từ WebSocket, nếu không có thì lấy từ _userNames cache 
       var senderName = data['sender_name']?.toString() ?? _userNames[senderId];
       var content = data['content'] ?? '';
       final isUser = _isSenderMe(senderId);
 
-      // === THÊM MỚI: Parse system message từ content prefix ===
+      // : Parse system message từ content prefix 
       final parsedSystem = ChatSystemMessageService.parseSystemMessage(content);
       if (parsedSystem != null) {
         messageType = parsedSystem['type']!;
@@ -767,7 +767,7 @@ class _ChatboxScreenState extends State<ChatboxScreen> with WidgetsBindingObserv
         print('🔔 WebSocket: Parsed system message: type=$messageType, name=$senderName, display=$content');
       }
 
-      // === THÊM MỚI: Xử lý system message (leave_group, kick_member) ===
+      // : Xử lý system message (leave_group, kick_member) 
       final isSystemMessage = messageType == 'system' ||
                               messageType == 'leave_group' ||
                               messageType == 'join_group' ||
@@ -783,7 +783,7 @@ class _ChatboxScreenState extends State<ChatboxScreen> with WidgetsBindingObserv
 
       print('🖼️ WebSocket Avatar Debug: isUser=$isUser, senderId=$senderId, senderAvatar=$senderAvatarUrl, messageType=$messageType');
 
-      // === SỬA: Kiểm tra xem user đang ở cuối chat không để quyết định isSeen ===
+      //  SỬA: Kiểm tra xem user đang ở cuối chat không để quyết định isSeen 
       bool shouldMarkSeen = isUser || isSystemMessage; // System message luôn seen
       if (!isUser && !isSystemMessage) {
         if (_scrollController.hasClients) {
@@ -810,7 +810,7 @@ class _ChatboxScreenState extends State<ChatboxScreen> with WidgetsBindingObserv
         senderAvatarUrl: senderAvatarUrl,
         isSeen: shouldMarkSeen, // Mark seen nếu user đang xem
         createdAt: createdAtLocal,
-        senderName: senderName, // === THÊM MỚI: Truyền tên người gửi ===
+        senderName: senderName, // : Truyền tên người gửi 
       );
 
       print('📬 NEW MESSAGE - content: "${newMessage.message}"');
@@ -820,12 +820,12 @@ class _ChatboxScreenState extends State<ChatboxScreen> with WidgetsBindingObserv
         _messages.add(newMessage);
       });
 
-      // === THÊM MỚI: Cập nhật cache với tin nhắn mới ===
+      // : Cập nhật cache với tin nhắn mới 
       if (_groupId != null) {
         await ChatCacheService.addMessage(_groupId!, data);
       }
 
-      // === THÊM MỚI: Lưu ID tin nhắn cuối cùng nếu đang ở cuối chat ===
+      // : Lưu ID tin nhắn cuối cùng nếu đang ở cuối chat 
       final messageId = data['id']?.toString();
       if (messageId != null && _scrollController.hasClients) {
         final currentPosition = _scrollController.position.pixels;
@@ -840,7 +840,7 @@ class _ChatboxScreenState extends State<ChatboxScreen> with WidgetsBindingObserv
         }
       }
 
-      // === SỬA: Chỉ scroll to bottom, KHÔNG tự động mark seen ===
+      //  SỬA: Chỉ scroll to bottom, KHÔNG tự động mark seen 
       // User sẽ phải scroll xuống để mark seen
       WidgetsBinding.instance.addPostFrameCallback((_) async {
         if (_scrollController.hasClients) {
@@ -869,7 +869,7 @@ class _ChatboxScreenState extends State<ChatboxScreen> with WidgetsBindingObserv
     }
   }
 
-  // === SỬA ĐỔI: Gửi tin nhắn qua WebSocket thay vì HTTP POST ===
+  //  SỬA ĐỔI: Gửi tin nhắn qua WebSocket thay vì HTTP POST 
   Future<void> _sendMessage() async {
     final text = _controller.text.trim();
     if (text.isEmpty || _channel == null) return;
@@ -891,7 +891,7 @@ class _ChatboxScreenState extends State<ChatboxScreen> with WidgetsBindingObserv
     }
   }
 
-  // === THÊM MỚI: Hiển thị bottom sheet để chọn nguồn ảnh ===
+  // : Hiển thị bottom sheet để chọn nguồn ảnh 
   Future<void> _showImageSourceSelection() async {
     showModalBottomSheet(
       context: context,
@@ -930,7 +930,7 @@ class _ChatboxScreenState extends State<ChatboxScreen> with WidgetsBindingObserv
     );
   }
 
-  // === THÊM MỚI (GĐ 13): Upload ảnh lên Supabase Storage ===
+  //  (GĐ 13): Upload ảnh lên Supabase Storage 
   Future<String?> _uploadImageToSupabase(File imageFile) async {
     try {
       final fileBytes = await imageFile.readAsBytes();
@@ -967,7 +967,7 @@ class _ChatboxScreenState extends State<ChatboxScreen> with WidgetsBindingObserv
     }
   }
 
-  // === THÊM MỚI (GĐ 13): Chọn và gửi ảnh ===
+  //  (GĐ 13): Chọn và gửi ảnh 
   Future<void> _pickAndSendImage({ImageSource source = ImageSource.gallery}) async {
     if (_channel == null) return;
 
@@ -1228,7 +1228,7 @@ class _ChatboxScreenState extends State<ChatboxScreen> with WidgetsBindingObserv
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      resizeToAvoidBottomInset: true, // === SỬA: true để UI resize khi keyboard mở ===
+      resizeToAvoidBottomInset: true, //  SỬA: true để UI resize khi keyboard mở 
       appBar: AppBar(
         backgroundColor: const Color(0xFFB99668),
         elevation: 0,
@@ -1326,7 +1326,7 @@ class _ChatboxScreenState extends State<ChatboxScreen> with WidgetsBindingObserv
           color: Color(0xFF8A724C),
         ),
       )
-          : Stack( // === SỬA ĐỔI: Sử dụng Stack để chồng nút lên trên danh sách tin nhắn ===
+          : Stack( //  SỬA ĐỔI: Sử dụng Stack để chồng nút lên trên danh sách tin nhắn 
         children: [
           Column(
             children: [
@@ -1341,7 +1341,7 @@ class _ChatboxScreenState extends State<ChatboxScreen> with WidgetsBindingObserv
                   ),
                   child: Column(
                     children: [
-                      // === BỎ HEADER "HÔM NAY" CỐ ĐỊNH ===
+                      //  BỎ HEADER "HÔM NAY" CỐ ĐỊNH 
                       // Date separators sẽ được hiển thị động trong ListView
                       Expanded(
                         child: Container(
@@ -1367,7 +1367,7 @@ class _ChatboxScreenState extends State<ChatboxScreen> with WidgetsBindingObserv
 
                               return Column(
                                 children: [
-                                  // === THÊM MỚI: Date separator (nếu có) ===
+                                  // : Date separator (nếu có) 
                                   if (dateSeparator != null)
                                     Padding(
                                       padding: const EdgeInsets.symmetric(vertical: 16.0),
@@ -1387,7 +1387,7 @@ class _ChatboxScreenState extends State<ChatboxScreen> with WidgetsBindingObserv
                                         ),
                                       ),
                                     ),
-                                  // === THÊM MỚI: Kiểm tra system message (leave_group, join_group) ===
+                                  // : Kiểm tra system message (leave_group, join_group) 
                                   if (m.isSystemMessage)
                                     _SystemMessageWidget(message: m)
                                   else
@@ -1451,7 +1451,7 @@ class _ChatboxScreenState extends State<ChatboxScreen> with WidgetsBindingObserv
                   color: Colors.white,
                   child: Row(
                     children: [
-                      // === THÊM MỚI: Nút chọn ảnh - hiện bottom sheet để chọn camera/gallery ===
+                      // : Nút chọn ảnh - hiện bottom sheet để chọn camera/gallery 
                       Material(
                         color: const Color(0xFFB99668),
                         shape: const CircleBorder(),
@@ -1480,10 +1480,10 @@ class _ChatboxScreenState extends State<ChatboxScreen> with WidgetsBindingObserv
                           child: TextField(
                             controller: _controller,
                             focusNode: _focusNode,
-                            maxLines: null, // === SỬA: Cho phép nhiều dòng ===
-                            minLines: 1, // === SỬA: Bắt đầu với 1 dòng ===
-                            keyboardType: TextInputType.multiline, // === SỬA: Keyboard hỗ trợ multiline ===
-                            textInputAction: TextInputAction.newline, // === SỬA: Enter để xuống dòng ===
+                            maxLines: null, //  SỬA: Cho phép nhiều dòng 
+                            minLines: 1, //  SỬA: Bắt đầu với 1 dòng 
+                            keyboardType: TextInputType.multiline, //  SỬA: Keyboard hỗ trợ multiline 
+                            textInputAction: TextInputAction.newline, //  SỬA: Enter để xuống dòng 
                             decoration: InputDecoration(
                               contentPadding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
                               hintText: 'enter_message'.tr(),
@@ -1508,11 +1508,11 @@ class _ChatboxScreenState extends State<ChatboxScreen> with WidgetsBindingObserv
               ),
             ],
           ),
-          // === THÊM MỚI: Nút "Go to latest message" - Positioned ở giữa màn hình, bên phải ===
+          // : Nút "Go to latest message" - Positioned ở giữa màn hình, bên phải 
           if (_showScrollToBottomButton)
             Positioned(
-              right: 16, // === Căn bên phải ===
-              bottom: 100, // === Cách đáy 100px để tránh input bar ===
+              right: 16, //  Căn bên phải 
+              bottom: 100, //  Cách đáy 100px để tránh input bar 
               child: Material(
                 color: const Color(0xFFB99668),
                 elevation: 6,
@@ -1549,10 +1549,10 @@ class _ChatboxScreenState extends State<ChatboxScreen> with WidgetsBindingObserv
 
 class _MessageBubble extends StatelessWidget {
   final Message message;
-  final String? senderAvatarUrl; // === THÊM MỚI: Avatar của người gửi ===
-  final String? currentUserId; // === THÊM MỚI: current user id để so sánh chính xác ===
-  final bool shouldShowAvatar; // === Avatar ở cuối nhóm tin nhắn ===
-  final bool shouldShowSenderName; // === Tên ở đầu nhóm tin nhắn ===
+  final String? senderAvatarUrl; // : Avatar của người gửi 
+  final String? currentUserId; // : current user id để so sánh chính xác 
+  final bool shouldShowAvatar; //  Avatar ở cuối nhóm tin nhắn 
+  final bool shouldShowSenderName; //  Tên ở đầu nhóm tin nhắn 
 
   const _MessageBubble({
     Key? key,
@@ -1560,7 +1560,7 @@ class _MessageBubble extends StatelessWidget {
     this.senderAvatarUrl,
     this.currentUserId,
     this.shouldShowAvatar = true,
-    this.shouldShowSenderName = true, // === THÊM MỚI: Mặc định hiển thị tên ===
+    this.shouldShowSenderName = true, // : Mặc định hiển thị tên 
   }) : super(key: key);
 
   @override
@@ -1572,7 +1572,7 @@ class _MessageBubble extends StatelessWidget {
     final bubbleColor = isUser ? const Color(0xFF8A724C) : const Color(0xFFB99668);
     final textColor = isUser ? Colors.white : Colors.white;
 
-    // === SỬA: Chỉ hiển thị avatar nếu shouldShowAvatar = true ===
+    //  SỬA: Chỉ hiển thị avatar nếu shouldShowAvatar = true 
     final showAvatar = !isUser && shouldShowAvatar;
     print('🖼️ MessageBubble - isUser: $isUser, isSeen: ${message.isSeen}, shouldShowAvatar: $shouldShowAvatar, sender: ${message.sender}, content: "${message.message}"');
     print('🖼️ Should show BOLD: ${!isUser && !message.isSeen}');
@@ -1580,13 +1580,13 @@ class _MessageBubble extends StatelessWidget {
 
     return Padding(
       padding: EdgeInsets.only(
-        top: 2.0, // === SỬA: Giảm padding top để gộp tin nhắn gần nhau hơn ===
-        bottom: shouldShowAvatar ? 6.0 : 2.0, // === SỬA: Padding bottom lớn hơn nếu có avatar (kết thúc nhóm) ===
+        top: 2.0, //  SỬA: Giảm padding top để gộp tin nhắn gần nhau hơn 
+        bottom: shouldShowAvatar ? 6.0 : 2.0, //  SỬA: Padding bottom lớn hơn nếu có avatar (kết thúc nhóm) 
       ),
       child: Column(
         crossAxisAlignment: isUser ? CrossAxisAlignment.end : CrossAxisAlignment.start,
         children: [
-          // === Hiển thị tên người gửi nếu là tin nhắn ĐẦU TIÊN trong nhóm ===
+          //  Hiển thị tên người gửi nếu là tin nhắn ĐẦU TIÊN trong nhóm 
           if (!isUser && shouldShowSenderName && message.senderName != null && message.senderName!.isNotEmpty)
             Padding(
               padding: const EdgeInsets.only(left: 56.0, bottom: 4.0), // 48 (avatar width) + 8 (spacing)
@@ -1603,10 +1603,10 @@ class _MessageBubble extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.end,
             mainAxisAlignment: isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
             children: [
-              // === SỬA MỚI: Hiển thị avatar hoặc khoảng trống để canh chỉnh ===
+              //  SỬA MỚI: Hiển thị avatar hoặc khoảng trống để canh chỉnh 
               if (!isUser) ...[
                 SizedBox(
-                  width: 48, // === Chiều rộng cố định cho vùng avatar ===
+                  width: 48, //  Chiều rộng cố định cho vùng avatar 
                   child: showAvatar
                       ? Padding(
                     padding: const EdgeInsets.only(right: 8.0),
@@ -1621,7 +1621,7 @@ class _MessageBubble extends StatelessWidget {
                           : null,
                     ),
                   )
-                      : const SizedBox(), // === Khoảng trống để canh chỉnh ===
+                      : const SizedBox(), //  Khoảng trống để canh chỉnh 
                 ),
               ],
               Flexible(
@@ -1641,7 +1641,7 @@ class _MessageBubble extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
-                      // === THÊM MỚI: Hiển thị ảnh nếu là tin nhắn ảnh ===
+                      // : Hiển thị ảnh nếu là tin nhắn ảnh 
                       if (message.messageType == 'image' && message.imageUrl != null) ...[
                         ClipRRect(
                           borderRadius: BorderRadius.circular(12),
@@ -1685,7 +1685,7 @@ class _MessageBubble extends StatelessWidget {
                             color: textColor,
                             fontSize: 16,
                             fontWeight: !isUser && !message.isSeen
-                                ? FontWeight.bold  // === THÊM MỚI: In đậm nếu chưa seen ===
+                                ? FontWeight.bold  // : In đậm nếu chưa seen 
                                 : FontWeight.normal,
                           ),
                         ),
@@ -1702,7 +1702,7 @@ class _MessageBubble extends StatelessWidget {
                   ),
                 ),
               ),
-              // === SỬA MỚI: Không hiển thị avatar cho tin nhắn của mình ===
+              //  SỬA MỚI: Không hiển thị avatar cho tin nhắn của mình 
             ],
           ),
         ],
@@ -1711,7 +1711,7 @@ class _MessageBubble extends StatelessWidget {
   }
 }
 
-// === THÊM MỚI: Widget hiển thị system message (rời nhóm, tham gia nhóm, bị kick) ===
+// : Widget hiển thị system message (rời nhóm, tham gia nhóm, bị kick) 
 class _SystemMessageWidget extends StatelessWidget {
   final Message message;
 

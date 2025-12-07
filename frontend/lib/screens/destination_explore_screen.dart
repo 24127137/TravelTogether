@@ -359,13 +359,6 @@ class _DestinationExploreScreenState extends State<DestinationExploreScreen> {
   }
 
   Future<void> _loadUserAvatar() async {
-    // 1. Thử lấy từ Cache trước cho nhanh
-    // (Giả sử HomePage đã lưu vào SharedPreferences key 'user_avatar')
-    // Nếu bạn muốn dùng chung cache thì import SharedPreferences
-    // final prefs = await SharedPreferences.getInstance();
-    // setState(() { _userAvatar = prefs.getString('user_avatar'); });
-
-    // 2. Gọi API lấy mới nhất (để chắc chắn)
     try {
       final profile = await _userService.getUserProfile();
       if (profile != null && mounted) {
@@ -568,7 +561,7 @@ class _DestinationExploreScreenState extends State<DestinationExploreScreen> {
                       ),
 
                       const SizedBox(height: 10),
-                      // --- Nút đóng nhỏ bên dưới (Optional) ---
+                      // --- Nút đóng nhỏ bên dưới ---
                       TextButton(
                         onPressed: () => Navigator.of(context).pop(),
                         child: const Text(
@@ -746,7 +739,6 @@ class _DestinationExploreScreenState extends State<DestinationExploreScreen> {
               right: 16 * scaleFactor,
               bottom: 16 * scaleFactor,
               child: GestureDetector(
-                // GỌI HÀM MỚI TẠI ĐÂY
                 onTap: () => _showDescriptionPopup(context, item),
 
                 child: Container(
