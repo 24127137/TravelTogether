@@ -384,6 +384,17 @@ class _GroupCreatingScreenState extends State<GroupCreatingScreen>
                             _isCalendarVisible = false;
                           });
                         },
+                        // === THÊM MỚI: Callback để cập nhật ngày khi user chọn xong ===
+                        onRangeSelected: (start, end) {
+                          setState(() {
+                            _selectedStartDate = start;
+                            _selectedEndDate = end;
+                            if (start != null) {
+                              _focusedDay = start;
+                            }
+                          });
+                          debugPrint('📅 Group Creating - Updated dates: $start -> $end');
+                        },
                         accentColor: const Color(0xFFB99668),
                       ),
                     ),
@@ -537,27 +548,38 @@ class _GroupCreatingScreenState extends State<GroupCreatingScreen>
                   const SizedBox(height: 12),
                   GestureDetector(
                     onTap: _showEditGroupNameDialog,
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          _groupName,
-                          style: const TextStyle(
-                            fontSize: 40,
-                            fontWeight: FontWeight.w500,
-                            color: Color(0xFFF7F3E8),
-                            decoration: TextDecoration.none,
-                            fontFamily: 'Alegreya',
-                            height: 1.0,
+                    child: Container(
+                      constraints: BoxConstraints(
+                        maxWidth: MediaQuery.of(context).size.width - 80, // Giới hạn chiều rộng
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Flexible(
+                            child: Text(
+                              _groupName,
+                              style: const TextStyle(
+                                fontSize: 32, // Giảm font size từ 40 xuống 32
+                                fontWeight: FontWeight.w500,
+                                color: Color(0xFFF7F3E8),
+                                decoration: TextDecoration.none,
+                                fontFamily: 'Alegreya',
+                                height: 1.0,
+                              ),
+                              overflow: TextOverflow.ellipsis, // Thêm ellipsis khi quá dài
+                              maxLines: 1,
+                              textAlign: TextAlign.center,
+                            ),
                           ),
-                        ),
-                        const SizedBox(width: 8),
-                        const Icon(
-                          Icons.edit,
-                          color: Color(0xFFE5CDB1),
-                          size: 20,
-                        ),
-                      ],
+                          const SizedBox(width: 8),
+                          const Icon(
+                            Icons.edit,
+                            color: Color(0xFFE5CDB1),
+                            size: 20,
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ],

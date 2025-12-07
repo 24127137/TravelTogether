@@ -20,6 +20,9 @@ class BackgroundNotificationService {
   String? _accessToken;
   bool _isConnected = false;
   Timer? _reconnectTimer;
+  Timer? _pollingTimer;
+  Timer? _keepAliveTimer; // === THÊM: Timer để giữ WebSocket sống ===
+  int _lastPendingCount = 0;
 
   /// Khởi động service - gọi khi login thành công
   Future<void> start() async {
@@ -46,6 +49,10 @@ class BackgroundNotificationService {
     }
 
     await _connectWebSocket();
+
+    // === THÊM MỚI: Start polling group requests ===
+    await _startPollingGroupRequests();
+    debugPrint('✅ Group request polling started');
   }
 
   /// Kết nối WebSocket
@@ -62,6 +69,9 @@ class BackgroundNotificationService {
 
       debugPrint('✅ WebSocket channel created, waiting for connection...');
 
+      // === THÊM: Start keepalive ping để giữ kết nối ===
+      _startKeepAlive();
+
       // Lắng nghe tin nhắn
       _channel!.stream.listen(
         (message) {
@@ -72,11 +82,13 @@ class BackgroundNotificationService {
         onError: (error) {
           debugPrint('❌ Background WebSocket error: $error');
           _isConnected = false;
+          _keepAliveTimer?.cancel();
           _scheduleReconnect();
         },
         onDone: () {
           debugPrint('🔌 Background WebSocket connection closed');
           _isConnected = false;
+          _keepAliveTimer?.cancel();
           _scheduleReconnect();
         },
       );
@@ -88,6 +100,24 @@ class BackgroundNotificationService {
       _isConnected = false;
       _scheduleReconnect();
     }
+  }
+
+  /// === THÊM MỚI: Keepalive để giữ WebSocket connection sống ===
+  void _startKeepAlive() {
+    _keepAliveTimer?.cancel();
+    _keepAliveTimer = Timer.periodic(const Duration(seconds: 25), (timer) {
+      if (_channel != null && _isConnected) {
+        try {
+          // Gửi ping message để giữ kết nối
+          _channel!.sink.add(jsonEncode({'type': 'ping'}));
+          debugPrint('🏓 WebSocket keepalive ping sent');
+        } catch (e) {
+          debugPrint('❌ Keepalive ping failed: $e');
+          _isConnected = false;
+          _scheduleReconnect();
+        }
+      }
+    });
   }
 
   /// Xử lý tin nhắn từ WebSocket
@@ -183,30 +213,41 @@ class BackgroundNotificationService {
   Future<void> stop() async {
     debugPrint('🛑 Stopping background notification service');
     _reconnectTimer?.cancel();
+    _pollingTimer?.cancel();
+    _keepAliveTimer?.cancel(); // === THÊM: Cancel keepalive timer ===
     await _channel?.sink.close();
     _channel = null;
     _isConnected = false;
     _accessToken = null;
     _currentUserId = null;
+    _lastPendingCount = 0;
   }
 
-// Thêm vào BackgroundNotificationService
-
-  Timer? _pollingTimer;
-  int _lastPendingCount = 0;
-
+  /// Start polling để kiểm tra group requests mới
   Future<void> _startPollingGroupRequests() async {
     _pollingTimer?.cancel();
+
+    // === QUAN TRỌNG: Check ngay lập tức lần đầu ===
+    await _checkNewGroupRequests();
+    debugPrint('📋 First group request check completed');
+
+    // Sau đó check định kỳ mỗi 30 giây
     _pollingTimer = Timer.periodic(const Duration(seconds: 30), (timer) async {
+      debugPrint('⏰ Polling group requests...');
       await _checkNewGroupRequests();
     });
   }
 
   Future<void> _checkNewGroupRequests() async {
     try {
+      debugPrint('🔍 Checking for new group requests...');
+
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('access_token');
-      if (token == null) return;
+      if (token == null) {
+        debugPrint('❌ No token for polling');
+        return;
+      }
 
       // Gọi API lấy danh sách nhóm của host
       final url = Uri.parse('${ApiConfig.baseUrl}/groups/mine');
@@ -215,13 +256,19 @@ class BackgroundNotificationService {
         headers: {'Authorization': 'Bearer $token'},
       );
 
+      debugPrint('📥 Groups response: ${response.statusCode}');
+
       if (response.statusCode == 200) {
         final List<dynamic> groups = jsonDecode(response.body);
+        debugPrint('📋 Found ${groups.length} groups');
 
         int totalPending = 0;
         String? latestGroupName;
+        String? latestUserName;
 
         for (var group in groups) {
+          debugPrint('   Group: ${group['name']} - Role: ${group['role']}');
+
           if (group['role'] == 'host') {
             final groupId = group['group_id'];
             final pendingUrl = Uri.parse('${ApiConfig.baseUrl}/groups/$groupId/requests');
@@ -230,24 +277,38 @@ class BackgroundNotificationService {
               headers: {'Authorization': 'Bearer $token'},
             );
 
+            debugPrint('   Pending requests response: ${pendingRes.statusCode}');
+
             if (pendingRes.statusCode == 200) {
               final List<dynamic> pending = jsonDecode(pendingRes.body);
+              debugPrint('   Found ${pending.length} pending requests for group ${group['name']}');
+
               totalPending += pending.length;
               if (pending.isNotEmpty) {
                 latestGroupName = group['name'];
+                // Lấy tên người request mới nhất
+                latestUserName = pending.last['fullname'] ?? 'Ai đó';
               }
             }
           }
         }
 
+        debugPrint('📊 Total pending: $totalPending, Last count: $_lastPendingCount');
+
         // Nếu có request mới hơn lần check trước
         if (totalPending > _lastPendingCount && latestGroupName != null) {
+          debugPrint('🔔 NEW REQUEST DETECTED! Sending notification...');
+
           await NotificationService().showGroupRequestNotification(
-            userName: 'Có người',
+            userName: latestUserName ?? 'Có người',
             groupName: latestGroupName,
           );
+
+          debugPrint('✅ Group request notification sent!');
         }
+
         _lastPendingCount = totalPending;
+        debugPrint('📝 Updated lastPendingCount to: $_lastPendingCount');
       }
     } catch (e) {
       debugPrint('❌ Error polling group requests: $e');

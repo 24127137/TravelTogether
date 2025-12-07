@@ -55,6 +55,42 @@ class NotificationService {
       onDidReceiveNotificationResponse: _onNotificationTapped,
     );
 
+    // === THÊM MỚI: Tạo notification channel với độ ưu tiên cao cho Android ===
+    if (defaultTargetPlatform == TargetPlatform.android) {
+      final androidPlugin = _notifications.resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin>();
+
+      if (androidPlugin != null) {
+        // Tạo channel cho tin nhắn
+        await androidPlugin.createNotificationChannel(
+          const AndroidNotificationChannel(
+            'travel_together_channel',
+            'Travel Together Notifications',
+            description: 'Thông báo từ Travel Together',
+            importance: Importance.max,
+            playSound: true,
+            enableVibration: true,
+            showBadge: true,
+          ),
+        );
+
+        // Tạo channel riêng cho group requests
+        await androidPlugin.createNotificationChannel(
+          const AndroidNotificationChannel(
+            'group_request_channel',
+            'Group Request Notifications',
+            description: 'Thông báo yêu cầu tham gia nhóm',
+            importance: Importance.max,
+            playSound: true,
+            enableVibration: true,
+            showBadge: true,
+          ),
+        );
+
+        debugPrint('✅ Android notification channels created');
+      }
+    }
+
     _initialized = true;
     debugPrint('✅ NotificationService initialized');
 
@@ -220,17 +256,22 @@ class NotificationService {
       await initialize();
     }
 
+    debugPrint('🔔 Showing notification: $title - $body');
+
     // Android notification details
     final androidDetails = AndroidNotificationDetails(
       'travel_together_channel', // channel ID
       'Travel Together Notifications', // channel name
       channelDescription: 'Thông báo từ Travel Together',
       importance: Importance.max,
-      priority: priority == NotificationPriority.high ? Priority.high : Priority.defaultPriority,
+      priority: Priority.max,
       showWhen: true,
       enableVibration: true,
       playSound: true,
       icon: '@mipmap/ic_launcher',
+      fullScreenIntent: true, // === THÊM: Hiện trên lock screen ===
+      category: AndroidNotificationCategory.message,
+      visibility: NotificationVisibility.public, // === THÊM: Hiện trên lock screen ===
     );
 
     // iOS notification details
@@ -238,6 +279,7 @@ class NotificationService {
       presentAlert: true,
       presentBadge: true,
       presentSound: true,
+      interruptionLevel: InterruptionLevel.timeSensitive, // === THÊM: Ưu tiên cao ===
     );
 
     final details = NotificationDetails(
@@ -252,6 +294,8 @@ class NotificationService {
       details,
       payload: payload,
     );
+
+    debugPrint('✅ Notification shown successfully with ID: $id');
 
     debugPrint('📬 Notification sent: $title - $body');
   }
@@ -289,7 +333,12 @@ class NotificationService {
     required String groupName,
     String? groupId, // === THÊM MỚI: ID của nhóm ===
   }) async {
+    if (!_initialized) {
+      await initialize();
+    }
+
     showBadgeNotifier.value = true;
+
     // Tạo payload JSON
     final payloadData = {
       'type': 'group_request',
@@ -298,13 +347,46 @@ class NotificationService {
       'user_name': userName,
     };
 
-    await showNotification(
-      id: 2,
-      title: 'Yêu cầu tham gia nhóm',
-      body: '$userName muốn tham gia nhóm "$groupName"',
-      payload: jsonEncode(payloadData), // === SỬA: Dùng JSON payload ===
-      priority: NotificationPriority.high,
+    // === SỬA: Dùng channel riêng và cấu hình chi tiết hơn ===
+    final androidDetails = AndroidNotificationDetails(
+      'group_request_channel', // Channel ID riêng
+      'Group Request Notifications',
+      channelDescription: 'Thông báo yêu cầu tham gia nhóm',
+      importance: Importance.max,
+      priority: Priority.max,
+      showWhen: true,
+      enableVibration: true,
+      playSound: true,
+      icon: '@mipmap/ic_launcher',
+      fullScreenIntent: true, // Hiện trên lock screen
+      category: AndroidNotificationCategory.message,
+      visibility: NotificationVisibility.public,
     );
+
+    const iosDetails = DarwinNotificationDetails(
+      presentAlert: true,
+      presentBadge: true,
+      presentSound: true,
+      interruptionLevel: InterruptionLevel.timeSensitive,
+    );
+
+    final details = NotificationDetails(
+      android: androidDetails,
+      iOS: iosDetails,
+    );
+
+    // Dùng timestamp để tạo unique ID
+    final notificationId = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+
+    await _notifications.show(
+      notificationId,
+      'Yêu cầu tham gia nhóm',
+      '$userName muốn tham gia nhóm "$groupName"',
+      details,
+      payload: jsonEncode(payloadData),
+    );
+
+    debugPrint('🔔 Group request notification shown with ID: $notificationId');
   }
 
   /// Hiển thị notification AI chatbot

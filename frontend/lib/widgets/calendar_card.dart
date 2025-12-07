@@ -14,6 +14,7 @@ class CalendarCard extends StatefulWidget {
   final DateTime? rangeEnd;
   final Function(DateTime, DateTime)? onDaySelected;
   final Function(DateTime)? onPageChanged;
+  final Function(DateTime?, DateTime?)? onRangeSelected; // === THÊM MỚI: Callback khi chọn xong range ===
   final VoidCallback onClose;
   final Color? accentColor;
   final EdgeInsetsGeometry? margin;
@@ -27,6 +28,7 @@ class CalendarCard extends StatefulWidget {
     this.rangeEnd,
     this.onDaySelected,
     this.onPageChanged,
+    this.onRangeSelected, // === THÊM MỚI ===
     required this.onClose,
     this.accentColor,
     this.margin,
@@ -409,6 +411,8 @@ class _CalendarCardState extends State<CalendarCard> {
                   ),
                   onPressed: () {
                     Navigator.of(context).pop();
+                    // === THÊM MỚI: Gọi callback trả về range đã chọn ===
+                    widget.onRangeSelected?.call(_rangeStart, _rangeEnd);
                     widget.onClose();
                   },
                   child: const Text(
