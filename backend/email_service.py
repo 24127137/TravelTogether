@@ -1,20 +1,16 @@
 # email_service.py
 from fastapi_mail import FastMail, MessageSchema, ConnectionConfig, MessageType
 from typing import List
-
+from config import settings
 # Cấu hình kết nối
-MAIL_USERNAME = "apptraveltogether@gmail.com"
-MAIL_PASSWORD = "okgi nsdg lkhb cspa"
-MAIL_PORT = 587
-MAIL_SERVER = "smtp.gmail.com"
-MAIL_FROM_NAME = "Travel Security Alert"
+
 
 conf = ConnectionConfig(
-    MAIL_USERNAME=MAIL_USERNAME,
-    MAIL_PASSWORD=MAIL_PASSWORD,
-    MAIL_FROM=MAIL_USERNAME,
-    MAIL_PORT=MAIL_PORT,
-    MAIL_SERVER=MAIL_SERVER,
+    MAIL_USERNAME=settings.MAIL_USERNAME,
+    MAIL_PASSWORD=settings.MAIL_PASSWORD,
+    MAIL_FROM=settings.MAIL_USERNAME,
+    MAIL_PORT=settings.MAIL_PORT,
+    MAIL_SERVER=settings.MAIL_SERVER,
     MAIL_STARTTLS=True,
     MAIL_SSL_TLS=False,
     USE_CREDENTIALS=True,
@@ -45,7 +41,7 @@ class EmailService:
             subject = f"⚠️ CẢNH BÁO: Người thân {user_name} đã mất liên lạc!"
             body = f"""
             <div style="font-family: Arial, sans-serif; padding: 20px; border: 1px solid #e0e0e0; border-radius: 5px;">
-                <h2 style="color: #d9534f;">Hệ thống Cảnh báo Du lịch</h2>
+                <h2 style="color: #d9534f;">Hệ thống cảnh báo du lịch</h2>
                 <p>Xin chào,</p>
                 <p>Hệ thống phát hiện người dùng <b>{user_name}</b> đã không xác nhận an toàn trong hơn 36 giờ.</p>
                 <p>Trạng thái hiện tại: <b style="color: red;">OVERDUE (QUÁ HẠN)</b></p>
@@ -66,6 +62,18 @@ class EmailService:
                 <p>Hệ thống đang bí mật theo dõi vị trí.</p>
                 <p><b>Hành động khuyến nghị:</b> Kiểm tra vị trí và liên hệ khẩn cấp.</p>
                 {location_html}
+            </div>
+            """
+        elif alert_type == "confirmation_reminder":
+            subject = f"🔔 Nhắc nhở: Vui lòng xác nhận an toàn, {user_name}"
+            body = f"""
+            <div style="font-family: Arial, sans-serif; padding: 20px; border: 1px solid #e0e0e0; border-radius: 5px;">
+                <h2 style="color: #0275d8;">Nhắc nhở xác nhận an toàn</h2>
+                <p>Xin chào, <b>{user_name}</b> </p>
+                <p>Bạn chưa xác nhận an toàn trong vòng 24 giờ qua.</p>
+                <p>Vui lòng mở ứng dụng và xác nhận để đảm bảo an toàn.</p>
+                <hr>
+                <small>Đây là email tự động, vui lòng không trả lời.</small>
             </div>
             """
         message = MessageSchema(

@@ -50,5 +50,9 @@
 	<string>Cần truy cập thư viện ảnh để gửi ảnh trong chat</string>
 	<key>NSCameraUsageDescription</key>
 	<string>Cần truy cập camera để chụp và gửi ảnh trong chat</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+    <string>Chúng tôi cần vị trí của bạn để gửi cảnh báo khẩn cấp đến người thân khi bạn gặp nguy hiểm</string>
+    <key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+    <string>Chúng tôi cần vị trí của bạn để bảo vệ an toàn trong tình huống khẩn cấp</string>
 </dict>
 </plist>
