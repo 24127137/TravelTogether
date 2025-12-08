@@ -1,5 +1,6 @@
 // Screen Đăng nhập
 import 'package:flutter/material.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'signup.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
@@ -65,7 +66,7 @@ class _LoginScreenState extends State<LoginScreen> {
         await prefs.setString('user_id', user['id']); // Lưu user_id để phân biệt tin nhắn
 
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Đăng nhập thành công! Xin chào ${user['email']}")),
+          SnackBar(content: Text("${'login_success'.tr()} ${user['email']}")),
         );
 
         Navigator.pushReplacement(
@@ -78,12 +79,12 @@ class _LoginScreenState extends State<LoginScreen> {
       } else {
         final err = jsonDecode(response.body);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(err['detail'] ?? 'Đăng nhập thất bại')),
+          SnackBar(content: Text(err['detail'] ?? 'login_failed'.tr())),
         );
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Lỗi kết nối server: $e")),
+        SnackBar(content: Text("${'server_connection_error'.tr()}: $e")),
       );
     } finally {
       setState(() => _isLoading = false);
@@ -122,11 +123,11 @@ class _LoginScreenState extends State<LoginScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                const Text(
-                  "Đăng nhập",
-                  style: TextStyle(
+                Text(
+                  'login_title'.tr(),
+                  style: const TextStyle(
                     fontSize: 32,
-                    fontFamily: 'WorkSans',
+                    fontFamily: 'Alumni Sans',
                     fontWeight: FontWeight.w700,
                     color: Colors.white,
                   ),
@@ -137,7 +138,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   controller: _emailController,
                   style: const TextStyle(
                     fontSize: 18,
-                    fontFamily: 'WorkSans',
+                    fontFamily: 'Alegreya',
                     fontWeight: FontWeight.w500,
                   ),
                   decoration: InputDecoration(
@@ -157,13 +158,13 @@ class _LoginScreenState extends State<LoginScreen> {
                   controller: _passwordController,
                   style: const TextStyle(
                     fontSize: 18,
-                    fontFamily: 'WorkSans',
+                    fontFamily: 'Alegreya',
                     fontWeight: FontWeight.w500,
                   ),
                   obscureText: _obscurePassword,
                   decoration: InputDecoration(
                     prefixIcon: const Icon(Icons.lock_outline),
-                    hintText: "Mật khẩu",
+                    hintText: 'password'.tr(),
                     filled: true,
                     fillColor: Colors.white.withValues(alpha: 0.9),
                     border: OutlineInputBorder(
@@ -199,11 +200,11 @@ class _LoginScreenState extends State<LoginScreen> {
                     onPressed: _isFormValid && !_isLoading ? _login : null,
                     child: _isLoading
                         ? const CircularProgressIndicator(color: Colors.white)
-                        : const Text(
-                      "Đăng nhập",
-                      style: TextStyle(
+                        : Text(
+                      'login_title'.tr(),
+                      style: const TextStyle(
                         fontSize: 24,
-                        fontFamily: 'WorkSans',
+                        fontFamily: 'Alegreya',
                         fontWeight: FontWeight.w600,
                         color: Colors.white,
                       ),
@@ -215,11 +216,11 @@ class _LoginScreenState extends State<LoginScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Text(
-                      "Bạn chưa có tài khoản? ",
-                      style: TextStyle(
+                    Text(
+                      "${'no_account_question'.tr()} ",
+                      style: const TextStyle(
                         color: Colors.white,
-                        fontFamily: 'WorkSans',
+                        fontFamily: 'Alegreya',
                         fontWeight: FontWeight.w600,
                         fontSize: 14,
                       ),
@@ -239,11 +240,11 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                         );
                       },
-                      child: const Text(
-                        "Đăng ký",
-                        style: TextStyle(
+                      child: Text(
+                        'signup_title'.tr(),
+                        style: const TextStyle(
                           color: Color.fromARGB(255, 255, 225, 176),
-                          fontFamily: 'WorkSans',
+                          fontFamily: 'Alegreya',
                           fontWeight: FontWeight.w700,
                           fontSize: 16,
                         ),

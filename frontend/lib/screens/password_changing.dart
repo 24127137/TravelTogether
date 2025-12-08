@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:confetti/confetti.dart';
 
 
@@ -58,7 +59,7 @@ class _PasswordChangingScreenState extends State<PasswordChangingScreen> with Si
     _animationController.stop();
     _confettiController.play();
 
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Mật khẩu đã được thay đổi')));
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('password_changed'.tr())));
 
     // close shortly after success so user sees feedback
     Future.delayed(const Duration(seconds: 2), () { if (mounted) Navigator.of(context).pop(); });
@@ -144,23 +145,24 @@ class _PasswordChangingScreenState extends State<PasswordChangingScreen> with Si
                             children: [
                               // Title
                               Text(
-                                'Đổi mật khẩu',
+                                'change_password_title'.tr(),
                                 textAlign: TextAlign.center,
-                                style: TextStyle(
+                                style: const TextStyle(
                                   color: Colors.white,
                                   fontSize: 20,
                                   fontWeight: FontWeight.bold,
+                                  fontFamily: 'Alumni Sans',
                                 ),
                               ),
 
                               const SizedBox(height: 18),
 
                               // Current password
-                              _buildLabel('Mật khẩu hiện tại'),
+                              _buildLabel('current_password'.tr()),
                               const SizedBox(height: 8),
                               _buildPasswordField(
                                 controller: _currentController,
-                                hintText: 'Nhập mật khẩu hiện tại',
+                                hintText: 'enter_current_password'.tr(),
                                 obscure: _obscureCurrent,
                                 suffix: IconButton(
                                   icon: Icon(
@@ -174,11 +176,11 @@ class _PasswordChangingScreenState extends State<PasswordChangingScreen> with Si
                               const SizedBox(height: 14),
 
                               // New password
-                              _buildLabel('Mật khẩu mới'),
+                              _buildLabel('new_password'.tr()),
                               const SizedBox(height: 8),
                               _buildPasswordField(
                                 controller: _newController,
-                                hintText: 'Nhập mật khẩu mới',
+                                hintText: 'enter_new_password'.tr(),
                                 obscure: _obscureNew,
                                 suffix: IconButton(
                                   icon: Icon(
@@ -188,8 +190,8 @@ class _PasswordChangingScreenState extends State<PasswordChangingScreen> with Si
                                   onPressed: () => setState(() => _obscureNew = !_obscureNew),
                                 ),
                                 validator: (v) {
-                                  if (v == null || v.isEmpty) return 'Vui lòng nhập mật khẩu mới';
-                                  if (v.length < 6) return 'Mật khẩu phải >= 6 ký tự';
+                                  if (v == null || v.isEmpty) return 'password_required'.tr();
+                                  if (v.length < 6) return 'password_min_length'.tr();
                                   return null;
                                 },
                               ),
@@ -197,11 +199,11 @@ class _PasswordChangingScreenState extends State<PasswordChangingScreen> with Si
                               const SizedBox(height: 14),
 
                               // Confirm password
-                              _buildLabel('Xác nhận mật khẩu'),
+                              _buildLabel('confirm_password'.tr()),
                               const SizedBox(height: 8),
                               _buildPasswordField(
                                 controller: _confirmController,
-                                hintText: 'Nhập lại mật khẩu mới',
+                                hintText: 'enter_confirm_password'.tr(),
                                 obscure: _obscureConfirm,
                                 suffix: IconButton(
                                   icon: Icon(
@@ -211,8 +213,8 @@ class _PasswordChangingScreenState extends State<PasswordChangingScreen> with Si
                                   onPressed: () => setState(() => _obscureConfirm = !_obscureConfirm),
                                 ),
                                 validator: (v) {
-                                  if (v == null || v.isEmpty) return 'Vui lòng xác nhận mật khẩu';
-                                  if (v != _newController.text) return 'Mật khẩu không khớp';
+                                  if (v == null || v.isEmpty) return 'confirm_password'.tr();
+                                  if (v != _newController.text) return 'pin_mismatch'.tr();
                                   return null;
                                 },
                               ),
@@ -258,6 +260,7 @@ class _PasswordChangingScreenState extends State<PasswordChangingScreen> with Si
           color: Colors.white,
           fontSize: 14,
           fontWeight: FontWeight.w600,
+          fontFamily: 'Alegreya',
         ),
       );
 
@@ -325,12 +328,12 @@ class _PasswordChangingScreenState extends State<PasswordChangingScreen> with Si
       case ButtonState.idle:
         return Row(
           mainAxisAlignment: MainAxisAlignment.center,
-          children: const [
-            Icon(Icons.save, color: Colors.white, size: 20),
-            SizedBox(width: 8),
+          children: [
+            const Icon(Icons.save, color: Colors.white, size: 20),
+            const SizedBox(width: 8),
             Text(
-              'Lưu',
-              style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600),
+              'save'.tr(),
+              style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600, fontFamily: 'Alegreya'),
             ),
           ],
         );
@@ -366,12 +369,12 @@ class _PasswordChangingScreenState extends State<PasswordChangingScreen> with Si
       case ButtonState.success:
         return Row(
           mainAxisAlignment: MainAxisAlignment.center,
-          children: const [
-            Icon(Icons.check_circle, color: Colors.white, size: 24),
-            SizedBox(width: 8),
+          children: [
+            const Icon(Icons.check_circle, color: Colors.white, size: 24),
+            const SizedBox(width: 8),
             Text(
-              'Thành công',
-              style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600),
+              'success'.tr(),
+              style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600, fontFamily: 'Alegreya'),
             ),
           ],
         );
