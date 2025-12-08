@@ -182,9 +182,9 @@ class _JoinGroupScreenState extends State<JoinGroupScreen> {
             // === THÊM MỚI: Set empty reason ===
             if (_groups.isEmpty) {
               if (!_hasSelectedDates) {
-                _emptyReason = 'Bạn chưa chọn ngày đi du lịch.\nVui lòng cập nhật ngày trong hồ sơ của bạn.';
+                _emptyReason = 'no_travel_dates'.tr();
               } else {
-                _emptyReason = 'Không tìm thấy nhóm phù hợp.\nHãy thử lại sau hoặc tạo nhóm mới.';
+                _emptyReason = 'no_matching_groups'.tr();
               }
             }
 
@@ -414,8 +414,8 @@ class _JoinGroupScreenState extends State<JoinGroupScreen> {
                                     const SizedBox(height: 16),
                                     Text(
                                       _hasSelectedDates
-                                        ? 'Không tìm thấy nhóm phù hợp'
-                                        : 'Chưa chọn ngày du lịch',
+                                        ? 'no_matching_groups_found'.tr()
+                                        : 'no_travel_dates'.tr().split('\n').first,
                                       style: const TextStyle(
                                         fontSize: 18,
                                         fontWeight: FontWeight.bold,

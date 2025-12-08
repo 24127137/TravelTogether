@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:easy_localization/easy_localization.dart';
 import 'dart:convert';
 import '../widgets/out_group_dialog.dart';
 import '../config/api_config.dart';
@@ -79,7 +80,7 @@ class _MemberScreenHostState extends State<MemberScreenHost> with WidgetsBinding
     } else {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Không tìm thấy token đăng nhập')),
+          SnackBar(content: Text('no_login_token'.tr())),
         );
       }
     }
@@ -662,10 +663,10 @@ class _MemberScreenHostState extends State<MemberScreenHost> with WidgetsBinding
                     borderRadius: BorderRadius.circular(30),
                   ),
                 ),
-                child: const Center(
+                child: Center(
                   child: Text(
-                    'Thành viên',
-                    style: TextStyle(
+                    'members'.tr(),
+                    style: const TextStyle(
                       color: Colors.black,
                       fontSize: 18,
                       fontFamily: 'Alumni Sans',

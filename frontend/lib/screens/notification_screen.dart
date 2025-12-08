@@ -146,7 +146,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
         final List<dynamic> memberListJson = data['members'] ?? [];
         final List<Member> members = memberListJson.map((m) => Member(
           id: m['profile_uuid'] ?? '',
-          name: m['fullname'] ?? 'Thành viên',
+          name: m['fullname'] ?? 'member_default'.tr(),
           email: m['email'] ?? '',
           avatarUrl: m['avatar_url'],
         )).toList();

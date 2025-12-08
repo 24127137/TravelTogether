@@ -425,5 +425,86 @@
   "thursday": "TH 5",
   "friday": "TH 6",
   "saturday": "TH 7",
-  "sunday": "CN"
+  "sunday": "CN",
+
+  "my_travel_plan": "KẾ HOẠCH CỦA TÔI",
+  "no_saved_destinations": "Chưa có địa điểm nào được tim.",
+  "explore_and_save": "Hãy khám phá và thả tim các địa điểm bạn thích nhé!",
+  "destinations_count": "địa điểm",
+
+  "tap_to_select_start": "Nhấn để chọn ngày đi",
+  "tap_to_select_end": "Nhấn để chọn ngày về",
+  "departure": "Ngày đi",
+  "return": "Ngày về",
+  "days": "ngày",
+
+  "no_conversation_yet": "Chưa có cuộc trò chuyện nào",
+
+  "send_request_to_join": "GỬI YÊU CẦU",
+  "join_group_request_sent": "Đã gửi yêu cầu tham gia nhóm",
+
+  "group_chat_default": "Nhóm chat",
+  "take_photo": "Chụp ảnh",
+  "choose_from_gallery": "Chọn từ thư viện",
+  "upload_image_failed": "Upload ảnh thất bại",
+  "send_image_error": "Lỗi gửi ảnh",
+  "load_members_error": "Lỗi load thành viên",
+  "view_route": "Xem lộ trình",
+
+  "start_chat_with_ai": "Nhấn để bắt đầu chat với AI!",
+  "clear_chat_history": "Xóa lịch sử chat",
+  "clear_chat_confirm": "Bạn có chắc muốn xóa toàn bộ lịch sử chat với AI? Hành động này không thể hoàn tác.",
+  "chat_history_cleared": "Đã xóa lịch sử chat",
+
+  "pending": "Chờ duyệt",
+  "accepted": "Đã chấp nhận",
+  "rejected": "Đã từ chối",
+
+  "approve": "Duyệt",
+  "reject": "Từ chối",
+  "member": "Thành viên",
+  "owner": "Chủ nhóm",
+  "kick_member": "Kick thành viên",
+  "kick_confirm": "Bạn có chắc muốn kick thành viên này?",
+  "member_kicked": "Đã kick thành viên",
+
+  "request_approved": "Đã duyệt yêu cầu",
+  "request_rejected_action": "Đã từ chối yêu cầu",
+  "manage_requests": "Quản lý yêu cầu",
+
+  "start_conversation": "Bắt đầu cuộc trò chuyện",
+  "member_default": "Thành viên",
+  "members": "Thành viên",
+  "pending_approval": "Chờ duyệt",
+
+  "no_places_found": "Không tìm thấy địa điểm nào",
+  "no_matching_groups_found": "Không tìm thấy nhóm phù hợp",
+  "no_group_plan": "Không tìm thấy kế hoạch nhóm",
+  "no_coordinates_found": "Không tìm thấy tọa độ địa điểm nào",
+  "no_address_found": "Không tìm thấy địa chỉ cụ thể",
+  "no_login_token": "Không tìm thấy token đăng nhập",
+
+  "loading_data": "Đang tải dữ liệu",
+  "optimizing_route": "Đang tối ưu lộ trình",
+  "calculating_route": "Đang tính toán lộ trình",
+
+  "you_sent": "Bạn đã gửi",
+  "sent": "Đã gửi",
+  "an_image": "một ảnh",
+  "a_video": "một video",
+  "a_file": "một tệp",
+
+  "coordinates": "Tọa độ",
+  "route": "Lộ trình",
+  "total_distance": "Tổng quãng đường",
+  "estimated_time": "Thời gian ước tính",
+
+  "approve_request": "Duyệt yêu cầu",
+  "reject_request": "Từ chối yêu cầu",
+  "cancel_request": "Hủy yêu cầu",
+  "delete_request": "Xóa yêu cầu",
+
+  "group_owner": "Chủ nhóm",
+  "group_host": "Host",
+  "group_member": "Thành viên nhóm"
 }

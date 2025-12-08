@@ -177,10 +177,10 @@ class _MessagesScreenState extends State<MessagesScreen> {
   /// Load thông tin một group (chạy song song)
   Future<ConversationItem?> _loadSingleGroup(int groupId, SharedPreferences prefs) async {
     try {
-      String groupName = 'Nhóm chat';
+      String groupName = 'group_chat_default'.tr();
       String? groupImageUrl;
       Map<String, dynamic> groupDetail = {'id': groupId};
-      String messagePreview = 'Bắt đầu cuộc trò chuyện';
+      String messagePreview = 'start_conversation'.tr();
       String timeStr = '';
       bool hasUnseenMessages = false;
 
@@ -213,7 +213,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
       final detailResponse = results[0] as http.Response;
       if (detailResponse.statusCode == 200) {
         groupDetail = jsonDecode(utf8.decode(detailResponse.bodyBytes)) as Map<String, dynamic>;
-        groupName = groupDetail['name']?.toString() ?? 'Nhóm chat';
+        groupName = groupDetail['name']?.toString() ?? 'group_chat_default'.tr();
         groupImageUrl = groupDetail['group_image_url']?.toString();
       }
 
@@ -364,7 +364,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
                                         child: Center(
                                           child: Text(
                                             _searchQuery.isNotEmpty
-                                              ? 'Không tìm thấy cuộc trò chuyện'
+                                              ? 'no_conversation_yet'.tr()
                                               : 'no_conversation_yet'.tr(),
                                             style: const TextStyle(fontSize: 16, color: Colors.grey),
                                           ),

@@ -422,7 +422,7 @@ class _ChatboxScreenState extends State<ChatboxScreen> with WidgetsBindingObserv
       final members = group['members'] ?? [];
 
       setState(() {
-        _groupName = group['name']?.toString() ?? 'Nhóm chat';
+        _groupName = group['name']?.toString() ?? 'group_chat_default'.tr();
         _groupAvatarUrl = group['group_image_url']?.toString();
       });
 
@@ -909,7 +909,7 @@ class _ChatboxScreenState extends State<ChatboxScreen> with WidgetsBindingObserv
               children: [
                 ListTile(
                   leading: const Icon(Icons.camera_alt, color: Color(0xFFB99668)),
-                  title: const Text('Chụp ảnh'),
+                  title: Text('take_photo'.tr()),
                   onTap: () {
                     Navigator.pop(context);
                     _pickAndSendImage(source: ImageSource.camera);
@@ -917,7 +917,7 @@ class _ChatboxScreenState extends State<ChatboxScreen> with WidgetsBindingObserv
                 ),
                 ListTile(
                   leading: const Icon(Icons.photo_library, color: Color(0xFFB99668)),
-                  title: const Text('Chọn từ thư viện'),
+                  title: Text('choose_from_gallery'.tr()),
                   onTap: () {
                     Navigator.pop(context);
                     _pickAndSendImage(source: ImageSource.gallery);

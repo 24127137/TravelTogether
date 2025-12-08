@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'dart:convert';
 import '../services/user_service.dart';
 import '../services/auth_service.dart';
@@ -299,18 +300,23 @@ class _TravelPlanScreenState extends State<TravelPlanScreen> {
                       ),
                     ),
                     const SizedBox(height: 4),
-                    Row(
-                      children: [
-                        const Icon(Icons.place, size: 14, color: Color(0xFFE37547)),
-                        const SizedBox(width: 4),
-                        Text(
-                          "${city['count']} địa điểm",
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: Colors.grey[600],
-                          ),
-                        ),
-                      ],
+                    Builder(
+                      builder: (context) {
+                        final countText = 'destinations_count'.tr();
+                        return Row(
+                          children: [
+                            const Icon(Icons.place, size: 14, color: Color(0xFFE37547)),
+                            const SizedBox(width: 4),
+                            Text(
+                              '${city['count']} $countText',
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: Colors.grey[600],
+                              ),
+                            ),
+                          ],
+                        );
+                      },
                     ),
                   ],
                 ),

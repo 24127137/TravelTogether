@@ -711,10 +711,10 @@ class _DestinationExploreScreenState extends State<DestinationExploreScreen> {
                       SizedBox(
                         height: cardHeight,
                         child: _displayItems.isEmpty
-                            ? const Center(
+                            ? Center(
                           child: Text(
-                            "Không tìm thấy địa điểm nào",
-                            style: TextStyle(color: Colors.white),
+                            'no_places_found'.tr(),
+                            style: const TextStyle(color: Colors.white),
                           ),
                         )
                             : ListView.separated(

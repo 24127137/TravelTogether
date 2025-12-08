@@ -425,5 +425,86 @@
   "thursday": "THU",
   "friday": "FRI",
   "saturday": "SAT",
-  "sunday": "SUN"
+  "sunday": "SUN",
+
+  "my_travel_plan": "MY TRAVEL PLAN",
+  "no_saved_destinations": "No saved destinations yet.",
+  "explore_and_save": "Explore and save your favorite places!",
+  "destinations_count": "destinations",
+
+  "tap_to_select_start": "Tap to select departure date",
+  "tap_to_select_end": "Tap to select return date",
+  "departure": "Departure",
+  "return": "Return",
+  "days": "days",
+
+  "no_conversation_yet": "No conversations yet",
+
+  "send_request_to_join": "SEND REQUEST",
+  "join_group_request_sent": "Join group request sent",
+
+  "group_chat_default": "Group chat",
+  "take_photo": "Take photo",
+  "choose_from_gallery": "Choose from gallery",
+  "upload_image_failed": "Upload image failed",
+  "send_image_error": "Error sending image",
+  "load_members_error": "Error loading members",
+  "view_route": "View route",
+
+  "start_chat_with_ai": "Tap to start chat with AI!",
+  "clear_chat_history": "Clear chat history",
+  "clear_chat_confirm": "Are you sure you want to clear all chat history with AI? This action cannot be undone.",
+  "chat_history_cleared": "Chat history cleared",
+
+  "pending": "Pending",
+  "accepted": "Accepted",
+  "rejected": "Rejected",
+
+  "approve": "Approve",
+  "reject": "Reject",
+  "member": "Member",
+  "owner": "Owner",
+  "kick_member": "Kick member",
+  "kick_confirm": "Are you sure you want to kick this member?",
+  "member_kicked": "Member kicked",
+
+  "request_approved": "Request approved",
+  "request_rejected_action": "Request rejected",
+  "manage_requests": "Manage requests",
+
+  "start_conversation": "Start conversation",
+  "member_default": "Member",
+  "members": "Members",
+  "pending_approval": "Pending",
+
+  "no_places_found": "No places found",
+  "no_matching_groups_found": "No matching groups found",
+  "no_group_plan": "Group plan not found",
+  "no_coordinates_found": "No coordinates found",
+  "no_address_found": "Address not found",
+  "no_login_token": "Login token not found",
+
+  "loading_data": "Loading data",
+  "optimizing_route": "Optimizing route",
+  "calculating_route": "Calculating route",
+
+  "you_sent": "You sent",
+  "sent": "Sent",
+  "an_image": "an image",
+  "a_video": "a video",
+  "a_file": "a file",
+
+  "coordinates": "Coordinates",
+  "route": "Route",
+  "total_distance": "Total distance",
+  "estimated_time": "Estimated time",
+
+  "approve_request": "Approve request",
+  "reject_request": "Reject request",
+  "cancel_request": "Cancel request",
+  "delete_request": "Delete request",
+
+  "group_owner": "Group owner",
+  "group_host": "Host",
+  "group_member": "Group member"
 }
