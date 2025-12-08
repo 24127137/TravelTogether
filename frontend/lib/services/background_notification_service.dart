@@ -7,6 +7,7 @@ import 'dart:convert';
 import 'dart:async';
 import '../config/api_config.dart';
 import '../services/notification_service.dart';
+import '../services/auth_service.dart';
 import '../screens/chatbox_screen.dart';
 
 /// Service lắng nghe WebSocket và polling để nhận thông báo real-time
@@ -34,6 +35,9 @@ class BackgroundNotificationService {
   // Cache tên user theo UUID
   final Map<String, String> _userNames = {};
 
+  // Lưu các request IDs đã được thông báo (để tránh spam notification)
+  final Set<String> _notifiedRequestIds = {};
+
   /// Khởi động service - gọi khi login thành công
   Future<void> start() async {
     debugPrint('🚀 ===== STARTING BACKGROUND NOTIFICATION SERVICE =====');
@@ -43,10 +47,12 @@ class BackgroundNotificationService {
       return;
     }
 
-    // Load token và user ID
+    // Load user ID từ SharedPreferences
     final prefs = await SharedPreferences.getInstance();
-    _accessToken = prefs.getString('access_token');
     _currentUserId = prefs.getString('user_id');
+
+    // Lấy token hợp lệ (tự động refresh nếu cần)
+    _accessToken = await AuthService.getValidAccessToken();
 
     debugPrint('📋 Token exists: ${_accessToken != null}');
     debugPrint('👤 User ID: $_currentUserId');
@@ -61,7 +67,7 @@ class BackgroundNotificationService {
     // Lấy danh sách group và kết nối WebSocket cho mỗi group
     await _connectToAllGroups();
 
-    // Start polling group requests (mỗi 30 giây)
+    // Start polling group requests (mỗi 15 giây)
     await _startPollingGroupRequests();
 
     // Start polling tin nhắn mới (mỗi 10 giây) - Backup khi WebSocket fail
@@ -72,7 +78,11 @@ class BackgroundNotificationService {
 
   /// Kết nối WebSocket tới tất cả các nhóm user đang tham gia
   Future<void> _connectToAllGroups() async {
-    if (_accessToken == null) return;
+    // Lấy token mới nhất
+    final token = await AuthService.getValidAccessToken();
+    if (token == null) return;
+
+    _accessToken = token;
 
     try {
       debugPrint('🔌 Fetching groups to connect WebSocket...');
@@ -80,7 +90,7 @@ class BackgroundNotificationService {
       final url = Uri.parse('${ApiConfig.baseUrl}/groups/mine');
       final response = await http.get(
         url,
-        headers: {'Authorization': 'Bearer $_accessToken'},
+        headers: {'Authorization': 'Bearer $token'},
       );
 
       if (response.statusCode == 200) {
@@ -98,7 +108,7 @@ class BackgroundNotificationService {
             final detailUrl = Uri.parse('${ApiConfig.baseUrl}/groups/$groupId/detail');
             final detailRes = await http.get(
               detailUrl,
-              headers: {'Authorization': 'Bearer $_accessToken'},
+              headers: {'Authorization': 'Bearer $token'},
             );
 
             if (detailRes.statusCode == 200) {
@@ -279,7 +289,7 @@ class BackgroundNotificationService {
 
   /// Kiểm tra tin nhắn mới từ tất cả các nhóm
   Future<void> _checkNewMessages() async {
-    if (_accessToken == null || _currentUserId == null) return;
+    if (_currentUserId == null) return;
 
     // Bỏ qua nếu đang ở trong chat screen
     if (ChatboxScreen.isCurrentlyInChatScreen) {
@@ -287,13 +297,20 @@ class BackgroundNotificationService {
     }
 
     try {
+      // Lấy token mới nhất
+      final token = await AuthService.getValidAccessToken();
+      if (token == null) return;
+
+      // Cập nhật token
+      _accessToken = token;
+
       final prefs = await SharedPreferences.getInstance();
 
       // Lấy danh sách nhóm
       final url = Uri.parse('${ApiConfig.baseUrl}/groups/mine');
       final response = await http.get(
         url,
-        headers: {'Authorization': 'Bearer $_accessToken'},
+        headers: {'Authorization': 'Bearer $token'},
       );
 
       if (response.statusCode != 200) return;
@@ -311,7 +328,7 @@ class BackgroundNotificationService {
           final historyUrl = Uri.parse('${ApiConfig.baseUrl}/chat/$groupId/history');
           final historyRes = await http.get(
             historyUrl,
-            headers: {'Authorization': 'Bearer $_accessToken'},
+            headers: {'Authorization': 'Bearer $token'},
           );
 
           if (historyRes.statusCode != 200) continue;
@@ -413,14 +430,14 @@ class BackgroundNotificationService {
     await _checkNewGroupRequests();
     debugPrint('📋 First group request check completed');
 
-    // Sau đó check định kỳ mỗi 30 giây
-    _pollingTimer = Timer.periodic(const Duration(seconds: 30), (timer) async {
+    // Sau đó check định kỳ mỗi 15 giây (giảm từ 30s)
+    _pollingTimer = Timer.periodic(const Duration(seconds: 15), (timer) async {
       if (_isRunning) {
         await _checkNewGroupRequests();
       }
     });
 
-    debugPrint('✅ Group request polling started (every 30 seconds)');
+    debugPrint('✅ Group request polling started (every 15 seconds)');
   }
 
   // Biến đánh dấu lần check đầu tiên
@@ -430,81 +447,137 @@ class BackgroundNotificationService {
     try {
       debugPrint('🔍 Checking for new group requests...');
 
-      if (_accessToken == null) {
-        debugPrint('❌ No token for polling');
+      // Lấy token mới nhất (tự động refresh nếu hết hạn)
+      final token = await AuthService.getValidAccessToken();
+      if (token == null || _currentUserId == null) {
+        debugPrint('❌ No valid token or user ID for polling');
         return;
       }
 
-      // Gọi API lấy danh sách nhóm của host
+      // Cập nhật token mới nhất
+      _accessToken = token;
+
+      // Gọi API lấy danh sách nhóm
       final url = Uri.parse('${ApiConfig.baseUrl}/groups/mine');
       final response = await http.get(
         url,
-        headers: {'Authorization': 'Bearer $_accessToken'},
+        headers: {'Authorization': 'Bearer $token'},
       );
 
       debugPrint('📥 Groups response: ${response.statusCode}');
 
       if (response.statusCode == 200) {
-        final List<dynamic> groups = jsonDecode(response.body);
+        final List<dynamic> groups = jsonDecode(utf8.decode(response.bodyBytes));
         debugPrint('📋 Found ${groups.length} groups');
 
         int totalPending = 0;
-        String? latestGroupName;
-        String? latestUserName;
 
+        // Duyệt qua từng nhóm để check requests
         for (var group in groups) {
-          final role = group['role']?.toString();
+          final groupId = (group['group_id'] ?? group['id'])?.toString();
+          final groupName = group['name']?.toString() ?? 'Nhóm';
 
-          // Chỉ kiểm tra nếu là host hoặc owner
-          if (role == 'host' || role == 'owner') {
-            final groupId = group['group_id'] ?? group['id'];
+          if (groupId == null) continue;
+
+          // Gọi API detail để check xem user có phải owner/host không
+          // Vì /mine API không trả về role
+          try {
+            final detailUrl = Uri.parse('${ApiConfig.baseUrl}/groups/$groupId/detail');
+            final detailRes = await http.get(
+              detailUrl,
+              headers: {'Authorization': 'Bearer $token'},
+            );
+
+            if (detailRes.statusCode != 200) {
+              debugPrint('   ⚠️ Cannot get detail for group $groupId');
+              continue;
+            }
+
+            final detailData = jsonDecode(utf8.decode(detailRes.bodyBytes));
+            final members = detailData['members'] as List<dynamic>? ?? [];
+
+            // Tìm role của current user trong members
+            String? userRole;
+            debugPrint('   🔎 Looking for user ID: $_currentUserId in ${members.length} members');
+            for (var member in members) {
+              final memberUuid = member['profile_uuid']?.toString();
+              debugPrint('      - Member: $memberUuid, role: ${member['role']}');
+              if (memberUuid == _currentUserId) {
+                userRole = member['role']?.toString();
+                debugPrint('      ✅ MATCH! User role: $userRole');
+                break;
+              }
+            }
+
+            debugPrint('   👤 User role in group $groupName: $userRole');
+
+            // Chỉ kiểm tra pending requests nếu là host hoặc owner
+            if (userRole != 'host' && userRole != 'owner') {
+              continue;
+            }
+
+            // Gọi API lấy pending requests
             final pendingUrl = Uri.parse('${ApiConfig.baseUrl}/groups/$groupId/requests');
             final pendingRes = await http.get(
               pendingUrl,
-              headers: {'Authorization': 'Bearer $_accessToken'},
+              headers: {'Authorization': 'Bearer $token'},
             );
 
             if (pendingRes.statusCode == 200) {
-              final List<dynamic> pending = jsonDecode(pendingRes.body);
-              debugPrint('   Found ${pending.length} pending requests for group ${group['name']}');
+              final List<dynamic> pending = jsonDecode(utf8.decode(pendingRes.bodyBytes));
+              debugPrint('   Found ${pending.length} pending requests for group $groupName');
 
               totalPending += pending.length;
-              if (pending.isNotEmpty) {
-                latestGroupName = group['name'];
-                latestUserName = pending.last['fullname'] ?? 'Ai đó';
+
+              // Kiểm tra từng request - nếu chưa thông báo thì gửi notification
+              for (var request in pending) {
+                // Tạo unique ID cho request (dùng user_id + group_id)
+                final requestUserId = request['user_id']?.toString() ?? request['profile_uuid']?.toString();
+                final requestId = '${groupId}_$requestUserId';
+                final userName = request['fullname']?.toString() ?? 'Có người';
+
+                debugPrint('   📌 Request ID: $requestId, User: $userName');
+
+                // Nếu là lần đầu check, chỉ lưu ID không gửi notification
+                if (_isFirstGroupRequestCheck) {
+                  _notifiedRequestIds.add(requestId);
+                  continue;
+                }
+
+                // Nếu chưa thông báo request này
+                if (!_notifiedRequestIds.contains(requestId)) {
+                  debugPrint('🔔 NEW REQUEST: $userName wants to join $groupName');
+
+                  // Đánh dấu đã thông báo
+                  _notifiedRequestIds.add(requestId);
+
+                  // Bật badge
+                  NotificationService().showBadge();
+
+                  // Gửi notification với groupId
+                  await NotificationService().showGroupRequestNotification(
+                    userName: userName,
+                    groupName: groupName,
+                    groupId: groupId,
+                  );
+
+                  debugPrint('✅ Group request notification sent for: $userName -> $groupName');
+                }
               }
+            } else {
+              debugPrint('   ⚠️ Cannot get pending requests: ${pendingRes.statusCode}');
             }
+          } catch (e) {
+            debugPrint('   ❌ Error checking group $groupId: $e');
           }
         }
 
-        debugPrint('📊 Total pending: $totalPending, Last count: $_lastPendingCount, First check: $_isFirstGroupRequestCheck');
+        debugPrint('📊 Total pending: $totalPending, Notified requests: ${_notifiedRequestIds.length}, First check: $_isFirstGroupRequestCheck');
 
-        // Lần đầu tiên chỉ lưu count, không gửi notification
+        // Đánh dấu đã qua lần check đầu tiên
         if (_isFirstGroupRequestCheck) {
-          _lastPendingCount = totalPending;
           _isFirstGroupRequestCheck = false;
-          debugPrint('📝 First check - initialized lastPendingCount to: $totalPending');
-
-          // Chỉ bật badge nếu có pending requests
-          if (totalPending > 0) {
-            NotificationService().showBadge();
-          }
-          return;
-        }
-
-        // Nếu có request mới hơn lần check trước
-        if (totalPending > _lastPendingCount && latestGroupName != null) {
-          debugPrint('🔔 NEW REQUEST DETECTED! Sending notification...');
-
-          // Bật chấm đỏ badge
-          NotificationService().showBadge();
-
-          await NotificationService().showGroupRequestNotification(
-            userName: latestUserName ?? 'Có người',
-            groupName: latestGroupName,
-          );
-
-          debugPrint('✅ Group request notification sent!');
+          debugPrint('📝 First check completed - initialized ${_notifiedRequestIds.length} existing request IDs');
         }
 
         // Cập nhật badge nếu có pending requests
@@ -541,6 +614,7 @@ class BackgroundNotificationService {
     _lastPendingCount = 0;
     _lastMessageIds.clear();
     _userNames.clear();
+    _notifiedRequestIds.clear(); // Reset request IDs đã thông báo
     _isFirstGroupRequestCheck = true; // Reset để lần sau start lại
 
     debugPrint('✅ Background notification service stopped');
