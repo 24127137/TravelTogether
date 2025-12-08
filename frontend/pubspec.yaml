@@ -54,6 +54,9 @@ dependencies:
   flutter_polyline_points: ^2.1.0
   geocoding: ^3.0.0
   flutter_animate: ^4.5.2
+  geolocator: ^10.1.0
+  permission_handler: ^11.0.1
+  device_info_plus: ^10.1.0
 
 dev_dependencies:
   flutter_test:

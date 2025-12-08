@@ -11,7 +11,11 @@ class Settings(BaseSettings):
     GEMINI_API_KEY: str
     SUPABASE_URL: str
     SUPABASE_KEY: str
-    
+
+    MAIL_USERNAME: str
+    MAIL_PASSWORD: str
+    MAIL_PORT: int = 587
+    MAIL_SERVER: str
     # Cấu hình để tự động tìm và đọc file .env
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 

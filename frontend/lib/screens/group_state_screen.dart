@@ -322,7 +322,7 @@ class _GroupStateScreenState extends State<GroupStateScreen> {
         height: double.infinity,
         decoration: const BoxDecoration(
           image: DecorationImage(
-            image: AssetImage("assets/images/state_background.png"),
+            image: AssetImage("assets/images/state_background.jpg"),
             fit: BoxFit.cover,
           ),
         ),
