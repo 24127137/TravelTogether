@@ -1,11 +1,12 @@
 // file: lib/screens/travel_plan_screen.dart
 
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
 import '../services/user_service.dart';
 import '../services/auth_service.dart';
-import '../data/mock_destinations.dart'; // Import để lấy ảnh đại diện thành phố
-import 'map_route_screen.dart'; // Import để navigate
-import 'dart:ui'; // Để dùng ImageFilter nếu cần làm mờ
+import '../data/mock_destinations.dart';
+import 'map_route_screen.dart';
 
 class TravelPlanScreen extends StatefulWidget {
   final VoidCallback? onBack;
@@ -19,8 +20,6 @@ class TravelPlanScreen extends StatefulWidget {
 class _TravelPlanScreenState extends State<TravelPlanScreen> {
   final UserService _userService = UserService();
 
-  // List chứa các thành phố có trong itinerary của user
-  // Cấu trúc: { "name": "Đà Nẵng", "image": "assets/...", "count": "3 địa điểm" }
   List<Map<String, dynamic>> _savedCities = [];
   bool _isLoading = true;
 
@@ -31,52 +30,64 @@ class _TravelPlanScreenState extends State<TravelPlanScreen> {
   }
 
   Future<void> _loadUserItinerary() async {
-    setState(() => _isLoading = true);
+    // === 1. Load từ cache trước để hiển thị ngay ===
+    final prefs = await SharedPreferences.getInstance();
+    final cachedData = prefs.getString('travel_plan_cache');
+
+    if (cachedData != null) {
+      try {
+        final List<dynamic> cached = jsonDecode(cachedData);
+        if (mounted && cached.isNotEmpty) {
+          setState(() {
+            _savedCities = cached.map((e) => Map<String, dynamic>.from(e)).toList();
+            _isLoading = false;
+          });
+        }
+      } catch (_) {}
+    }
+
+    // === 2. Load từ API (background) ===
     try {
       final token = await AuthService.getValidAccessToken();
-      if (token == null) throw Exception("Vui lòng đăng nhập");
+      if (token == null) {
+        if (mounted) setState(() => _isLoading = false);
+        return;
+      }
 
       final profile = await _userService.getUserProfile();
-      if (profile == null) throw Exception("Lỗi tải thông tin");
+      if (profile == null) {
+        if (mounted) setState(() => _isLoading = false);
+        return;
+      }
 
       final itinerary = profile['itinerary'];
 
-      // Logic gom nhóm địa điểm theo thành phố
       Map<String, int> cityCounts = {};
 
       if (itinerary != null && itinerary is Map) {
         itinerary.forEach((key, value) {
           String strKey = key.toString();
-          // Key format: "CityName_Index" (Ví dụ: Đà Nẵng_1)
           if (strKey.contains('_')) {
-            String cityName = strKey.split('_')[0]; // Lấy phần "Đà Nẵng"
-            if (cityCounts.containsKey(cityName)) {
-              cityCounts[cityName] = cityCounts[cityName]! + 1;
-            } else {
-              cityCounts[cityName] = 1;
-            }
+            String cityName = strKey.split('_')[0];
+            cityCounts[cityName] = (cityCounts[cityName] ?? 0) + 1;
           }
         });
       }
 
-      // Chuyển Map thành List để hiển thị
       List<Map<String, dynamic>> tempCities = [];
 
       for (var entry in cityCounts.entries) {
         String cityName = entry.key;
         int count = entry.value;
 
-        // Tìm ảnh đại diện cho thành phố từ mock data
-        String imageUrl = 'assets/images/default_city.jpg'; // Ảnh fallback
+        String imageUrl = 'assets/images/default_city.jpg';
         try {
-          // Tìm trong mockDestinations xem có thành phố nào trùng tên không
           final mockCity = mockDestinations.firstWhere(
                 (d) => d.name.toLowerCase() == cityName.toLowerCase(),
-            orElse: () => mockDestinations[0], // Fallback
+            orElse: () => mockDestinations[0],
           );
           imageUrl = mockCity.imagePath;
-        } catch (e) {
-          // Nếu không tìm thấy thì dùng ảnh default hoặc placeholder online
+        } catch (_) {
           imageUrl = "https://placehold.co/600x400/E37547/FFFFFF?text=$cityName";
         }
 
@@ -87,13 +98,15 @@ class _TravelPlanScreenState extends State<TravelPlanScreen> {
         });
       }
 
+      // === 3. Lưu cache cho lần sau ===
+      await prefs.setString('travel_plan_cache', jsonEncode(tempCities));
+
       if (mounted) {
         setState(() {
           _savedCities = tempCities;
           _isLoading = false;
         });
       }
-
     } catch (e) {
       print("Error loading plan: $e");
       if (mounted) setState(() => _isLoading = false);
@@ -158,7 +171,12 @@ class _TravelPlanScreenState extends State<TravelPlanScreen> {
                   // Danh sách thành phố
                   Expanded(
                     child: _isLoading
-                        ? const Center(child: CircularProgressIndicator(color: Color(0xFFB64B12)))
+                        ? ListView.separated(
+                      padding: EdgeInsets.zero,
+                      itemCount: 4,
+                      separatorBuilder: (_, __) => const SizedBox(height: 12),
+                      itemBuilder: (context, index) => const _CityCardSkeleton(),
+                    )
                         : _savedCities.isEmpty
                         ? _buildEmptyState()
                         : ListView.separated(
@@ -310,3 +328,137 @@ class _TravelPlanScreenState extends State<TravelPlanScreen> {
     );
   }
 }
+
+/// Skeleton loading cho city card
+class _CityCardSkeleton extends StatefulWidget {
+  const _CityCardSkeleton();
+
+  @override
+  State<_CityCardSkeleton> createState() => _CityCardSkeletonState();
+}
+
+class _CityCardSkeletonState extends State<_CityCardSkeleton>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _animation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1500),
+    )..repeat();
+    _animation = Tween<double>(begin: -1.0, end: 2.0).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _animation,
+      builder: (context, child) {
+        return Container(
+          height: 80,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Row(
+            children: [
+              // Ảnh skeleton
+              Container(
+                width: 80,
+                height: 80,
+                decoration: BoxDecoration(
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(16),
+                    bottomLeft: Radius.circular(16),
+                  ),
+                  gradient: LinearGradient(
+                    begin: Alignment.centerLeft,
+                    end: Alignment.centerRight,
+                    colors: const [
+                      Color(0xFFE0E0E0),
+                      Color(0xFFF5F5F5),
+                      Color(0xFFE0E0E0),
+                    ],
+                    stops: [
+                      (_animation.value - 0.3).clamp(0.0, 1.0),
+                      _animation.value.clamp(0.0, 1.0),
+                      (_animation.value + 0.3).clamp(0.0, 1.0),
+                    ],
+                  ),
+                ),
+              ),
+              // Content skeleton
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        width: 120,
+                        height: 16,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(4),
+                          gradient: LinearGradient(
+                            begin: Alignment.centerLeft,
+                            end: Alignment.centerRight,
+                            colors: const [
+                              Color(0xFFE0E0E0),
+                              Color(0xFFF5F5F5),
+                              Color(0xFFE0E0E0),
+                            ],
+                            stops: [
+                              (_animation.value - 0.3).clamp(0.0, 1.0),
+                              _animation.value.clamp(0.0, 1.0),
+                              (_animation.value + 0.3).clamp(0.0, 1.0),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Container(
+                        width: 80,
+                        height: 12,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(4),
+                          gradient: LinearGradient(
+                            begin: Alignment.centerLeft,
+                            end: Alignment.centerRight,
+                            colors: const [
+                              Color(0xFFE0E0E0),
+                              Color(0xFFF5F5F5),
+                              Color(0xFFE0E0E0),
+                            ],
+                            stops: [
+                              (_animation.value - 0.3).clamp(0.0, 1.0),
+                              _animation.value.clamp(0.0, 1.0),
+                              (_animation.value + 0.3).clamp(0.0, 1.0),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+
