@@ -47,10 +47,7 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
       } else {
         print("⚠️ [Detail] Update thất bại hoặc ID thành phố sai map. Vẫn tiếp tục chuyển trang.");
       }
-
-      // 4. Mẹo: Thêm delay 300ms để đảm bảo DB bên Backend đã commit transaction xong
-      // Tránh trường hợp trang sau gọi API quá nhanh khi DB chưa kịp lưu
-      await Future.delayed(const Duration(milliseconds: 300));
+      
 
       if (!mounted) return;
       setState(() => _isSaving = false);

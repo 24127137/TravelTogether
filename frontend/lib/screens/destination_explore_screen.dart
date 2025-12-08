@@ -22,34 +22,69 @@ class ExploreCacheManager {
 
   // Cache cho từng cityId
   final Map<String, CachedExploreData> _cacheByCity = {};
-  
-  // Thời gian hết hạn cache (30 phút)
-  static const Duration _cacheDuration = Duration(minutes: 30);
-  
-  // Key để lưu interests trong SharedPreferences
+  static const Duration _cacheDuration = Duration(hours: 24); // Tăng lên 24h
   static const String _interestsKey = 'cached_user_interests';
+  static const String _cacheTimestampKey = 'cache_timestamp';
 
-  Future<CachedExploreData?> getCache(String cityId) async {
+  /// Kiểm tra cache có tồn tại cho cityId không
+  bool hasCache(String cityId) {
+    return _cacheByCity.containsKey(cityId);
+  }
+
+  /// Lấy cache data (nullable)
+  CachedExploreData? getCache(String cityId) {
+    return _cacheByCity[cityId];
+  }
+
+  /// Cập nhật chỉ savedNames trong cache (giữ nguyên scores và interests)
+  Future<void> updateSavedNames(String cityId, List<String> savedNames) async {
+    final oldCache = _cacheByCity[cityId];
+    if (oldCache != null) {
+      await setCache(
+        cityId,
+        oldCache.scores,
+        savedNames,
+        oldCache.interests,
+      );
+    }
+  }
+
+  /// Lấy cache mà KHÔNG gọi API - chỉ check local
+  CachedExploreData? getCacheSync(String cityId) {
     final cached = _cacheByCity[cityId];
     if (cached == null) return null;
 
-    // Kiểm tra hết hạn
     if (DateTime.now().difference(cached.timestamp) > _cacheDuration) {
       _cacheByCity.remove(cityId);
-      print("⏰ [Cache] Cache đã hết hạn cho cityId: $cityId");
       return null;
     }
-
-    // Kiểm tra interests có thay đổi không
-    final isInterestsChanged = await _checkAndUpdateInterests();
-    if (isInterestsChanged) {
-      print("🔄 [Cache] Interests đã thay đổi, invalidate cache");
-      clearAll();
-      return null;
-    }
-
-    print("✅ [Cache] Hit cho cityId: $cityId");
     return cached;
+  }
+
+  /// Kiểm tra interests có thay đổi so với cache (so sánh với param truyền vào)
+  bool hasInterestsChanged(List<String> currentInterests, List<String> cachedInterests) {
+    if (currentInterests.length != cachedInterests.length) return true;
+    final setA = Set.from(currentInterests);
+    final setB = Set.from(cachedInterests);
+    return setA.difference(setB).isNotEmpty || setB.difference(setA).isNotEmpty;
+  }
+
+  /// Lưu interests vào SharedPreferences (gọi khi user thay đổi interests)
+  Future<void> saveInterestsToLocal(List<String> interests) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_interestsKey, jsonEncode(interests));
+  }
+
+  /// Lấy interests từ SharedPreferences
+  Future<List<String>> getLocalInterests() async {
+    final prefs = await SharedPreferences.getInstance();
+    final json = prefs.getString(_interestsKey);
+    if (json == null) return [];
+    try {
+      return List<String>.from(jsonDecode(json));
+    } catch (e) {
+      return [];
+    }
   }
 
   Future<void> setCache(
@@ -64,6 +99,8 @@ class ExploreCacheManager {
       interests: interests,
       timestamp: DateTime.now(),
     );
+    // Lưu interests vào local để lần sau so sánh
+    await saveInterestsToLocal(interests);
     print("💾 [Cache] Đã lưu cache cho cityId: $cityId");
   }
 
@@ -196,14 +233,17 @@ class _DestinationExploreScreenState extends State<DestinationExploreScreen> {
 
   List<DestinationExploreItem> _displayItems = [];
   Map<String, int> _compatibilityScores = {};
-  bool _isLoading = true;
+
+  // THAY ĐỔI: Tách riêng loading cho scores
+  bool _isLoadingScores = true;  // Chỉ loading điểm số
+  bool _isPageReady = false;     // Trang đã sẵn sàng hiển thị
+
   bool _hasLoadedOnce = false;
   String? _userAvatar;
   List<String> _currentInterests = [];
 
   Key _enterButtonKey = UniqueKey();
 
-  // Hàm chuẩn hóa tên mạnh mẽ hơn (Trim, Lowercase, Xóa khoảng trắng thừa)
   String _normalizeName(String name) {
     return name.trim().toLowerCase().replaceAll(RegExp(r'\s+'), ' ');
   }
@@ -211,47 +251,74 @@ class _DestinationExploreScreenState extends State<DestinationExploreScreen> {
   @override
   void initState() {
     super.initState();
-    // 1. Khởi tạo list hiển thị từ mock data (sẽ được cập nhật favorite từ server)
+    _initializeScreen();
+  }
+
+  void _initializeScreen() {
+    // 1. Load địa điểm từ mock data ngay lập tức
     _displayItems = mockExploreItems
         .where((item) => item.cityId == widget.cityId)
         .toList();
 
-    // Reset isFavorite ban đầu (sẽ được đồng bộ lại từ server trong _loadAllData)
     for (var item in _displayItems) {
       item.isFavorite = false;
     }
 
-    // 2. Gọi load dữ liệu
+    // 2. Đánh dấu trang đã sẵn sàng hiển thị
+    setState(() {
+      _isPageReady = true;
+      _isLoadingScores = true; // Điểm số vẫn đang load
+    });
+
+    // 3. Load data trong background
     _loadAllData();
     _loadUserAvatar();
   }
 
   Future<void> _loadAllData() async {
-    if (mounted) setState(() => _isLoading = true);
-
     try {
       print("🚀 [Explore] Bắt đầu load dữ liệu cho cityId: ${widget.cityId}");
 
-      // 1. Kiểm tra cache (bên trong sẽ tự check interests)
-      final cached = await _cacheManager.getCache(widget.cityId);
-      
+      // 1. Kiểm tra cache SYNC (không gọi API)
+      final cached = _cacheManager.getCacheSync(widget.cityId);
+
       if (cached != null) {
-        // Sử dụng cache
-        print("⚡ [Cache] Sử dụng dữ liệu cache");
-        _compatibilityScores = cached.scores;
-        _currentInterests = cached.interests;
-        _applySavedNames(cached.savedNames);
-        _sortAndUpdate();
-        return;
+        // 2. Lấy interests hiện tại từ profile để so sánh
+        final profile = await _userService.getUserProfile();
+        final currentInterests = List<String>.from(profile?['interests'] ?? []);
+
+        // 3. So sánh interests
+        if (!_cacheManager.hasInterestsChanged(currentInterests, cached.interests)) {
+          // Interests không đổi -> Dùng cache
+          print("⚡ [Cache] Interests không đổi, sử dụng cache");
+          _compatibilityScores = cached.scores;
+          _currentInterests = cached.interests;
+          _applySavedNames(cached.savedNames);
+
+          _sortDisplayItems();
+
+          if (mounted) {
+            setState(() {
+              _isLoadingScores = false;
+            });
+          }
+
+          // Vẫn refresh savedNames trong background
+          _refreshSavedNamesOnly();
+          return;
+        } else {
+          print("🔄 [Cache] Interests đã thay đổi, cần tính lại");
+          _cacheManager.invalidateCity(widget.cityId);
+        }
       }
 
-      // 2. Không có cache -> Call API
-      print("📡 [API] Đang gọi API...");
-      
+      // 4. Không có cache hoặc interests đã đổi -> Call API
+      print("📡 [API] Đang gọi API tính recommendation...");
+
       final results = await Future.wait([
-        _userService.getUserProfile(),              // Index 0 - Lấy interests
-        _recommendService.getMyRecommendations(),   // Index 1
-        _userService.getSavedItineraryNames(),      // Index 2
+        _userService.getUserProfile(),
+        _recommendService.getMyRecommendations(),
+        _userService.getSavedItineraryNames(),
       ]);
 
       final profile = results[0] as Map<String, dynamic>?;
@@ -259,18 +326,13 @@ class _DestinationExploreScreenState extends State<DestinationExploreScreen> {
       final savedNames = results[2] as List<String>;
 
       _currentInterests = List<String>.from(profile?['interests'] ?? []);
-      
-      print("📥 Nhận được ${recommendations.length} recommendations");
-      print("📥 Nhận được ${savedNames.length} địa điểm đã lưu");
-      print("📥 Interests hiện tại: $_currentInterests");
 
-      // 3. Xử lý điểm số AI
       _compatibilityScores.clear();
       for (var rec in recommendations) {
         _compatibilityScores[_normalizeName(rec.locationName)] = rec.score;
       }
 
-      // 4. Lưu vào cache
+      // 5. Lưu vào cache
       await _cacheManager.setCache(
         widget.cityId,
         Map.from(_compatibilityScores),
@@ -278,49 +340,47 @@ class _DestinationExploreScreenState extends State<DestinationExploreScreen> {
         List.from(_currentInterests),
       );
 
-      // 5. Đồng bộ Tim
       _applySavedNames(savedNames);
 
-      // 6. Sắp xếp và update UI
-      _sortAndUpdate();
+      _sortDisplayItems();
+
+      if (mounted) {
+        setState(() {
+          _isLoadingScores = false;
+        });
+      }
 
     } catch (e) {
       print("⚠️ Lỗi load data: $e");
-      if (mounted) setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() {
+          _isLoadingScores = false;
+        });
+      }
     }
   }
+
 
   Future<void> _refreshSavedNamesOnly() async {
     try {
       print("🔄 [Refresh] Chỉ cập nhật trạng thái tim...");
-      
-      // Chỉ gọi API lấy savedNames
+
       final savedNames = await _userService.getSavedItineraryNames();
-      
       print("📥 Nhận được ${savedNames.length} địa điểm đã lưu");
-      
-      // Cập nhật trạng thái tim
+
       _applySavedNames(savedNames);
-      
-      // Cập nhật cache với savedNames mới (giữ nguyên scores)
-      if (_cacheManager._cacheByCity.containsKey(widget.cityId)) {
-        final oldCache = _cacheManager._cacheByCity[widget.cityId]!;
-        await _cacheManager.setCache(
-          widget.cityId,
-          oldCache.scores,
-          List.from(savedNames),
-          oldCache.interests,
-        );
-      }
-      
-      // Chỉ cần setState để update UI, không cần sort lại
+
+      // Sử dụng method public thay vì truy cập private member
+      await _cacheManager.updateSavedNames(widget.cityId, savedNames);
+
       if (mounted) setState(() {});
-      
+
       print("✅ [Refresh] Đã cập nhật trạng thái tim");
     } catch (e) {
       print("⚠️ Lỗi refresh savedNames: $e");
     }
   }
+
 
   void _applySavedNames(List<String> savedNames) {
     int matchCount = 0;
@@ -340,22 +400,17 @@ class _DestinationExploreScreenState extends State<DestinationExploreScreen> {
     print("✅ Đã đồng bộ xong. Có $matchCount thẻ được tim đỏ.");
   }
 
-  void _sortAndUpdate() {
-    List<DestinationExploreItem> sortedItems = List.from(_displayItems);
-    sortedItems.sort((a, b) {
+  /// Sắp xếp danh sách địa điểm theo điểm tương thích từ cao đến thấp
+  void _sortDisplayItems() {
+    _displayItems.sort((a, b) {
       int scoreA = _getScore(a.name);
       int scoreB = _getScore(b.name);
+      // Sắp xếp giảm dần (điểm cao lên trước)
       return scoreB.compareTo(scoreA);
     });
 
     _hasLoadedOnce = true;
-
-    if (mounted) {
-      setState(() {
-        _displayItems = sortedItems;
-        _isLoading = false;
-      });
-    }
+    print("📊 [Sort] Đã sắp xếp ${_displayItems.length} địa điểm theo điểm tương thích");
   }
 
   Future<void> _loadUserAvatar() async {
@@ -655,10 +710,13 @@ class _DestinationExploreScreenState extends State<DestinationExploreScreen> {
 
                       SizedBox(
                         height: cardHeight,
-                        child: _isLoading
-                            ? const Center(child: CircularProgressIndicator(color: Color(0xFFB64B12)))
-                            : _displayItems.isEmpty
-                            ? const Center(child: Text("Không tìm thấy địa điểm nào", style: TextStyle(color: Colors.white)))
+                        child: _displayItems.isEmpty
+                            ? const Center(
+                          child: Text(
+                            "Không tìm thấy địa điểm nào",
+                            style: TextStyle(color: Colors.white),
+                          ),
+                        )
                             : ListView.separated(
                           scrollDirection: Axis.horizontal,
                           itemCount: _displayItems.length,
@@ -693,67 +751,117 @@ class _DestinationExploreScreenState extends State<DestinationExploreScreen> {
 
   Widget _buildPlaceCard(DestinationExploreItem item, double cardWidth, double scaleFactor) {
     final score = _getScore(item.name);
+
     return GestureDetector(
       onTap: () => _toggleFavorite(item),
       child: Container(
         width: cardWidth,
-        height: 180 * scaleFactor,
-        decoration: BoxDecoration(color: const Color(0xFFD9D9D9), borderRadius: BorderRadius.circular(30), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 10, offset: const Offset(0, 5))]),
+        height: 380 * scaleFactor,
+        decoration: BoxDecoration(
+          color: const Color(0xFFD9D9D9),
+          borderRadius: BorderRadius.circular(30),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.2),
+              blurRadius: 10,
+              offset: const Offset(0, 5),
+            )
+          ],
+        ),
         child: Stack(
           children: [
-            Positioned.fill(child: ClipRRect(borderRadius: BorderRadius.circular(30), child: Image.asset(item.imageUrl, fit: BoxFit.cover))),
-            if (score > 0)
-              Positioned(
-                left: 16 * scaleFactor, top: 16 * scaleFactor,
-                child: Container(
-                  padding: EdgeInsets.symmetric(horizontal: 10 * scaleFactor, vertical: 6 * scaleFactor),
-                  decoration: BoxDecoration(color: const Color(0xFFB64B12).withOpacity(0.9), borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.white, width: 1.5)),
-                  child: Row(mainAxisSize: MainAxisSize.min, children: [Icon(Icons.auto_awesome, color: Colors.yellow, size: 14 * scaleFactor), SizedBox(width: 4 * scaleFactor), Text('$score% Hợp', style: TextStyle(color: Colors.white, fontSize: 14 * scaleFactor, fontWeight: FontWeight.bold, fontFamily: 'Roboto'))]),
-                ),
+            // Ảnh nền
+            Positioned.fill(
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(30),
+                child: Image.asset(item.imageUrl, fit: BoxFit.cover),
               ),
+            ),
+
+            // THAY ĐỔI: Badge điểm tương thích với loading state
             Positioned(
-              right: 16 * scaleFactor, top: 16 * scaleFactor,
+              left: 16 * scaleFactor,
+              top: 16 * scaleFactor,
+              child: _buildCompatibilityBadge(score, scaleFactor),
+            ),
+
+            // Nút tim (giữ nguyên)
+            Positioned(
+              right: 16 * scaleFactor,
+              top: 16 * scaleFactor,
               child: GestureDetector(
                 onTap: () => _toggleFavorite(item),
                 child: Container(
-                    width: 32 * scaleFactor, height: 32 * scaleFactor,
-                    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16 * scaleFactor)),
-                    child: Icon(
-                      // QUAN TRỌNG: UI phản ánh đúng trạng thái isFavorite
-                        item.isFavorite ? Icons.favorite : Icons.favorite_border,
-                        color: item.isFavorite ? Colors.red : Colors.black.withOpacity(0.2),
-                        size: 22 * scaleFactor
-                    )
+                  width: 32 * scaleFactor,
+                  height: 32 * scaleFactor,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16 * scaleFactor),
+                  ),
+                  child: Icon(
+                    item.isFavorite ? Icons.favorite : Icons.favorite_border,
+                    color: item.isFavorite ? Colors.red : Colors.black.withOpacity(0.2),
+                    size: 22 * scaleFactor,
+                  ),
                 ),
               ),
             ),
+
+            // Tên địa điểm (giữ nguyên)
             Positioned(
-              left: 20 * scaleFactor, bottom: 20 * scaleFactor, right: 20 * scaleFactor,
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(item.name, style: TextStyle(color: Colors.white, fontSize: 18 * scaleFactor, fontWeight: FontWeight.w700, shadows: const [Shadow(color: Colors.black, blurRadius: 4)]), maxLines: 2, overflow: TextOverflow.ellipsis),
-                SizedBox(height: 4 * scaleFactor),
-                Text(item.getSubtitle(context.locale.languageCode), style: TextStyle(color: const Color(0xFFDDDDDD), fontSize: 13 * scaleFactor, shadows: const [Shadow(color: Colors.black, blurRadius: 4)]))
-              ]),
+              left: 20 * scaleFactor,
+              bottom: 20 * scaleFactor,
+              right: 20 * scaleFactor,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    item.name,
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 18 * scaleFactor,
+                      fontWeight: FontWeight.w700,
+                      shadows: const [Shadow(color: Colors.black, blurRadius: 4)],
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  SizedBox(height: 4 * scaleFactor),
+                  Text(
+                    item.getSubtitle(context.locale.languageCode),
+                    style: TextStyle(
+                      color: const Color(0xFFDDDDDD),
+                      fontSize: 13 * scaleFactor,
+                      shadows: const [Shadow(color: Colors.black, blurRadius: 4)],
+                    ),
+                  ),
+                ],
+              ),
             ),
+
+            // Nút mô tả (giữ nguyên)
             Positioned(
               right: 16 * scaleFactor,
               bottom: 16 * scaleFactor,
               child: GestureDetector(
                 onTap: () => _showDescriptionPopup(context, item),
-
                 child: Container(
                   width: 36 * scaleFactor,
                   height: 36 * scaleFactor,
                   decoration: BoxDecoration(
-                    color: const Color(0xFF3E3322).withOpacity(0.9), // Nền nâu đậm
+                    color: const Color(0xFF3E3322).withOpacity(0.9),
                     shape: BoxShape.circle,
-                    border: Border.all(color: const Color(0xFFB99668), width: 1), // Viền vàng
+                    border: Border.all(color: const Color(0xFFB99668), width: 1),
                     boxShadow: [
-                      BoxShadow(color: Colors.black.withOpacity(0.3), blurRadius: 4, offset: const Offset(0, 2))
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.3),
+                        blurRadius: 4,
+                        offset: const Offset(0, 2),
+                      )
                     ],
                   ),
                   child: Icon(
-                    Icons.auto_stories_outlined, // Icon sách mở
+                    Icons.auto_stories_outlined,
                     color: const Color(0xFFEDE2CC),
                     size: 18 * scaleFactor,
                   ),
@@ -765,4 +873,84 @@ class _DestinationExploreScreenState extends State<DestinationExploreScreen> {
       ),
     );
   }
+
+  /// Widget badge hiển thị điểm tương thích hoặc loading
+  Widget _buildCompatibilityBadge(int score, double scaleFactor) {
+    // Nếu đang loading scores
+    if (_isLoadingScores) {
+      return Container(
+        padding: EdgeInsets.symmetric(
+          horizontal: 10 * scaleFactor,
+          vertical: 6 * scaleFactor,
+        ),
+        decoration: BoxDecoration(
+          color: const Color(0xFF3E3322).withOpacity(0.85),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: const Color(0xFFB99668), width: 1.5),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            SizedBox(
+              width: 14 * scaleFactor,
+              height: 14 * scaleFactor,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: const Color(0xFFB99668),
+              ),
+            ),
+            SizedBox(width: 6 * scaleFactor),
+            Text(
+              'Đang tính...',
+              style: TextStyle(
+                color: const Color(0xFFEDE2CC),
+                fontSize: 12 * scaleFactor,
+                fontWeight: FontWeight.w500,
+                fontFamily: 'Roboto',
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    // Nếu có điểm số
+    if (score > 0) {
+      return Container(
+        padding: EdgeInsets.symmetric(
+          horizontal: 10 * scaleFactor,
+          vertical: 6 * scaleFactor,
+        ),
+        decoration: BoxDecoration(
+          color: const Color(0xFFB64B12).withOpacity(0.9),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.white, width: 1.5),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.auto_awesome,
+              color: Colors.yellow,
+              size: 14 * scaleFactor,
+            ),
+            SizedBox(width: 4 * scaleFactor),
+            Text(
+              '$score% Hợp',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 14 * scaleFactor,
+                fontWeight: FontWeight.bold,
+                fontFamily: 'Roboto',
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    // Không có điểm và không loading -> ẩn badge
+    return const SizedBox.shrink();
+  }
+
 }
