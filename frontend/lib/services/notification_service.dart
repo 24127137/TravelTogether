@@ -26,6 +26,16 @@ class NotificationService {
     showBadgeNotifier.value = false;
   }
 
+  // === THÊM MỚI: Hàm bật chấm đỏ (gọi khi có thông báo mới) ===
+  void showBadge() {
+    showBadgeNotifier.value = true;
+  }
+
+  // === THÊM MỚI: Cập nhật badge dựa trên số lượng notifications ===
+  void updateBadge(int notificationCount) {
+    showBadgeNotifier.value = notificationCount > 0;
+  }
+
   /// Khởi tạo notification service
   /// Phải gọi hàm này trước khi sử dụng
   Future<void> initialize() async {
@@ -256,7 +266,21 @@ class NotificationService {
       await initialize();
     }
 
-    debugPrint('🔔 Showing notification: $title - $body');
+    debugPrint('🔔 ===== SHOWING NOTIFICATION =====');
+    debugPrint('   Title: $title');
+    debugPrint('   Body: $body');
+    debugPrint('   Payload: $payload');
+
+    // Kiểm tra permission trước
+    final hasPermission = await checkPermission();
+    debugPrint('   Permission granted: $hasPermission');
+
+    if (!hasPermission) {
+      debugPrint('   ⚠️ Notification permission NOT granted, skipping notification');
+      // Vẫn bật badge để user biết có thông báo
+      showBadgeNotifier.value = true;
+      return;
+    }
 
     // Android notification details
     final androidDetails = AndroidNotificationDetails(

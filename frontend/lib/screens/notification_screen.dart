@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:intl/intl.dart';
 import '../config/api_config.dart';
 import '../services/notification_service.dart';
+import '../widgets/optimized_list_widget.dart';
 import 'chatbox_screen.dart';
 import '../screens/host_member_screen.dart';
 import '../services/auth_service.dart';
@@ -165,7 +167,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
         );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Lỗi tải thông tin nhóm: ${response.statusCode}'))
+            SnackBar(content: Text('${'load_group_error'.tr()}: ${response.statusCode}'))
         );
       }
     } catch (e) {
@@ -220,11 +222,11 @@ class _NotificationScreenState extends State<NotificationScreen> {
         // ==> SỬA LẠI CÂU THÔNG BÁO CHO HỢP LÝ CẢ 2 TRƯỜNG HỢP <==
         notifs.add(NotificationData(
           icon: 'assets/images/notification_logo.png',
-          title: 'Rời nhóm',
-          subtitle: 'Bạn không còn là thành viên của nhóm "$oldName" (Nhóm giải tán hoặc bạn bị mời ra).',
+          title: 'left_group'.tr(),
+          subtitle: '${'left_group_desc'.tr()} "$oldName" ${'group_disbanded_or_kicked'.tr()}',
           type: NotificationType.security,
-          time: 'Gần đây',
-          unreadCount: 0,
+          time: 'recently'.tr(),
+          unreadCount: 1,
           payloadId: null,
         ));
       }
@@ -281,11 +283,11 @@ class _NotificationScreenState extends State<NotificationScreen> {
 
           notifs.add(NotificationData(
             icon: 'assets/images/notification_logo.png', // Hoặc icon dấu X đỏ
-            title: 'Yêu cầu bị từ chối',
-            subtitle: 'Admin đã từ chối yêu cầu tham gia nhóm "$groupName" của bạn.',
+            title: 'request_rejected'.tr(),
+            subtitle: '${'request_rejected_desc'.tr()} "$groupName".',
             type: NotificationType.security,
-            time: 'Mới đây',
-            unreadCount: 0,
+            time: 'just_now'.tr(),
+            unreadCount: 1,
             payloadId: null,
           ));
         }
@@ -432,10 +434,10 @@ class _NotificationScreenState extends State<NotificationScreen> {
               if (requests.isNotEmpty) {
                 finalNotifications.add(NotificationData(
                   icon: 'assets/images/add_user_icon.jpg',
-                  title: 'Yêu cầu tham gia',
-                  subtitle: 'Có ${requests.length} người muốn vào nhóm "$groupName"',
+                  title: 'join_group'.tr(),
+                  subtitle: '${'group_members'.tr()}: ${requests.length} ${'send_request'.tr()} "$groupName"',
                   type: NotificationType.groupRequest,
-                  time: 'Mới đây',
+                  time: 'just_now'.tr(),
                   unreadCount: requests.length,
                   payloadId: groupId.toString(),
                 ));
@@ -464,6 +466,15 @@ class _NotificationScreenState extends State<NotificationScreen> {
         _notifications = finalNotifications;
         _isLoading = false;
       });
+
+      // === THÊM MỚI: Cập nhật badge dựa trên số thông báo ===
+      // Lưu ý: Không clear badge ở đây vì initState đã clear rồi
+      // Chỉ cập nhật để các màn hình khác biết có thông báo hay không
+      if (finalNotifications.isNotEmpty) {
+        // Nếu đang ở màn hình notification thì không cần hiện badge
+        // Nhưng cần lưu lại state để khi chuyển sang tab khác thì badge sẽ hiện
+        // Logic này được xử lý trong custom_bottom_nav_bar.dart
+      }
     }
   }
 
@@ -472,13 +483,13 @@ class _NotificationScreenState extends State<NotificationScreen> {
     final difference = now.difference(dateTime);
 
     if (difference.inMinutes < 1) {
-      return 'Vừa xong';
+      return 'just_now'.tr();
     } else if (difference.inMinutes < 60) {
-      return '${difference.inMinutes} phút trước';
+      return '${difference.inMinutes} ${'minutes_ago'.tr()}';
     } else if (difference.inHours < 24) {
-      return '${difference.inHours} giờ trước';
+      return '${difference.inHours} ${'hours_ago'.tr()}';
     } else if (difference.inDays < 7) {
-      return '${difference.inDays} ngày trước';
+      return '${difference.inDays} ${'days_ago'.tr()}';
     } else {
       return DateFormat('d/M/yyyy').format(dateTime);
     }
@@ -505,9 +516,15 @@ class _NotificationScreenState extends State<NotificationScreen> {
             ),
             Expanded(
               child: _isLoading
-                  ? const Center(
-                child: CircularProgressIndicator(color: Color(0xFFB99668)),
-              )
+                  ? Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 25),
+                      child: ListView.separated(
+                        physics: const NeverScrollableScrollPhysics(),
+                        itemCount: 6,
+                        separatorBuilder: (_, __) => const SizedBox(height: 12),
+                        itemBuilder: (context, index) => const NotificationSkeletonItem(),
+                      ),
+                    )
                   : _notifications.isEmpty
                   ? RefreshIndicator(
                 color: const Color(0xFFB99668),
@@ -516,13 +533,14 @@ class _NotificationScreenState extends State<NotificationScreen> {
                   physics: const AlwaysScrollableScrollPhysics(),
                   child: SizedBox(
                     height: MediaQuery.of(context).size.height * 0.5,
-                    child: const Center(
+                    child: Center(
                       child: Text(
-                        'Không có thông báo mới\nKéo để làm mới',
+                        '${'no_notifications'.tr()}\n${'pull_to_refresh'.tr()}',
                         textAlign: TextAlign.center,
-                        style: TextStyle(
+                        style: const TextStyle(
                           color: Colors.white70,
                           fontSize: 16,
+                          fontFamily: 'Alegreya',
                         ),
                       ),
                     ),
@@ -679,7 +697,7 @@ class NotificationItem extends StatelessWidget {
                       color: Colors.white,
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
-                      fontFamily: 'DM Sans',
+                      fontFamily: 'Alumni Sans',
                     ),
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -740,5 +758,177 @@ class NotificationItem extends StatelessWidget {
       default:
         return Image.asset(icon, fit: BoxFit.cover);
     }
+  }
+}
+
+/// Skeleton loading item cho danh sách notification
+class NotificationSkeletonItem extends StatefulWidget {
+  const NotificationSkeletonItem({Key? key}) : super(key: key);
+
+  @override
+  State<NotificationSkeletonItem> createState() => _NotificationSkeletonItemState();
+}
+
+class _NotificationSkeletonItemState extends State<NotificationSkeletonItem>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _animation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1500),
+    )..repeat();
+    _animation = Tween<double>(begin: -1.0, end: 2.0).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _animation,
+      builder: (context, child) {
+        return Container(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          decoration: BoxDecoration(
+            color: const Color(0xFFB99668).withOpacity(0.5),
+            borderRadius: BorderRadius.circular(40),
+          ),
+          child: Row(
+            children: [
+              // Avatar skeleton
+              Container(
+                width: 56,
+                height: 56,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: LinearGradient(
+                    begin: Alignment.centerLeft,
+                    end: Alignment.centerRight,
+                    colors: const [
+                      Color(0xFFD9CBB3),
+                      Color(0xFFF5EFE7),
+                      Color(0xFFD9CBB3),
+                    ],
+                    stops: [
+                      (_animation.value - 0.3).clamp(0.0, 1.0),
+                      _animation.value.clamp(0.0, 1.0),
+                      (_animation.value + 0.3).clamp(0.0, 1.0),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Title skeleton
+                    Container(
+                      width: 120,
+                      height: 16,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(4),
+                        gradient: LinearGradient(
+                          begin: Alignment.centerLeft,
+                          end: Alignment.centerRight,
+                          colors: const [
+                            Color(0xFFD9CBB3),
+                            Color(0xFFF5EFE7),
+                            Color(0xFFD9CBB3),
+                          ],
+                          stops: [
+                            (_animation.value - 0.3).clamp(0.0, 1.0),
+                            _animation.value.clamp(0.0, 1.0),
+                            (_animation.value + 0.3).clamp(0.0, 1.0),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    // Subtitle skeleton
+                    Container(
+                      width: double.infinity,
+                      height: 14,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(4),
+                        gradient: LinearGradient(
+                          begin: Alignment.centerLeft,
+                          end: Alignment.centerRight,
+                          colors: const [
+                            Color(0xFFD9CBB3),
+                            Color(0xFFF5EFE7),
+                            Color(0xFFD9CBB3),
+                          ],
+                          stops: [
+                            (_animation.value - 0.3).clamp(0.0, 1.0),
+                            _animation.value.clamp(0.0, 1.0),
+                            (_animation.value + 0.3).clamp(0.0, 1.0),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    // Time skeleton
+                    Container(
+                      width: 60,
+                      height: 12,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(4),
+                        gradient: LinearGradient(
+                          begin: Alignment.centerLeft,
+                          end: Alignment.centerRight,
+                          colors: const [
+                            Color(0xFFD9CBB3),
+                            Color(0xFFF5EFE7),
+                            Color(0xFFD9CBB3),
+                          ],
+                          stops: [
+                            (_animation.value - 0.3).clamp(0.0, 1.0),
+                            _animation.value.clamp(0.0, 1.0),
+                            (_animation.value + 0.3).clamp(0.0, 1.0),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              // Arrow skeleton
+              Container(
+                width: 20,
+                height: 20,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(4),
+                  gradient: LinearGradient(
+                    begin: Alignment.centerLeft,
+                    end: Alignment.centerRight,
+                    colors: const [
+                      Color(0xFFD9CBB3),
+                      Color(0xFFF5EFE7),
+                      Color(0xFFD9CBB3),
+                    ],
+                    stops: [
+                      (_animation.value - 0.3).clamp(0.0, 1.0),
+                      _animation.value.clamp(0.0, 1.0),
+                      (_animation.value + 0.3).clamp(0.0, 1.0),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
   }
 }

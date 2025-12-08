@@ -69,6 +69,112 @@ class _MainAppScreenState extends State<MainAppScreen> {
     _startBackgroundNotificationService();
     _requestNotificationPermission();
     _preloadProfileData(); // === THÊM MỚI: Pre-load data ngay khi app start ===
+    _checkInitialNotifications(); // === THÊM MỚI: Kiểm tra thông báo khi app khởi động ===
+  }
+
+  // === THÊM MỚI: Kiểm tra thông báo ban đầu để hiện badge ===
+  Future<void> _checkInitialNotifications() async {
+    try {
+      final token = await AuthService.getValidAccessToken();
+      if (token == null) return;
+
+      final prefs = await SharedPreferences.getInstance();
+      final currentUserId = prefs.getString('user_id');
+      bool hasUnreadNotifications = false;
+
+      // 1. Check tin nhắn chưa đọc từ các nhóm
+      final groupsUrl = ApiConfig.getUri(ApiConfig.myGroup);
+      final groupsRes = await http.get(
+        groupsUrl,
+        headers: {'Authorization': 'Bearer $token'},
+      );
+
+      if (groupsRes.statusCode == 200) {
+        final List<dynamic> groups = jsonDecode(utf8.decode(groupsRes.bodyBytes));
+
+        for (var group in groups) {
+          final String groupId = (group['id'] ?? group['group_id']).toString();
+
+          try {
+            final historyRes = await http.get(
+              Uri.parse('${ApiConfig.baseUrl}/chat/$groupId/history'),
+              headers: {'Authorization': 'Bearer $token'},
+            );
+
+            if (historyRes.statusCode == 200) {
+              final List<dynamic> messages = jsonDecode(utf8.decode(historyRes.bodyBytes));
+              final lastSeenId = prefs.getString('last_seen_message_id_$groupId');
+
+              int lastSeenIndex = -1;
+              if (lastSeenId != null) {
+                for (int i = 0; i < messages.length; i++) {
+                  if (messages[i]['id'].toString() == lastSeenId) {
+                    lastSeenIndex = i;
+                    break;
+                  }
+                }
+              }
+
+              // Check có tin nhắn chưa đọc từ người khác không
+              for (int i = lastSeenIndex + 1; i < messages.length; i++) {
+                final senderId = messages[i]['sender_id']?.toString();
+                if (senderId != currentUserId) {
+                  hasUnreadNotifications = true;
+                  break;
+                }
+              }
+
+              if (hasUnreadNotifications) break;
+            }
+          } catch (e) {
+            debugPrint('⚠️ Error checking chat for group $groupId: $e');
+          }
+        }
+      }
+
+      // 2. Check pending group requests (nếu là host)
+      if (!hasUnreadNotifications) {
+        final profileUrl = Uri.parse('${ApiConfig.baseUrl}/users/me');
+        final profileRes = await http.get(
+          profileUrl,
+          headers: {'Authorization': 'Bearer $token'},
+        );
+
+        if (profileRes.statusCode == 200) {
+          final profileData = jsonDecode(utf8.decode(profileRes.bodyBytes));
+          final List<dynamic> ownedGroups = profileData['owned_groups'] ?? [];
+
+          for (var group in ownedGroups) {
+            final groupId = group['group_id'] ?? group['id'];
+            if (groupId != null) {
+              final requestUrl = Uri.parse('${ApiConfig.baseUrl}/groups/$groupId/requests');
+              final requestRes = await http.get(
+                requestUrl,
+                headers: {'Authorization': 'Bearer $token'},
+              );
+
+              if (requestRes.statusCode == 200) {
+                final List<dynamic> requests = jsonDecode(utf8.decode(requestRes.bodyBytes));
+                if (requests.isNotEmpty) {
+                  hasUnreadNotifications = true;
+                  break;
+                }
+              }
+            }
+          }
+        }
+      }
+
+      // 3. Cập nhật badge
+      if (hasUnreadNotifications) {
+        NotificationService().showBadge();
+        debugPrint('🔔 Initial notifications check: Has unread notifications - Badge shown');
+      } else {
+        debugPrint('✅ Initial notifications check: No unread notifications');
+      }
+    } catch (e) {
+      debugPrint('⚠️ Error checking initial notifications: $e');
+    }
   }
 
   // === THÊM MỚI: Pre-load profile data ngay từ đầu ===

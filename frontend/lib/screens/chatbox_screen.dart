@@ -14,6 +14,7 @@ import '../services/chat_system_message_service.dart';
 import '../services/chat_cache_service.dart';
 import '../config/api_config.dart';
 import '../models/message.dart';
+import '../widgets/optimized_list_widget.dart';
 import 'host_member_screen.dart' as host;
 import 'member_screen.dart' as member;
 import 'map_route_screen.dart';
@@ -1321,12 +1322,29 @@ class _ChatboxScreenState extends State<ChatboxScreen> with WidgetsBindingObserv
       ),
       backgroundColor: const Color(0xFFEBE3D7),
       body: _isLoading
-          ? const Center(
-        child: CircularProgressIndicator(
-          color: Color(0xFF8A724C),
-        ),
-      )
-          : Stack( //  SỬA ĐỔI: Sử dụng Stack để chồng nút lên trên danh sách tin nhắn 
+          ? Container(
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(30),
+                  topRight: Radius.circular(30),
+                ),
+              ),
+              child: ListView.builder(
+                padding: const EdgeInsets.all(16),
+                itemCount: 12,
+                itemBuilder: (context, index) {
+                  // Tạo variation cho skeleton (xen kẽ trái/phải)
+                  final isUser = index % 3 == 0;
+                  final widthFactor = 0.4 + (index % 4) * 0.1;
+                  return LoadingSkeleton(
+                    isUser: isUser,
+                    widthFactor: widthFactor,
+                  );
+                },
+              ),
+            )
+          : Stack( //  SỬA ĐỔI: Sử dụng Stack để chồng nút lên trên danh sách tin nhắn
         children: [
           Column(
             children: [
