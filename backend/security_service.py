@@ -2,12 +2,12 @@ import hashlib
 import asyncio
 from datetime import datetime, timezone, timedelta, time
 from typing import Optional, Dict, Any
-from sqlmodel import Session, select
+from sqlmodel import Session, select, col, text
 from supabase import Client
 from firebase_admin import messaging
 
 # Import các bảng
-from db_tables import UserSecurity, SecurityLocations, Profiles, TokenSecurity
+from db_tables import UserSecurity, SecurityLocations, Profiles, TravelGroup
 # Import Email Service
 from email_service import EmailService
 
@@ -15,6 +15,36 @@ from email_service import EmailService
 MAX_RETRY_ATTEMPTS = 5
 
 class SecurityService:
+    
+    def is_user_traveling(self, session: Session, user_id: str) -> bool:
+        """
+        Check if user is currently in an active travel period.
+        Returns True if user is a member of at least 1 TravelGroup 
+        with travel_dates that includes today.
+        
+        Travel dates are stored as PostgreSQL DATERANGE, e.g. [2025-01-01, 2025-01-31)
+        """
+        from datetime import date
+        today = date.today()
+        
+        statement = select(TravelGroup).where(
+        # 1. Kiểm tra ngày: travel_dates chứa ngày hôm nay
+            col(TravelGroup.travel_dates).contains(today)
+        ).where(
+            # 2. Kiểm tra JSON members: Cột members có chứa user_id này không
+            text("members @> :member_filter")
+        ).params(
+
+            member_filter=f'[{{"user_id": "{user_id}"}}]'
+        ).limit(1) 
+
+        result = session.exec(statement).first()
+        
+        # Nếu result có giá trị -> True, ngược lại False
+        is_traveling = result is not None
+    
+        print(f"[is_user_traveling] User {user_id}: {is_traveling}")
+        return is_traveling
     
     # SỬA 1: Dùng @staticmethod để không cần 'self' và sửa logic gọi hàm
     @staticmethod
@@ -198,6 +228,7 @@ class SecurityService:
         """
         Quét tất cả user có last_confirmation_ts quá 36h 
         và chưa set status='overdue'.
+        === ONLY processes users who are currently traveling ===
         Returns: Số lượng user bị update.
         """
         limit_time = datetime.now(timezone.utc) - timedelta(hours=36)
@@ -216,8 +247,13 @@ class SecurityService:
             return 0
 
         count = 0
-        for sec, _, _ in results:
+        for sec, email, full_name in results:
             try:
+                # === NEW: Check if user is traveling ===
+                if not self.is_user_traveling(session, sec.user_id):
+                    print(f"[scan_overdue_users] User {sec.user_id} is NOT traveling, skipping.")
+                    continue
+
                 # Update status and timestamp
                 sec.status = "overdue"
                 sec.updated_at = datetime.now(timezone.utc)
@@ -279,6 +315,7 @@ class SecurityService:
         - Tìm user có last_confirmation_ts > 24h và status not in (waiting, overdue)
         - Cập nhật status -> "waiting"
         - Gửi FCM nếu có device token (TokenSecurity table), ngược lại fallback gửi email
+        === ONLY processes users who are currently traveling ===
         Returns number of users processed.
         """
         # lazy-import TokenSecurity (table may not exist in all schemas)
@@ -303,33 +340,41 @@ class SecurityService:
 
         count = 0
         for sec in results:
-            device_token = None
-            if TokenSecurity is not None:
-                tok = session.exec(
-                    select(TokenSecurity).where(
-                        TokenSecurity.user_id == sec.user_id,
-                        TokenSecurity.device_token != None
-                    )
-                ).first()
-                if tok:
-                    device_token = getattr(tok, "device_token", None)
+            try:
+                # === NEW: Check if user is traveling ===
+                if not self.is_user_traveling(session, sec.user_id):
+                    print(f"[notify_unconfirmed_24h] User {sec.user_id} is NOT traveling, skipping.")
+                    continue
+                
+                device_token = None
+                if TokenSecurity is not None:
+                    tok = session.exec(
+                        select(TokenSecurity).where(
+                            TokenSecurity.user_id == sec.user_id,
+                            TokenSecurity.device_token != None
+                        )
+                    ).first()
+                    if tok:
+                        device_token = getattr(tok, "device_token", None)
 
-            notified = False
-            if device_token:
-                notified = self._send_push_notification(device_token, sec.user_id)
-            if not notified:
-                # fallback to email notification
-                print(f"[notify_unconfirmed_24h] Fallback email for user {sec.user_id}")
-                try:
-                    self._trigger_email(session, sec.user_id, "confirmation_reminder")
-                    notified = True
-                except Exception as e:
-                    print(f"[notify_unconfirmed_24h] Email send failed for {sec.user_id}: {e}")
+                notified = False
+                if device_token:
+                    notified = self._send_push_notification(device_token, sec.user_id)
+                if not notified:
+                    # fallback to email notification
+                    print(f"[notify_unconfirmed_24h] Fallback email for user {sec.user_id}")
+                    try:
+                        self._trigger_email(session, sec.user_id, "confirmation_reminder")
+                        notified = True
+                    except Exception as e:
+                        print(f"[notify_unconfirmed_24h] Email send failed for {sec.user_id}: {e}")
 
-            # update status and timestamp regardless of notification success to avoid repeat spam
-            sec.status = "waiting"
-            sec.updated_at = datetime.now(timezone.utc)
-            count += 1
+                # update status and timestamp regardless of notification success to avoid repeat spam
+                sec.status = "waiting"
+                sec.updated_at = datetime.now(timezone.utc)
+                count += 1
+            except Exception as e:
+                print(f"[notify_unconfirmed_24h] Error processing user {sec.user_id}: {e}")
 
         if count > 0:
             session.commit()
