@@ -91,4 +91,28 @@ class FeedbackService {
       return null;
     }
   }
+
+  /// Lấy reputation của user khác bằng profile_uuid
+  Future<MyReputationResponse?> getUserReputation(String token, String profileUuid) async {
+    try {
+      final url = Uri.parse('${ApiConfig.baseUrl}/feedbacks/reputation/$profileUuid');
+      final response = await http.get(
+        url,
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer $token",
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(utf8.decode(response.bodyBytes));
+        return MyReputationResponse.fromJson(data);
+      }
+      return null;
+    } catch (e) {
+      print('Error fetching user reputation: $e');
+      return null;
+    }
+  }
+
 }

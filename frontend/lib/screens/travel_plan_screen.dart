@@ -253,8 +253,12 @@ class _TravelPlanScreenState extends State<TravelPlanScreen> {
       child: Container(
         height: 80,
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: const Color(0xFFEFE7DA),
           borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: const Color(0xFFB29079),
+            width: 1.5,
+          ),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withOpacity(0.05),

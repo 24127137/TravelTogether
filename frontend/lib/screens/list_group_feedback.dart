@@ -156,10 +156,16 @@ class _PendingGroupCardState extends State<_PendingGroupCard> {
     String? displayImage = _fetchedImageUrl ?? widget.group.groupImageUrl;
     bool hasImage = displayImage != null && displayImage.isNotEmpty;
 
-    return Card(
+    return Container(
       margin: const EdgeInsets.only(bottom: 16),
-      elevation: 4,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      decoration: BoxDecoration(
+        color: const Color(0xFFEFE7DA),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: const Color(0xFFB29079),
+          width: 1.5,
+        ),
+      ),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: () async {
