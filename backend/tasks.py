@@ -15,6 +15,13 @@ engine = create_engine(settings.DATABASE_URL)
 
 # Khởi tạo Service
 service = SecurityService()
+# Khởi tạo Firebase Admin (Singleton pattern để tránh lỗi khởi tạo nhiều lần)
+try:
+    get_app()
+except ValueError:
+    # Thay đường dẫn tới file json của bạn
+    cred = credentials.Certificate("firebase-admin-sdk.json") 
+    initialize_app(cred)
 
 # 2. Định nghĩa Job (Công việc cụ thể)
 def job_check_overdue_users():
