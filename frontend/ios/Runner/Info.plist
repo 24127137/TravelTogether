@@ -5,7 +5,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>Frontend</string>
+	<string>Travel Together</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -13,7 +13,7 @@
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>frontend</string>
+	<string>Travel Together</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
@@ -45,5 +45,14 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<!-- === THÊM MỚI (GĐ 13): Permissions cho image_picker === -->
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Cần truy cập thư viện ảnh để gửi ảnh trong chat</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Cần truy cập camera để chụp và gửi ảnh trong chat</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+    <string>Chúng tôi cần vị trí của bạn để gửi cảnh báo khẩn cấp đến người thân khi bạn gặp nguy hiểm</string>
+    <key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+    <string>Chúng tôi cần vị trí của bạn để bảo vệ an toàn trong tình huống khẩn cấp</string>
 </dict>
 </plist>

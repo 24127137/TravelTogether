@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "583000002076",
+    "project_id": "travel-together-d671c",
+    "storage_bucket": "travel-together-d671c.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:583000002076:android:9084d8849bf13f271f19d9",
+        "android_client_info": {
+          "package_name": "com.example.frontend"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDdwGcqKYNt5Vm4QddCZc_kq5sc-TyOhi4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
