@@ -1,9 +1,17 @@
 from fastapi import APIRouter, HTTPException, Depends, Request
+from typing import Any  
 from auth_models import (
     SignInInput, SignInResponse, 
     RefreshInput, RefreshResponse, 
     SignOutResponse, ProfileCreate,
-    UserInfo # Đã import đầy đủ
+    UserInfo,
+    ChangePasswordInput 
+)
+from auth_guard import (
+    api_key_scheme, 
+    get_user_id_from_token, 
+    hash_token, 
+    get_current_user 
 )
 from db_tables import Profiles, TokenSecurity
 import auth_service 
@@ -51,7 +59,8 @@ async def sign_in_endpoint(
             user_id=str(res.user.id),
             access_token=res.session.access_token,
             ip=request.client.host,
-            user_agent=request.headers.get("user-agent", "")
+            user_agent=request.headers.get("user-agent", ""),
+            device_token=signin_data.device_token
         )
 
         # 3. Return (Fix lỗi UserInfo)
@@ -131,3 +140,20 @@ async def sign_out_endpoint(
         await auth_service.sign_out_service(session, user_uuid)
 
     return {"message": "Đăng xuất thành công"}
+
+@router.post("/change-password")
+async def change_password_endpoint(
+    password_data: ChangePasswordInput,
+    session: Session = Depends(get_session),
+    user_object: Any = Depends(get_current_user) 
+):
+    """
+    Đổi mật khẩu và đăng xuất khỏi tất cả thiết bị.
+    """
+    try:
+        user_id = str(user_object.id)
+        await auth_service.change_password_service(session, user_id, password_data.new_password)
+        return {"message": "Đổi mật khẩu thành công. Vui lòng đăng nhập lại."}
+        
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Lỗi đổi mật khẩu: {e}")

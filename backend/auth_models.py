@@ -39,6 +39,7 @@ class ProfileCreate(BaseModel):
 class SignInInput(BaseModel):
     email: EmailStr
     password: str
+    device_token: Optional[str] = None
 
 class UserInfo(BaseModel):
     id: str 
@@ -48,6 +49,7 @@ class SignInResponse(BaseModel):
     message: str
     access_token: str
     refresh_token: str
+    device_token: Optional[str] = None
     user: UserInfo
 
 # Dùng nội bộ trong Service
@@ -72,3 +74,6 @@ class RefreshResponse(BaseModel):
 # ====================================================================
 class SignOutResponse(BaseModel):
     message: str
+
+class ChangePasswordInput(BaseModel):
+    new_password: str = Field(..., min_length=6, description="Mật khẩu mới")

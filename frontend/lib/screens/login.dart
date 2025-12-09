@@ -6,6 +6,8 @@ import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'main_app_screen.dart';
 import '../config/api_config.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -22,6 +24,8 @@ class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
 
+  String? _deviceToken;
+
   bool _isValidEmail(String email) {
     final trimmed = email.trim();
     return RegExp(r'^[\w\.-]+@[\w\.-]+\.\w+$').hasMatch(trimmed);
@@ -36,6 +40,18 @@ class _LoginScreenState extends State<LoginScreen> {
     });
   }
 
+  Future<void> _getDeviceToken() async {
+    try {
+      final fcmToken = await FirebaseMessaging.instance.getToken();
+      setState(() {
+        _deviceToken = fcmToken;
+      });
+      print("FCM Token: $_deviceToken");
+    } catch (e) {
+      print("Lỗi FCM: $e");
+    }
+  }
+
   Future<void> _login() async {
     setState(() => _isLoading = true);
 
@@ -43,6 +59,7 @@ class _LoginScreenState extends State<LoginScreen> {
     final body = jsonEncode({
       "email": _emailController.text.trim(),
       "password": _passwordController.text.trim(),
+      if (_deviceToken != null) "device_token": _deviceToken,
     });
 
     try {
@@ -63,6 +80,8 @@ class _LoginScreenState extends State<LoginScreen> {
         await prefs.setString('access_token', accessToken);
         await prefs.setString('refresh_token', refreshToken);
         await prefs.setString('user_id', user['id']); // Lưu user_id để phân biệt tin nhắn
+
+        
 
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text("Đăng nhập thành công! Xin chào ${user['email']}")),
@@ -95,6 +114,7 @@ class _LoginScreenState extends State<LoginScreen> {
     super.initState();
     _emailController.addListener(_validateForm);
     _passwordController.addListener(_validateForm);
+    _getDeviceToken();
   }
 
   @override

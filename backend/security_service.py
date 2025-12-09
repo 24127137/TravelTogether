@@ -142,8 +142,7 @@ class SecurityService:
         # Nếu sai quá 5 lần -> Trigger Danger
         if sec.wrong_attempt_count >= MAX_RETRY_ATTEMPTS:
             self.save_location(session, user_id, reason="wrong_pin", location=current_location)
-            sec.status = "overdue"
-            sec.wrong_attempt_count = 0
+            sec.status = "danger"
             
             # [CẬP NHẬT] Gửi mail khi sai quá nhiều lần
             self._trigger_email(session, user_id, "danger", current_location)
