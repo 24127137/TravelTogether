@@ -3,9 +3,6 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from sqlmodel import Session, create_engine, select
 from config import settings
 from security_service import SecurityService
-from email_service import EmailService  # Import service mới
-from db_tables import UserSecurity, Profiles # Cần import Profiles để lấy email
-from datetime import datetime, timezone, timedelta
 import asyncio
 from firebase_admin import credentials, initialize_app, get_app
 

@@ -3,13 +3,11 @@ import asyncio
 from datetime import datetime, timezone, timedelta, time
 from typing import Optional, Dict, Any
 from sqlmodel import Session, select
-from sqlalchemy import Column, text, or_
-from sqlalchemy.dialects.postgresql import UUID, JSONB, TEXT, TIME
 from supabase import Client
 from firebase_admin import messaging
 
 # Import các bảng
-from db_tables import UserSecurity, SecurityLocations, Profiles 
+from db_tables import UserSecurity, SecurityLocations, Profiles, TokenSecurity
 # Import Email Service
 from email_service import EmailService
 
@@ -46,13 +44,16 @@ class SecurityService:
             long = location['longitude']
             map_link = f"https://www.google.com/maps?q={lat},{long}"
 
+        email = [profile.emergency_contact]
+        if alert_type == "confirmation_reminder":
+            email = [profile.email]
         # 3. Gọi EmailService (Xử lý bất đồng bộ trong môi trường đồng bộ)
         # Vì EmailService là async, ta cần trick này để nó chạy được trong hàm def thường
         try:
             loop = asyncio.get_running_loop()
             # Nếu đang chạy trong FastAPI (đã có loop), dùng create_task để không chặn luồng chính
             loop.create_task(EmailService.send_security_alert(
-                email_to=[profile.emergency_contact],
+                email_to=email,
                 user_name=profile.fullname or "Người dùng",
                 alert_type=alert_type,
                 map_link=map_link # Truyền thêm link bản đồ
@@ -60,7 +61,7 @@ class SecurityService:
         except RuntimeError:
             # Nếu chạy trong Scheduler (chưa có loop), dùng asyncio.run
             asyncio.run(EmailService.send_security_alert(
-                email_to=[profile.emergency_contact],
+                email_to=email,
                 user_name=profile.fullname or "Người dùng",
                 alert_type=alert_type,
                 map_link=map_link
@@ -288,7 +289,7 @@ class SecurityService:
 
         threshold_time = datetime.now(timezone.utc) - timedelta(hours=24)
 
-        stmt = select(UserSecurity, Profiles.emergency_contact, Profiles.fullname)\
+        stmt = select(UserSecurity)\
             .join(Profiles, UserSecurity.user_id == Profiles.auth_user_id)\
             .where(
                 UserSecurity.last_confirmation_ts < threshold_time,
@@ -301,7 +302,7 @@ class SecurityService:
             return 0
 
         count = 0
-        for sec, email, full_name in results:
+        for sec in results:
             device_token = None
             if TokenSecurity is not None:
                 tok = session.exec(
