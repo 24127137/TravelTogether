@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 import 'screens/first_of_all.dart';
 import 'screens/main_app_screen.dart';
@@ -26,6 +27,8 @@ void main() async {
 
   await initializeDateFormatting('vi_VN', null);
   await initializeDateFormatting('en_US', null);
+
+  await dotenv.load(fileName: ".env");
 
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
