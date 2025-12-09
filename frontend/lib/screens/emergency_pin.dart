@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:geolocator/geolocator.dart';
 
 class EmergencyPinInfoScreen extends StatefulWidget {
@@ -98,14 +99,12 @@ class _EmergencyPinInfoScreenState extends State<EmergencyPinInfoScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Cần quyền truy cập vị trí'),
-        content: const Text(
-          'Để sử dụng tính năng khẩn cấp, bạn cần cấp quyền truy cập vị trí trong cài đặt hệ thống.',
-        ),
+        title: Text('location_permission_required'.tr()),
+        content: Text('location_permission_desc'.tr()),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Hủy'),
+            child: Text('cancel'.tr()),
           ),
           TextButton(
             onPressed: () async {
@@ -113,7 +112,7 @@ class _EmergencyPinInfoScreenState extends State<EmergencyPinInfoScreen> {
               await Geolocator.openAppSettings();
               Future.delayed(const Duration(seconds: 1), _checkLocationPermission);
             },
-            child: const Text('Mở cài đặt'),
+            child: Text('open_settings'.tr()),
           ),
         ],
       ),
@@ -125,12 +124,12 @@ class _EmergencyPinInfoScreenState extends State<EmergencyPinInfoScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFF5EFE6),
       appBar: AppBar(
-        title: const Text(
-          "Mã PIN khẩn cấp",
-          style: TextStyle(
+        title: Text(
+          'emergency_pin_title'.tr(),
+          style: const TextStyle(
             fontSize: 25,
             fontWeight: FontWeight.w600,
-            fontFamily: 'WorkSans',
+            fontFamily: 'Alumni Sans',
           ),
         ),
         centerTitle: true,
@@ -138,121 +137,123 @@ class _EmergencyPinInfoScreenState extends State<EmergencyPinInfoScreen> {
         foregroundColor: Colors.black,
         elevation: 0,
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          children: [
-            const SizedBox(height: 32),
-            Container(
-              width: 120,
-              height: 120,
-              decoration: BoxDecoration(
-                color: Colors.red.withOpacity(0.1),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(
-                Icons.emergency,
-                size: 60,
-                color: Colors.red,
-              ),
-            ),
-            const SizedBox(height: 32),
-            const Text(
-              "Mã PIN khẩn cấp",
-              style: TextStyle(
-                fontSize: 28,
-                fontWeight: FontWeight.bold,
-                fontFamily: 'WorkSans',
-              ),
-            ),
-            const SizedBox(height: 16),
-            const Text(
-              "Thiết lập mã PIN khẩn cấp để bảo vệ bạn trong tình huống nguy hiểm",
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 16,
-                color: Colors.black54,
-                fontFamily: 'WorkSans',
-              ),
-            ),
-            const SizedBox(height: 32),
-            _buildFeatureItem(
-              Icons.notifications_active,
-              "Gửi thông báo SOS",
-              "Tự động gửi tin nhắn cảnh báo đến email liên hệ",
-            ),
-            const SizedBox(height: 16),
-            _buildFeatureItem(
-              Icons.location_on,
-              "Chia sẻ vị trí",
-              "Gửi vị trí GPS hiện tại cho liên hệ khẩn cấp",
-            ),
-            const SizedBox(height: 16),
-            _buildFeatureItem(
-              Icons.visibility_off,
-              "Chế độ ẩn danh",
-              "App hoạt động bình thường để không lộ tình huống",
-            ),
-            const SizedBox(height: 32),
-            
-            // Location permission toggle
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: _locationEnabled 
-                    ? Colors.green.withOpacity(0.1) 
-                    : Colors.orange.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: _locationEnabled 
-                      ? Colors.green.withOpacity(0.3) 
-                      : Colors.orange.withOpacity(0.3),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            children: [
+              const SizedBox(height: 32),
+              Container(
+                width: 120,
+                height: 120,
+                decoration: BoxDecoration(
+                  color: Colors.red.withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.emergency,
+                  size: 60,
+                  color: Colors.red,
                 ),
               ),
-              child: Row(
-                children: [
-                  Icon(
-                    _locationEnabled ? Icons.location_on : Icons.location_off,
-                    color: _locationEnabled ? Colors.green : Colors.orange,
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          _locationEnabled 
-                              ? 'Truy cập vị trí đã bật' 
-                              : 'Bật truy cập vị trí',
-                          style: const TextStyle(
-                            fontWeight: FontWeight.w600,
-                            fontFamily: 'WorkSans',
-                          ),
-                        ),
-                        Text(
-                          _locationEnabled 
-                              ? 'Vị trí sẽ được gửi khi khẩn cấp' 
-                              : 'Cần thiết để gửi vị trí SOS',
-                          style: const TextStyle(
-                            fontSize: 12,
-                            color: Colors.black54,
-                            fontFamily: 'WorkSans',
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Switch(
-                    value: _locationEnabled,
-                    onChanged: _isChecking ? null : _toggleLocationPermission,
-                    activeColor: Colors.green,
-                  ),
-                ],
+              const SizedBox(height: 32),
+              Text(
+                'emergency_pin_title'.tr(),
+                style: const TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.bold,
+                  fontFamily: 'Alumni Sans',
+                ),
               ),
-            ),
-            
-            const Spacer(),
-          ],
+              const SizedBox(height: 16),
+              Text(
+                'emergency_pin_desc'.tr(),
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: 16,
+                  color: Colors.black54,
+                  fontFamily: 'Alegreya',
+                ),
+              ),
+              const SizedBox(height: 32),
+              _buildFeatureItem(
+                Icons.notifications_active,
+                'send_sos'.tr(),
+                'send_sos_desc'.tr(),
+              ),
+              const SizedBox(height: 16),
+              _buildFeatureItem(
+                Icons.location_on,
+                'share_location'.tr(),
+                'share_location_desc'.tr(),
+              ),
+              const SizedBox(height: 16),
+              _buildFeatureItem(
+                Icons.visibility_off,
+                'stealth_mode'.tr(),
+                'stealth_mode_desc'.tr(),
+              ),
+              const SizedBox(height: 32),
+
+              // Location permission toggle
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: _locationEnabled
+                      ? Colors.green.withOpacity(0.1)
+                      : Colors.orange.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: _locationEnabled
+                        ? Colors.green.withOpacity(0.3)
+                        : Colors.orange.withOpacity(0.3),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      _locationEnabled ? Icons.location_on : Icons.location_off,
+                      color: _locationEnabled ? Colors.green : Colors.orange,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            _locationEnabled
+                                ? 'location_enabled'.tr()
+                                : 'enable_location'.tr(),
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w600,
+                              fontFamily: 'Alegreya',
+                            ),
+                          ),
+                          Text(
+                            _locationEnabled
+                                ? 'location_enabled_desc'.tr()
+                                : 'enable_location_desc'.tr(),
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: Colors.black54,
+                              fontFamily: 'Alegreya',
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Switch(
+                      value: _locationEnabled,
+                      onChanged: _isChecking ? null : _toggleLocationPermission,
+                      activeTrackColor: Colors.green,
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 32),
+            ],
+          ),
         ),
       ),
     );
@@ -287,7 +288,7 @@ class _EmergencyPinInfoScreenState extends State<EmergencyPinInfoScreen> {
                   style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
-                    fontFamily: 'WorkSans',
+                    fontFamily: 'Alegreya',
                   ),
                 ),
                 const SizedBox(height: 4),
@@ -296,7 +297,7 @@ class _EmergencyPinInfoScreenState extends State<EmergencyPinInfoScreen> {
                   style: TextStyle(
                     fontSize: 13,
                     color: Colors.grey.shade600,
-                    fontFamily: 'WorkSans',
+                    fontFamily: 'Alegreya',
                   ),
                 ),
               ],

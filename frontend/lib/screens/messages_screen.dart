@@ -76,17 +76,13 @@ class _MessagesScreenState extends State<MessagesScreen> {
   }
 
   Future<void> _loadConversations() async {
-    print('🔍 Bắt đầu load conversations...');
-    
     _accessToken = await AuthService.getValidAccessToken();
     final prefs = await SharedPreferences.getInstance();
     _currentUserId = prefs.getString('user_id');
-    
-    print('🔑 Access Token: ${_accessToken != null ? "Có" : "Không"}');
-    print('👤 Current User ID: $_currentUserId');
 
     List<ConversationItem> conversations = [];
 
+    // === 1. Thêm AI Chat (nhanh, từ local) ===
     final aiMessages = prefs.getString('ai_chat_messages');
     String aiLastMessage = 'ai_chat_default_message'.tr();
     String aiLastTime = '';
@@ -99,9 +95,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
           aiLastTime = lastMsg['time'] ?? '';
           aiLastMessage = lastMsg['text'] ?? aiLastMessage;
         }
-      } catch (e) {
-        print('❌ Error loading AI chat: $e');
-      }
+      } catch (_) {}
     }
 
     conversations.add(ConversationItem(
@@ -111,238 +105,207 @@ class _MessagesScreenState extends State<MessagesScreen> {
       isOnline: true,
       isAiChat: true,
     ));
-    
-    print('✅ Đã thêm AI Chat. Tổng conversations: ${conversations.length}');
 
-    if (_accessToken != null) {
-      try {
-        final myGroupUrl = ApiConfig.getUri(ApiConfig.myGroup);
-        print('📡 Đang gọi API: $myGroupUrl');
-        
-        final response = await http.get(
-          myGroupUrl,
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": "Bearer $_accessToken",
-          },
-        );
+    if (_accessToken == null) {
+      setState(() {
+        _conversations = conversations;
+        _filterConversations();
+        _isLoading = false;
+      });
+      return;
+    }
 
-        print('📥 Response status: ${response.statusCode}');
-        
-        if (response.statusCode == 200) {
-          final dynamic rawData = jsonDecode(utf8.decode(response.bodyBytes));
-          print('📦 Raw data type: ${rawData.runtimeType}');
-          print('📦 Raw data: $rawData');
+    // === 2. Lấy danh sách groups ===
+    try {
+      final response = await http.get(
+        ApiConfig.getUri(ApiConfig.myGroup),
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer $_accessToken",
+        },
+      );
 
-          List<dynamic> groupIdList = [];
-          if (rawData is List) {
-            groupIdList = rawData;
-          } else if (rawData is Map<String, dynamic>) {
-            groupIdList = rawData['groups'] ?? rawData['group_ids'] ?? rawData['data'] ?? [];
+      if (response.statusCode == 200) {
+        final dynamic rawData = jsonDecode(utf8.decode(response.bodyBytes));
+        List<dynamic> groupIdList = [];
+        if (rawData is List) {
+          groupIdList = rawData;
+        } else if (rawData is Map<String, dynamic>) {
+          groupIdList = rawData['groups'] ?? rawData['group_ids'] ?? rawData['data'] ?? [];
+        }
+
+        // === 3. Load TẤT CẢ groups SONG SONG ===
+        final futures = <Future<ConversationItem?>>[];
+
+        for (var idItem in groupIdList) {
+          int groupId = 0;
+          if (idItem is int) {
+            groupId = idItem;
+          } else if (idItem is Map<String, dynamic>) {
+            groupId = idItem['group_id'] ?? 0;
+          } else {
+            groupId = int.tryParse(idItem.toString()) ?? 0;
           }
 
-          print('✅ Đã tìm thấy ${groupIdList.length} nhóm: $groupIdList');
+          if (groupId != 0) {
+            futures.add(_loadSingleGroup(groupId, prefs));
+          }
+        }
 
-          for (var i = 0; i < groupIdList.length; i++) {
-            try {
-              var idItem = groupIdList[i];
-              print('\n🔄 Đang xử lý nhóm ${i + 1}/${groupIdList.length}');
-              print('   ID item: $idItem (type: ${idItem.runtimeType})');
+        // Chờ tất cả hoàn thành song song
+        final results = await Future.wait(futures);
 
-              int groupId = 0;
-              if (idItem is int) {
-                groupId = idItem;
-              } else if (idItem is Map<String, dynamic>) {
-                groupId = idItem['group_id'] ?? 0;
-              } else {
-                groupId = int.tryParse(idItem.toString()) ?? 0;
-              }
-              
-              if (groupId == 0) {
-                print('   ⚠️ Group ID = 0, bỏ qua');
-                continue;
-              }
-            
-            print('   ✓ Group ID hợp lệ: $groupId');
+        for (var item in results) {
+          if (item != null) {
+            conversations.add(item);
+          }
+        }
+      }
+    } catch (e) {
+      print('❌ Lỗi load danh sách nhóm: $e');
+    }
 
-            final detailUri = Uri.parse('${ApiConfig.baseUrl}/groups/$groupId/detail');
-            print('   📡 Gọi detail API: $detailUri');
-            
-            final detailResponse = await http.get(
-              detailUri,
+    if (mounted) {
+      setState(() {
+        _conversations = conversations;
+        _filterConversations();
+        _isLoading = false;
+      });
+    }
+  }
+
+  /// Load thông tin một group (chạy song song)
+  Future<ConversationItem?> _loadSingleGroup(int groupId, SharedPreferences prefs) async {
+    try {
+      String groupName = 'group_chat_default'.tr();
+      String? groupImageUrl;
+      Map<String, dynamic> groupDetail = {'id': groupId};
+      String messagePreview = 'start_conversation'.tr();
+      String timeStr = '';
+      bool hasUnseenMessages = false;
+
+      // === Gọi detail và history SONG SONG ===
+      final detailFuture = http.get(
+        Uri.parse('${ApiConfig.baseUrl}/groups/$groupId/detail'),
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer $_accessToken",
+        },
+      );
+
+      // Ưu tiên cache trước
+      List<dynamic>? messages = await ChatCacheService.getMessages(groupId.toString());
+
+      final historyFuture = messages == null
+          ? http.get(
+              Uri.parse('${ApiConfig.baseUrl}/chat/$groupId/history'),
               headers: {
                 "Content-Type": "application/json",
                 "Authorization": "Bearer $_accessToken",
               },
-            );
+            )
+          : Future.value(null);
 
-            String groupName = 'Nhóm chat';
-            String? groupImageUrl;
-            Map<String, dynamic> groupDetail = {'id': groupId}; 
+      // Chờ cả 2 API
+      final results = await Future.wait([detailFuture, historyFuture]);
 
-            print('   📥 Detail response status: ${detailResponse.statusCode}');
-            
-            if (detailResponse.statusCode == 200) {
-              groupDetail = jsonDecode(utf8.decode(detailResponse.bodyBytes)) as Map<String, dynamic>;
-              groupName = groupDetail['name']?.toString() ?? 'Nhóm chat';
-              groupImageUrl = groupDetail['group_image_url']?.toString();
-              print('   ✓ Tên nhóm: $groupName');
-              print('   ✓ Image URL: $groupImageUrl');
+      // Xử lý detail response
+      final detailResponse = results[0] as http.Response;
+      if (detailResponse.statusCode == 200) {
+        groupDetail = jsonDecode(utf8.decode(detailResponse.bodyBytes)) as Map<String, dynamic>;
+        groupName = groupDetail['name']?.toString() ?? 'group_chat_default'.tr();
+        groupImageUrl = groupDetail['group_image_url']?.toString();
+      }
+
+      // Xử lý history response
+      if (messages == null && results[1] != null) {
+        final historyResponse = results[1] as http.Response;
+        if (historyResponse.statusCode == 200) {
+          messages = jsonDecode(utf8.decode(historyResponse.bodyBytes));
+          // Lưu cache cho lần sau (không await để không block)
+          if (messages != null) {
+            ChatCacheService.saveMessages(groupId.toString(), messages);
+          }
+        }
+      }
+
+      // Xử lý tin nhắn
+      if (messages != null && messages.isNotEmpty) {
+        final lastMsg = messages.last as Map<String, dynamic>;
+
+        final createdAt = lastMsg['created_at'];
+        if (createdAt != null) {
+          final createdAtLocal = DateTime.parse(createdAt.toString()).toLocal();
+          final now = DateTime.now();
+          final isToday = createdAtLocal.year == now.year &&
+              createdAtLocal.month == now.month &&
+              createdAtLocal.day == now.day;
+
+          timeStr = isToday
+              ? DateFormat('HH:mm').format(createdAtLocal)
+              : DateFormat('d \'thg\' M').format(createdAtLocal);
+        }
+
+        final messageType = lastMsg['message_type'] ?? 'text';
+        final senderId = lastMsg['sender_id']?.toString() ?? '';
+        final isMyMessage = senderId == _currentUserId;
+
+        if (messageType == 'image') {
+          messagePreview = isMyMessage ? 'Bạn đã gửi một ảnh' : 'Đã gửi một ảnh';
+        } else if (messageType == 'video') {
+          messagePreview = isMyMessage ? 'Bạn đã gửi một video' : 'Đã gửi một video';
+        } else if (messageType == 'file') {
+          messagePreview = isMyMessage ? 'Bạn đã gửi một tệp' : 'Đã gửi một tệp';
+        } else {
+          final content = lastMsg['content']?.toString() ?? '';
+          if (content.isNotEmpty) {
+            final parsedSystem = ChatSystemMessageService.parseSystemMessage(content);
+            if (parsedSystem != null) {
+              messagePreview = parsedSystem['display']!;
             } else {
-              print('   ⚠️ Không lấy được detail, dùng tên mặc định');
-            }
-
-            String messagePreview = 'Bắt đầu cuộc trò chuyện';
-            String timeStr = '';
-            bool hasUnseenMessages = false;
-
-            // === THÊM MỚI: Thử load từ cache trước ===
-            List<dynamic>? messages = await ChatCacheService.getMessages(groupId.toString());
-
-            // Nếu không có cache, gọi API
-            if (messages == null) {
-              final historyUri = Uri.parse('${ApiConfig.baseUrl}/chat/$groupId/history');
-              print('   📡 Gọi history API: $historyUri');
-
-              final historyResponse = await http.get(
-                historyUri,
-                headers: {
-                  "Content-Type": "application/json",
-                  "Authorization": "Bearer $_accessToken",
-                },
-              );
-
-              print('   📥 History response status: ${historyResponse.statusCode}');
-
-              if (historyResponse.statusCode == 200) {
-                messages = jsonDecode(utf8.decode(historyResponse.bodyBytes));
-                // Lưu cache cho lần sau
-                if (messages != null) {
-                  await ChatCacheService.saveMessages(groupId.toString(), messages);
-                }
-              }
-            } else {
-              print('   ⚡ Loaded from cache');
-            }
-
-            if (messages != null && messages.isNotEmpty) {
-              print('   ✓ Số tin nhắn: ${messages.length}');
-
-              final lastMsg = messages.last as Map<String, dynamic>;
-              print('   ✓ Tin nhắn cuối: ${lastMsg['content']}');
-
-              final createdAt = lastMsg['created_at'];
-              if (createdAt != null) {
-                final createdAtLocal = DateTime.parse(createdAt.toString()).toLocal();
-                final now = DateTime.now();
-                final isToday = createdAtLocal.year == now.year &&
-                    createdAtLocal.month == now.month &&
-                    createdAtLocal.day == now.day;
-
-                timeStr = isToday
-                    ? DateFormat('HH:mm').format(createdAtLocal)
-                    : DateFormat('d \'thg\' M').format(createdAtLocal);
-              }
-
-              final messageType = lastMsg['message_type'] ?? 'text';
-              final senderId = lastMsg['sender_id']?.toString() ?? '';
-              final isMyMessage = senderId == _currentUserId;
-
-              if (messageType == 'image') {
-                messagePreview = isMyMessage ? 'Bạn đã gửi một ảnh' : 'Đã gửi một ảnh';
-              } else if (messageType == 'video') {
-                messagePreview = isMyMessage ? 'Bạn đã gửi một video' : 'Đã gửi một video';
-              } else if (messageType == 'file') {
-                messagePreview = isMyMessage ? 'Bạn đã gửi một tệp' : 'Đã gửi một tệp';
-              } else {
-                final content = lastMsg['content']?.toString() ?? '';
-                if (content.isNotEmpty) {
-                  // === THÊM MỚI: Parse system message để hiển thị đẹp ===
-                  final parsedSystem = ChatSystemMessageService.parseSystemMessage(content);
-                  if (parsedSystem != null) {
-                    // Là system message, hiển thị display text
-                    messagePreview = parsedSystem['display']!;
-                  } else {
-                    // Tin nhắn bình thường
-                    messagePreview = isMyMessage ? 'Bạn: $content' : content;
-                  }
-                }
-              }
-
-              // === SỬA: Kiểm tra unseen dựa trên last_seen_message_id như notification_screen ===
-              final lastSeenId = prefs.getString('last_seen_message_id_$groupId');
-              if (lastSeenId != null) {
-                // Tìm index của last seen message
-                int lastSeenIndex = -1;
-                for (int i = 0; i < messages.length; i++) {
-                  if (messages[i]['id'].toString() == lastSeenId) {
-                    lastSeenIndex = i;
-                    break;
-                  }
-                }
-
-                // Đếm tin nhắn chưa đọc sau last seen (từ người khác)
-                int unreadCount = 0;
-                for (int i = lastSeenIndex + 1; i < messages.length; i++) {
-                  final msgSenderId = messages[i]['sender_id']?.toString();
-                  if (msgSenderId != _currentUserId) {
-                    unreadCount++;
-                  }
-                }
-                hasUnseenMessages = unreadCount > 0;
-                print('   ✓ Last seen ID: $lastSeenId, Unread count: $unreadCount');
-              } else {
-                // Chưa có last_seen_message_id -> coi như tất cả tin nhắn của người khác là chưa đọc
-                hasUnseenMessages = !isMyMessage;
-                print('   ⚠️ No last_seen_message_id, hasUnseenMessages based on lastMsg: $hasUnseenMessages');
-              }
-            } else {
-              print('   ⚠️ Không lấy được history');
-            }
-
-            print('   ➕ Thêm nhóm vào danh sách');
-            conversations.add(ConversationItem(
-              sender: groupName,
-              message: messagePreview,
-              time: timeStr,
-              isOnline: true,
-              isAiChat: false,
-              hasUnseenMessages: hasUnseenMessages,
-              groupImageUrl: groupImageUrl,
-              groupData: groupDetail,
-            ));
-            
-            print('   ✅ Tổng conversations hiện tại: ${conversations.length}');
-            } catch (e, stackTrace) {
-              print('   ❌ Lỗi khi xử lý nhóm $i: $e');
-              print('   ❌ Stack trace: $stackTrace');
-              continue;
+              messagePreview = isMyMessage ? 'Bạn: $content' : content;
             }
           }
-          
-          print('\n📊 Hoàn thành! Tổng cộng ${conversations.length} conversations (bao gồm AI Chat)');
-        } else {
-          print('❌ API trả về status code: ${response.statusCode}');
-          print('❌ Response body: ${response.body}');
         }
-      } catch (e, stackTrace) {
-        print('❌ Lỗi load danh sách nhóm: $e');
-        print('❌ Stack trace: $stackTrace');
-      }
-    } else {
-      print('⚠️ Không có access token');
-    }
 
-    print('\n🎯 Trước khi setState: ${conversations.length} conversations');
-    
-    setState(() {
-      _conversations = conversations;
-      _filterConversations(); // === THÊM: Lọc conversations ===
-      _isLoading = false;
-    });
-    
-    print('🎯 Sau setState: $_conversations có ${_conversations.length} items');
-    print('🎯 _isLoading = $_isLoading');
+        // Kiểm tra unseen
+        final lastSeenId = prefs.getString('last_seen_message_id_$groupId');
+        if (lastSeenId != null) {
+          int lastSeenIndex = -1;
+          for (int i = 0; i < messages.length; i++) {
+            if (messages[i]['id'].toString() == lastSeenId) {
+              lastSeenIndex = i;
+              break;
+            }
+          }
+
+          int unreadCount = 0;
+          for (int i = lastSeenIndex + 1; i < messages.length; i++) {
+            final msgSenderId = messages[i]['sender_id']?.toString();
+            if (msgSenderId != _currentUserId) {
+              unreadCount++;
+            }
+          }
+          hasUnseenMessages = unreadCount > 0;
+        } else {
+          hasUnseenMessages = !isMyMessage;
+        }
+      }
+
+      return ConversationItem(
+        sender: groupName,
+        message: messagePreview,
+        time: timeStr,
+        isOnline: true,
+        isAiChat: false,
+        hasUnseenMessages: hasUnseenMessages,
+        groupImageUrl: groupImageUrl,
+        groupData: groupDetail,
+      );
+    } catch (e) {
+      print('❌ Lỗi load group $groupId: $e');
+      return null;
+    }
   }
 
   @override
@@ -384,7 +347,12 @@ class _MessagesScreenState extends State<MessagesScreen> {
                       SizedBox(height: spacing),
                       Expanded(
                         child: _isLoading
-                            ? const Center(child: CircularProgressIndicator(color: Color(0xFFC69A61)))
+                            ? ListView.separated(
+                                physics: const NeverScrollableScrollPhysics(),
+                                itemCount: 8,
+                                separatorBuilder: (_, __) => SizedBox(height: spacing),
+                                itemBuilder: (context, index) => const ConversationSkeletonItem(),
+                              )
                             : _filteredConversations.isEmpty
                                 ? RefreshIndicator(
                                     onRefresh: _handleRefresh,
@@ -396,7 +364,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
                                         child: Center(
                                           child: Text(
                                             _searchQuery.isNotEmpty
-                                              ? 'Không tìm thấy cuộc trò chuyện'
+                                              ? 'no_conversation_yet'.tr()
                                               : 'no_conversation_yet'.tr(),
                                             style: const TextStyle(fontSize: 16, color: Colors.grey),
                                           ),
@@ -611,3 +579,148 @@ class ConversationItem {
     this.groupData,
   });
 }
+
+/// Skeleton loading item cho danh sách conversation
+class ConversationSkeletonItem extends StatefulWidget {
+  const ConversationSkeletonItem({Key? key}) : super(key: key);
+
+  @override
+  State<ConversationSkeletonItem> createState() => _ConversationSkeletonItemState();
+}
+
+class _ConversationSkeletonItemState extends State<ConversationSkeletonItem>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _animation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1500),
+    )..repeat();
+    _animation = Tween<double>(begin: -1.0, end: 2.0).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _animation,
+      builder: (context, child) {
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Avatar skeleton
+            Container(
+              width: 64,
+              height: 64,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: LinearGradient(
+                  begin: Alignment.centerLeft,
+                  end: Alignment.centerRight,
+                  colors: const [
+                    Color(0xFFE0E0E0),
+                    Color(0xFFF5F5F5),
+                    Color(0xFFE0E0E0),
+                  ],
+                  stops: [
+                    (_animation.value - 0.3).clamp(0.0, 1.0),
+                    _animation.value.clamp(0.0, 1.0),
+                    (_animation.value + 0.3).clamp(0.0, 1.0),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Title skeleton
+                  Container(
+                    width: 140,
+                    height: 18,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(4),
+                      gradient: LinearGradient(
+                        begin: Alignment.centerLeft,
+                        end: Alignment.centerRight,
+                        colors: const [
+                          Color(0xFFE0E0E0),
+                          Color(0xFFF5F5F5),
+                          Color(0xFFE0E0E0),
+                        ],
+                        stops: [
+                          (_animation.value - 0.3).clamp(0.0, 1.0),
+                          _animation.value.clamp(0.0, 1.0),
+                          (_animation.value + 0.3).clamp(0.0, 1.0),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  // Subtitle skeleton
+                  Container(
+                    width: double.infinity,
+                    height: 14,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(4),
+                      gradient: LinearGradient(
+                        begin: Alignment.centerLeft,
+                        end: Alignment.centerRight,
+                        colors: const [
+                          Color(0xFFE0E0E0),
+                          Color(0xFFF5F5F5),
+                          Color(0xFFE0E0E0),
+                        ],
+                        stops: [
+                          (_animation.value - 0.3).clamp(0.0, 1.0),
+                          _animation.value.clamp(0.0, 1.0),
+                          (_animation.value + 0.3).clamp(0.0, 1.0),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            // Time skeleton
+            Container(
+              width: 40,
+              height: 12,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(4),
+                gradient: LinearGradient(
+                  begin: Alignment.centerLeft,
+                  end: Alignment.centerRight,
+                  colors: const [
+                    Color(0xFFE0E0E0),
+                    Color(0xFFF5F5F5),
+                    Color(0xFFE0E0E0),
+                  ],
+                  stops: [
+                    (_animation.value - 0.3).clamp(0.0, 1.0),
+                    _animation.value.clamp(0.0, 1.0),
+                    (_animation.value + 0.3).clamp(0.0, 1.0),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+

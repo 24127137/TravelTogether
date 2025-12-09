@@ -1,5 +1,6 @@
 // Screen Đăng ký
 import 'package:flutter/material.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'login.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
@@ -281,7 +282,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
           await prefs.setString('user_id', user['id']); // Lưu user_id để phân biệt tin nhắn
 
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text("Đăng ký và đăng nhập thành công! Xin chào ${user['email']}")),
+            SnackBar(content: Text("${'signup_login_success'.tr()} ${user['email']}")),
           );
 
           Navigator.pushReplacement(
@@ -293,13 +294,13 @@ class _SignUpScreenState extends State<SignUpScreen> {
         } else {
           final err = jsonDecode(loginResponse.body);
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text("Đăng ký thành công nhưng đăng nhập thất bại: ${err['detail'] ?? loginResponse.body}")),
+            SnackBar(content: Text("${'signup_success_login_failed'.tr()}: ${err['detail'] ?? loginResponse.body}")),
           );
           _fadeToLogin(context);
         }
       } else {
         // Parse error response
-        String errorMessage = "Lỗi đăng ký";
+        String errorMessage = 'signup_error'.tr();
         try {
           final errorData = jsonDecode(response.body);
           errorMessage = errorData['detail'] ?? response.body;
@@ -316,17 +317,14 @@ class _SignUpScreenState extends State<SignUpScreen> {
       }
     } catch (e) {
       Navigator.pop(context);
-      String errorMessage = "Lỗi kết nối server";
+      String errorMessage = 'server_connection_failed'.tr();
 
       // Extract meaningful error message
       String errorStr = e.toString();
       if (errorStr.contains("Connection refused")) {
-        errorMessage = "Không thể kết nối đến server. Vui lòng kiểm tra:\n"
-                      "1. Backend đã chạy chưa?\n"
-                      "2. IP server trong cài đặt có đúng không?\n"
-                      "3. Thiết bị và server cùng mạng WiFi?";
+        errorMessage = 'connection_refused'.tr();
       } else if (errorStr.contains("SocketException")) {
-        errorMessage = "Lỗi mạng: Không thể kết nối đến server";
+        errorMessage = 'network_error'.tr();
       }
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -406,7 +404,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
       case 0:
         content = _buildTextField(
           controller: _emailController,
-          hint: "Nhập email của bạn",
+          hint: 'enter_email'.tr(),
           icon: Icons.email_outlined,
         );
         break;
@@ -415,7 +413,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
           children: [
             _buildTextField(
               controller: _passwordController,
-              hint: "Tạo mật khẩu",
+              hint: 'create_password'.tr(),
               icon: Icons.lock_outline,
               obscure: true,
             ),
@@ -428,7 +426,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
       case 2:
         content = _buildTextField(
           controller: _nameController,
-          hint: "Nhập tên hiển thị",
+          hint: 'enter_display_name'.tr(),
           icon: Icons.person_outline,
         );
         break;
@@ -447,11 +445,11 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 const SizedBox(width: 10),
                 Text(
                   _birthDate == null
-                      ? "Chọn ngày sinh"
+                      ? 'select_birthdate'.tr()
                       : "${_birthDate!.day}/${_birthDate!.month}/${_birthDate!.year}",
                   style: const TextStyle(
                     fontSize: 18,
-                    fontFamily: 'WorkSans',
+                    fontFamily: 'Alegreya',
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -463,9 +461,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
       case 4:
         content = Column(
           children: [
-            _buildGenderTile("Nam"),
-            _buildGenderTile("Nữ"),
-            _buildGenderTile("Khác"),
+            _buildGenderTile('male'.tr()),
+            _buildGenderTile('female'.tr()),
+            _buildGenderTile('other'.tr()),
           ],
         );
         break;
@@ -487,19 +485,19 @@ class _SignUpScreenState extends State<SignUpScreen> {
             child: Center(
               child: Text(
                 step == 6
-                    ? "Tất cả đã sẵn sàng!"
+                    ? 'all_ready'.tr()
                     : [
-                  "Email của bạn là",
-                  "Tạo một mật khẩu",
-                  "Tên bạn là",
-                  "Ngày sinh của bạn",
-                  "Bạn là",
-                  "Bạn đang tìm kiếm điều gì?"
+                  'email_question'.tr(),
+                  'password_question'.tr(),
+                  'name_question'.tr(),
+                  'birthdate_question'.tr(),
+                  'gender_question'.tr(),
+                  'interests_question'.tr()
                 ][step],
                 textAlign: TextAlign.center,
                 style: const TextStyle(
                   fontSize: 36,
-                  fontFamily: 'WorkSans',
+                  fontFamily: 'Alumni Sans',
                   fontWeight: FontWeight.w700,
                   color: Colors.white,
                   height: 1.2,
@@ -524,11 +522,11 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     borderRadius: BorderRadius.circular(30),
                   ),
                 ),
-                child: const Text(
-                  "Tiếp tục",
-                  style: TextStyle(
+                child: Text(
+                  'continue_button'.tr(),
+                  style: const TextStyle(
                     fontSize: 22,
-                    fontFamily: 'WorkSans',
+                    fontFamily: 'Alegreya',
                     fontWeight: FontWeight.w600,
                     color: Colors.white,
                   ),
@@ -547,11 +545,11 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     borderRadius: BorderRadius.circular(30),
                   ),
                 ),
-                child: const Text(
-                  "Hoàn tất",
-                  style: TextStyle(
+                child: Text(
+                  'complete'.tr(),
+                  style: const TextStyle(
                     fontSize: 22,
-                    fontFamily: 'WorkSans',
+                    fontFamily: 'Alegreya',
                     fontWeight: FontWeight.w600,
                     color: Colors.white,
                   ),
@@ -564,11 +562,11 @@ class _SignUpScreenState extends State<SignUpScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Text(
-                "Bạn đã có tài khoản? ",
-                style: TextStyle(
+              Text(
+                "${'have_account_question'.tr()} ",
+                style: const TextStyle(
                   color: Colors.white,
-                  fontFamily: 'WorkSans',
+                  fontFamily: 'Alegreya',
                   fontWeight: FontWeight.w600,
                   fontSize: 14,
                 ),
@@ -577,11 +575,11 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 onTap: () {
                   _fadeToLogin(context);
                 },
-                child: const Text(
-                  "Đăng nhập",
-                  style: TextStyle(
+                child: Text(
+                  'login_title'.tr(),
+                  style: const TextStyle(
                     color: Color.fromARGB(255, 255, 225, 176),
-                    fontFamily: 'WorkSans',
+                    fontFamily: 'Alegreya',
                     fontWeight: FontWeight.w700,
                     fontSize: 16,
                   ),

@@ -123,7 +123,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       }
     } catch (e) {
       setState(() => _isLoading = false);
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Lỗi: $e'), backgroundColor: Colors.red));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('${'error'.tr()}: $e'), backgroundColor: Colors.red));
     }
   }
 
@@ -140,7 +140,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       }
     } catch (e) {
       setState(() => _isLoading = false);
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Lỗi: $e'), backgroundColor: Colors.red));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('${'error'.tr()}: $e'), backgroundColor: Colors.red));
     }
   }
 
@@ -150,17 +150,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
       builder: (_) => AlertDialog(
         backgroundColor: const Color(0xFFEDE2CC),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text('Thiết lập mã PIN bảo mật trước', style: TextStyle(color: Color(0xFFA15C20), fontWeight: FontWeight.bold, fontFamily: 'Poppins')),
-        content: Text('Bạn cần thiết lập mã PIN bảo mật trước khi tạo mã PIN khẩn cấp.', style: TextStyle(fontFamily: 'Poppins')),
+        title: Text('setup_pin_first_title'.tr(), style: const TextStyle(color: Color(0xFFA15C20), fontWeight: FontWeight.bold, fontFamily: 'Alumni Sans')),
+        content: Text('setup_pin_first_desc'.tr(), style: const TextStyle(fontFamily: 'Alegreya')),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: Text('Đóng', style: TextStyle(color: Color(0xFF666666)))),
+          TextButton(onPressed: () => Navigator.pop(context), child: Text('close'.tr(), style: const TextStyle(color: Color(0xFF666666), fontFamily: 'Alegreya'))),
           ElevatedButton(
             onPressed: () {
               Navigator.pop(context);
               _handlePinNavigation();
             },
             style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFB64B12), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
-            child: Text('Thiết lập ngay', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            child: Text('setup_now'.tr(), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontFamily: 'Alegreya')),
           ),
         ],
       ),
@@ -218,7 +218,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                   ),
                                 ),
                                 const SizedBox(width: 16),
-                                Text('settings'.tr(), style: TextStyle(fontSize: headerFontSize, fontWeight: FontWeight.bold, color: const Color(0xFFEDE2CC), fontFamily: 'Poppins')),
+                                Text('settings'.tr(), style: TextStyle(fontSize: headerFontSize, fontWeight: FontWeight.bold, color: const Color(0xFFEDE2CC), fontFamily: 'Alumni Sans')),
                               ],
                             ),
                             SizedBox(height: 30 * scaleFactor),
@@ -242,9 +242,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                     child: Column(
                                       crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
-                                        Text(_profileFullname, style: TextStyle(fontSize: userNameSize, fontWeight: FontWeight.bold, color: Colors.white, fontFamily: 'Poppins')),
+                                        Text(_profileFullname, style: TextStyle(fontSize: userNameSize, fontWeight: FontWeight.bold, color: Colors.white, fontFamily: 'Alegreya')),
                                         SizedBox(height: 4 * scaleFactor),
-                                        Text(_profileEmail, style: TextStyle(fontSize: userEmailSize, color: const Color(0xFFEDE2CC), fontFamily: 'Poppins')),
+                                        Text(_profileEmail, style: TextStyle(fontSize: userEmailSize, color: const Color(0xFFEDE2CC), fontFamily: 'Alegreya')),
                                       ],
                                     ),
                                   ),

@@ -233,10 +233,12 @@ class _MemberScreenMemberState extends State<MemberScreenMember> {
       margin: const EdgeInsets.only(bottom: 15),
       padding: const EdgeInsets.all(16),
       height: 120,
-      decoration: ShapeDecoration(
-        color: const Color(0xFFB99668),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFEFE7DA),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: const Color(0xFFB29079),
+          width: 1.5,
         ),
       ),
       child: Row(

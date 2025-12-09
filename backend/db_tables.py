@@ -122,7 +122,6 @@ class TokenSecurity(SQLModel, table=True):
     
     token_signature: str = Field(sa_column=Column(TEXT))
     ip_address: str = Field(sa_column=Column(TEXT))
-    device_token: Optional[str] = Field(default=None, sa_column=Column(TEXT))
     user_agent: Optional[str] = Field(default=None, sa_column=Column(TEXT))
     created_at: Optional[datetime] = Field(default=None, sa_column_kwargs={"default": "NOW()"})
 

@@ -1,7 +1,7 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
 import os
 
-class settings(BaseSettings):
+class Settings(BaseSettings):
     """
     Quản lý biến môi trường.
     Tự động đọc từ file .env (khi chạy local) hoặc Environment Variables (khi chạy trên Render).
@@ -20,4 +20,4 @@ class settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
 # Khởi tạo settings
-settings = settings()
+settings = Settings()

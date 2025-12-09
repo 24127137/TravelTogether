@@ -3,12 +3,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:timezone/timezone.dart' as tz;
 import 'package:timezone/data/latest_all.dart' as tz;
-import 'dart:convert'; // === THÊM MỚI: Để parse JSON payload ===
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 
-import '../main.dart' show navigatorKey; // === THÊM MỚI: Import global navigator key ===
-import '../screens/chatbox_screen.dart'; // === THÊM MỚI: Import màn hình chat ===
-import '../screens/ai_chatbot_screen.dart'; // === THÊM MỚI: Import màn hình AI chat ===
-import '../screens/notification_screen.dart'; // === THÊM MỚI: Import màn hình notification ===
+import '../main.dart' show navigatorKey;
+import '../screens/chatbox_screen.dart';
+import '../screens/ai_chatbot_screen.dart';
+import '../screens/notification_screen.dart';
+import '../screens/host_member_screen.dart';
+import '../config/api_config.dart';
+import 'auth_service.dart';
 
 /// Service quản lý Local Notifications
 /// Hỗ trợ cả Android và iOS
@@ -24,6 +29,16 @@ class NotificationService {
   // === THÊM MỚI: Hàm xóa chấm đỏ (gọi khi user vào màn hình thông báo) ===
   void clearBadge() {
     showBadgeNotifier.value = false;
+  }
+
+  // === THÊM MỚI: Hàm bật chấm đỏ (gọi khi có thông báo mới) ===
+  void showBadge() {
+    showBadgeNotifier.value = true;
+  }
+
+  // === THÊM MỚI: Cập nhật badge dựa trên số lượng notifications ===
+  void updateBadge(int notificationCount) {
+    showBadgeNotifier.value = notificationCount > 0;
   }
 
   /// Khởi tạo notification service
@@ -109,98 +124,166 @@ class NotificationService {
       return;
     }
 
-    final context = navigatorKey.currentContext;
-    if (context == null) {
-      debugPrint('⚠️ Navigator context is null, cannot navigate');
+    // Sử dụng navigatorKey thay vì context để tránh lỗi "No Material widget found"
+    final navigator = navigatorKey.currentState;
+    if (navigator == null) {
+      debugPrint('⚠️ Navigator state is null, cannot navigate');
       return;
     }
 
     // Parse payload để biết loại notification và navigate tới màn hình tương ứng
     try {
       final payload = response.payload!;
-
       debugPrint('🔍 Processing payload: $payload');
 
-      // Xử lý theo loại notification
+      // Thử parse JSON payload trước
+      try {
+        final jsonData = jsonDecode(payload);
+        final type = jsonData['type'] as String?;
+
+        debugPrint('📋 Notification type: $type');
+
+        if (type == 'group_request') {
+          final groupId = jsonData['group_id']?.toString();
+          final groupName = jsonData['group_name']?.toString() ?? 'Nhóm';
+
+          debugPrint('🚀 Opening MemberScreenHost for group: $groupId - $groupName');
+
+          // Navigate trực tiếp đến MemberScreenHost với tab pending
+          _navigateToMemberScreenHost(navigator, groupId, groupName);
+          return;
+        } else if (type == 'message') {
+          final groupId = jsonData['group_id']?.toString();
+          debugPrint('🚀 Navigating to ChatboxScreen with groupId: $groupId');
+
+          // Lưu groupId vào SharedPreferences để ChatboxScreen biết mở nhóm nào
+          if (groupId != null) {
+            SharedPreferences.getInstance().then((prefs) {
+              prefs.setString('cached_group_id', groupId);
+            });
+          }
+
+          navigator.push(
+            MaterialPageRoute(builder: (context) => const ChatboxScreen()),
+          );
+          return;
+        } else if (type == 'ai_chat') {
+          navigator.push(
+            MaterialPageRoute(builder: (context) => const AiChatbotScreen()),
+          );
+          return;
+        }
+      } catch (e) {
+        debugPrint('⚠️ Payload is not JSON, trying simple string match');
+      }
+
+      // Fallback: xử lý payload đơn giản (string)
       switch (payload) {
         case 'message':
-        // Navigate tới màn hình chat nhóm
           debugPrint('🚀 Navigating to ChatboxScreen');
-          Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (context) => const ChatboxScreen(),
-            ),
+          navigator.push(
+            MaterialPageRoute(builder: (context) => const ChatboxScreen()),
           );
           break;
 
         case 'ai_chat':
-        // Navigate tới màn hình AI chatbot
           debugPrint('🚀 Navigating to AiChatbotScreen');
-          Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (context) => const AiChatbotScreen(),
-            ),
+          navigator.push(
+            MaterialPageRoute(builder: (context) => const AiChatbotScreen()),
           );
           break;
 
         case 'group_request':
-        // Navigate tới màn hình notifications để xem yêu cầu
-          debugPrint('🚀 Navigating to NotificationScreen');
-          Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (context) => const NotificationScreen(),
-            ),
+          // Fallback: mở NotificationScreen để user tự chọn
+          debugPrint('🚀 Navigating to NotificationScreen (fallback)');
+          navigator.push(
+            MaterialPageRoute(builder: (context) => const NotificationScreen()),
           );
           break;
 
         default:
-        // Nếu payload có format khác (ví dụ JSON), có thể parse thêm
           debugPrint('⚠️ Unknown payload type: $payload');
-          // Thử parse JSON nếu có
-          try {
-            final jsonData = jsonDecode(payload);
-            final type = jsonData['type'] as String?;
-
-            if (type == 'group_request') {
-              // Vì MemberScreenHost cần dữ liệu phức tạp (list members),
-              // cách đơn giản nhất là điều hướng về NotificationScreen để nó tự load lại
-              // và người dùng nhấn vào thẻ.
-              // Hoặc nếu muốn xịn hơn, bạn phải gọi API trong này tương tự như _handleGroupRequestTap ở trên.
-
-              // Tạm thời giữ nguyên việc điều hướng về NotificationScreen là an toàn nhất với cấu trúc hiện tại.
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (context) => const NotificationScreen(),
-                ),
-              );
-            }
-            else if (type == 'message') {
-              final groupId = jsonData['group_id'] as String?;
-              debugPrint('🚀 Navigating to ChatboxScreen with groupId: $groupId');
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (context) => const ChatboxScreen(),
-                ),
-              );
-            } else if (type == 'ai_chat') {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (context) => const AiChatbotScreen(),
-                ),
-              );
-            } else if (type == 'group_request') {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (context) => const NotificationScreen(),
-                ),
-              );
-            }
-          } catch (e) {
-            debugPrint('⚠️ Failed to parse JSON payload: $e');
-          }
       }
     } catch (e) {
       debugPrint('❌ Error handling notification tap: $e');
+    }
+  }
+
+  /// Navigate đến MemberScreenHost với thông tin nhóm
+  Future<void> _navigateToMemberScreenHost(
+    NavigatorState navigator,
+    String? groupId,
+    String groupName,
+  ) async {
+    if (groupId == null) {
+      debugPrint('⚠️ No groupId, navigating to NotificationScreen');
+      navigator.push(
+        MaterialPageRoute(builder: (context) => const NotificationScreen()),
+      );
+      return;
+    }
+
+    try {
+      // Lấy token
+      final token = await AuthService.getValidAccessToken();
+      if (token == null) {
+        debugPrint('❌ No token, cannot fetch group detail');
+        navigator.push(
+          MaterialPageRoute(builder: (context) => const NotificationScreen()),
+        );
+        return;
+      }
+
+      // Gọi API lấy chi tiết nhóm
+      final url = Uri.parse('${ApiConfig.baseUrl}/groups/$groupId/detail');
+      final response = await http.get(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(utf8.decode(response.bodyBytes));
+
+        // Parse danh sách thành viên
+        final List<dynamic> memberListJson = data['members'] ?? [];
+        final List<Member> members = memberListJson.map((m) => Member(
+          id: m['profile_uuid'] ?? '',
+          name: m['fullname'] ?? 'Thành viên',
+          email: m['email'] ?? '',
+          avatarUrl: m['avatar_url'],
+        )).toList();
+
+        debugPrint('✅ Loaded ${members.length} members, navigating to MemberScreenHost');
+
+        // Navigate đến MemberScreenHost với tab Chờ Duyệt mở sẵn
+        navigator.push(
+          MaterialPageRoute(
+            builder: (context) => MemberScreenHost(
+              groupId: groupId,
+              groupName: data['name'] ?? groupName,
+              currentMembers: members.length,
+              maxMembers: data['max_members'] ?? 10,
+              members: members,
+              openPendingTab: true, // Mở sẵn tab Chờ Duyệt
+            ),
+          ),
+        );
+      } else {
+        debugPrint('❌ Failed to get group detail: ${response.statusCode}');
+        // Fallback to NotificationScreen
+        navigator.push(
+          MaterialPageRoute(builder: (context) => const NotificationScreen()),
+        );
+      }
+    } catch (e) {
+      debugPrint('❌ Error navigating to MemberScreenHost: $e');
+      // Fallback to NotificationScreen
+      navigator.push(
+        MaterialPageRoute(builder: (context) => const NotificationScreen()),
+      );
     }
   }
 
@@ -256,7 +339,21 @@ class NotificationService {
       await initialize();
     }
 
-    debugPrint('🔔 Showing notification: $title - $body');
+    debugPrint('🔔 ===== SHOWING NOTIFICATION =====');
+    debugPrint('   Title: $title');
+    debugPrint('   Body: $body');
+    debugPrint('   Payload: $payload');
+
+    // Kiểm tra permission trước
+    final hasPermission = await checkPermission();
+    debugPrint('   Permission granted: $hasPermission');
+
+    if (!hasPermission) {
+      debugPrint('   ⚠️ Notification permission NOT granted, skipping notification');
+      // Vẫn bật badge để user biết có thông báo
+      showBadgeNotifier.value = true;
+      return;
+    }
 
     // Android notification details
     final androidDetails = AndroidNotificationDetails(

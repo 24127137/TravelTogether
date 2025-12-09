@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:easy_localization/easy_localization.dart';
 import 'dart:convert';
 import '../widgets/out_group_dialog.dart';
 import '../config/api_config.dart';
 import '../services/auth_service.dart';
 import '../services/chat_system_message_service.dart';
 import 'main_app_screen.dart';
+import '../services/feedback_service.dart';
+import '../models/feedback_models.dart';
+
 
 class MemberScreenHost extends StatefulWidget {
   final String groupId;
@@ -36,6 +40,7 @@ class _MemberScreenHostState extends State<MemberScreenHost> with WidgetsBinding
   bool _isRejecting = false;
   String _searchQuery = '';
   final Set<String> _selectedRequests = <String>{};
+  final FeedbackService _feedbackService = FeedbackService();
   late List<Member> _filteredMembers;
   List<PendingRequest> _pendingRequests = [];
   List<PendingRequest> _filteredRequests = [];
@@ -79,7 +84,7 @@ class _MemberScreenHostState extends State<MemberScreenHost> with WidgetsBinding
     } else {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Không tìm thấy token đăng nhập')),
+          SnackBar(content: Text('no_login_token'.tr())),
         );
       }
     }
@@ -108,18 +113,24 @@ class _MemberScreenHostState extends State<MemberScreenHost> with WidgetsBinding
       if (response.statusCode == 200) {
         final List<dynamic> data = json.decode(utf8.decode(response.bodyBytes));
 
-        setState(() {
-          _pendingRequests = data.map((item) => PendingRequest(
-            id: item['profile_uuid'] as String,
-            name: item['fullname'] as String,
-            email: item['email'] as String,
-            avatarUrl: item['avatar_url'] as String?,
-            requestedAt: DateTime.parse(item['requested_at'] as String),
-            rating: 4.5,
-            keywords: [],
-          )).toList();
+        _pendingRequests = data.map((item) => PendingRequest(
+          id: item['profile_uuid'] as String,
+          name: item['fullname'] as String,
+          email: item['email'] as String,
+          avatarUrl: item['avatar_url'] as String?,
+          requestedAt: DateTime.parse(item['requested_at'] as String),
+          rating: 0.0,
+          topTags: [],
+        )).toList();
 
+        setState(() {
           _updateFilteredLists();
+        });
+
+        // Fetch reputation cho từng pending user
+        await _fetchReputationsForPendingUsers();
+
+        setState(() {
           _isLoadingRequests = false;
         });
       } else if (response.statusCode == 401) {
@@ -150,6 +161,62 @@ class _MemberScreenHostState extends State<MemberScreenHost> with WidgetsBinding
           SnackBar(content: Text('Lỗi kết nối: $e')),
         );
       }
+    }
+  }
+
+  Future<void> _fetchReputationsForPendingUsers() async {
+    if (_accessToken == null || _pendingRequests.isEmpty) return;
+
+    // Tạo list các Future để gọi song song
+    List<Future<void>> futures = [];
+
+    for (int i = 0; i < _pendingRequests.length; i++) {
+      futures.add(_fetchSingleUserReputation(i));
+    }
+
+    // Gọi tất cả song song
+    await Future.wait(futures);
+  }
+
+  Future<void> _fetchSingleUserReputation(int index) async {
+    final request = _pendingRequests[index];
+
+    try {
+      final reputationData = await _feedbackService.getUserReputation(_accessToken!, request.id);
+
+      if (reputationData != null && mounted) {
+        // Tính top 3 tags từ tất cả feedbacks
+        Map<String, int> tagCount = {};
+
+        for (var group in reputationData.groups) {
+          for (var feedback in group.feedbacks) {
+            for (var tag in feedback.content) {
+              tagCount[tag] = (tagCount[tag] ?? 0) + 1;
+            }
+          }
+        }
+
+        // Sắp xếp và lấy top 3
+        List<MapEntry<String, int>> sortedTags = tagCount.entries.toList()
+          ..sort((a, b) => b.value.compareTo(a.value));
+
+        List<String> top3Tags = sortedTags.take(3).map((e) => e.key).toList();
+
+        setState(() {
+          _pendingRequests[index] = PendingRequest(
+            id: request.id,
+            name: request.name,
+            email: request.email,
+            avatarUrl: request.avatarUrl,
+            requestedAt: request.requestedAt,
+            rating: reputationData.averageRating,
+            topTags: top3Tags,
+          );
+          _updateFilteredLists();
+        });
+      }
+    } catch (e) {
+      print('Error fetching reputation for ${request.id}: $e');
     }
   }
 
@@ -662,10 +729,10 @@ class _MemberScreenHostState extends State<MemberScreenHost> with WidgetsBinding
                     borderRadius: BorderRadius.circular(30),
                   ),
                 ),
-                child: const Center(
+                child: Center(
                   child: Text(
-                    'Thành viên',
-                    style: TextStyle(
+                    'members'.tr(),
+                    style: const TextStyle(
                       color: Colors.black,
                       fontSize: 18,
                       fontFamily: 'Alumni Sans',
@@ -917,21 +984,22 @@ class _MemberScreenHostState extends State<MemberScreenHost> with WidgetsBinding
     return Container(
       margin: const EdgeInsets.only(bottom: 15),
       padding: const EdgeInsets.all(16),
-      height: 135,
-      decoration: ShapeDecoration(
-        color: const Color(0xFFB99668),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFEFE7DA),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: const Color(0xFFB29079),
+          width: 1.5,
         ),
       ),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildAvatar(request.avatarUrl, radius: 25),
           const SizedBox(width: 16),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.start,
               children: [
                 Text(
                   request.name,
@@ -955,19 +1023,85 @@ class _MemberScreenHostState extends State<MemberScreenHost> with WidgetsBinding
                   overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 4),
-                Text(
-                  'Yêu cầu lúc: ${_formatDateTime(request.requestedAt)}',
-                  style: const TextStyle(
-                    color: Color(0xFF666666),
-                    fontSize: 12,
-                    fontFamily: 'DM Sans',
-                    fontWeight: FontWeight.w400,
+                const SizedBox(height: 6),
+
+                // Rating row
+                if (request.rating > 0)
+                  Row(
+                    children: [
+                      Text(
+                        request.rating.toStringAsFixed(1),
+                        style: const TextStyle(
+                          color: Color(0xFF222222),
+                          fontSize: 14,
+                          fontFamily: 'DM Sans',
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      const Icon(
+                        Icons.star,
+                        color: Color(0xFFFFD700),
+                        size: 16,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        _formatDateTime(request.requestedAt),
+                        style: const TextStyle(
+                          color: Color(0xFF555555),
+                          fontSize: 11,
+                          fontFamily: 'DM Sans',
+                        ),
+                      ),
+                    ],
+                  )
+                else
+                  Text(
+                    _formatDateTime(request.requestedAt),
+                    style: const TextStyle(
+                      color: Color(0xFF555555),
+                      fontSize: 11,
+                      fontFamily: 'DM Sans',
+                    ),
                   ),
-                ),
+
+                const SizedBox(height: 8),
+
+                // Top 3 Tags
+                if (request.topTags.isNotEmpty)
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 6,
+                    children: request.topTags.map((tag) => Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFE6D9BE),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        tag.tr(),
+                        style: const TextStyle(
+                          color: Color(0xFF4A3728),
+                          fontSize: 11,
+                          fontFamily: 'DM Sans',
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    )).toList(),
+                  )
+                else
+                  Text(
+                    'Chưa có đánh giá',
+                    style: TextStyle(
+                      color: Colors.grey[600],
+                      fontSize: 11,
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
               ],
             ),
           ),
-          const SizedBox(width: 16),
+          const SizedBox(width: 12),
           GestureDetector(
             onTap: () => _toggleSelection(request.id),
             child: Container(
@@ -1020,7 +1154,7 @@ class PendingRequest {
   final String? avatarUrl;
   final DateTime requestedAt;
   final double rating;
-  final List<String> keywords;
+  final List<String> topTags;
 
   PendingRequest({
     required this.id,
@@ -1029,6 +1163,6 @@ class PendingRequest {
     this.avatarUrl,
     required this.requestedAt,
     this.rating = 0.0,
-    this.keywords = const [],
+    this.topTags = const [],
   });
 }
