@@ -5,6 +5,8 @@ from typing import Optional, Dict, Any
 from sqlmodel import Session, select
 from sqlalchemy import Column, text, or_
 from sqlalchemy.dialects.postgresql import UUID, JSONB, TEXT, TIME
+from supabase import Client
+from firebase_admin import messaging
 
 # Import các bảng
 from db_tables import UserSecurity, SecurityLocations, Profiles 
@@ -34,7 +36,7 @@ class SecurityService:
         # 1. Lấy thông tin User (Email & Tên)
         profile = session.exec(select(Profiles).where(Profiles.auth_user_id == user_id)).first()
         if not profile or not profile.emergency_contact:
-            print(f"⚠️ [Security] Không tìm thấy email cho user {user_id}")
+            print(f"⚠️ [Security] Không tìm thấy emergency contact cho user {user_id}")
             return
 
         # 2. Tạo Link Google Maps (nếu có toạ độ)
@@ -224,4 +226,99 @@ class SecurityService:
             session.commit()
             print(f"[Scheduler] Đã update {count} user sang trạng thái OVERDUE.")
         
+        return count
+    
+    def _send_push_notification(self, token: str, user_id: str) -> bool:
+        """
+        Hỗ trợ gửi FCM cho 1 device token.
+        - token: str (device token)
+        - user_id: str (for logs / potential cleanup)
+        Returns True on success, False on failure.
+        """
+        if not token:
+            print(f"   -> No device token for user {user_id}")
+            return False
+
+        try:
+            message = messaging.Message(
+                notification=messaging.Notification(
+                    title="Yêu cầu xác thực bảo mật",
+                    body="Đã quá 24h kể từ lần xác thực cuối. Vui lòng nhập PIN để tiếp tục."
+                ),
+                data={
+                    "type": "SECURITY_ALERT",
+                    "action": "OPEN_PIN_SCREEN",
+                    "user_id": user_id
+                },
+                token=token,
+            )
+            response = messaging.send(message)
+            print(f"   -> Đã gửi FCM tới User {user_id} | Message ID: {response}")
+            return True
+        except Exception as e:
+            # Nếu token lỗi/hết hạn, ghi log; (nếu cần) xóa token khỏi DB ở đây
+            print(f"   -> Gửi thất bại tới User {user_id}: {e}")
+            return False
+
+    def notify_unconfirmed_24h(self, session: Session) -> int:
+        """
+        DB-based notifier:
+        - Tìm user có last_confirmation_ts > 24h và status not in (waiting, overdue)
+        - Cập nhật status -> "waiting"
+        - Gửi FCM nếu có device token (TokenSecurity table), ngược lại fallback gửi email
+        Returns number of users processed.
+        """
+        # lazy-import TokenSecurity (table may not exist in all schemas)
+        try:
+            from db_tables import TokenSecurity
+        except Exception:
+            TokenSecurity = None
+
+        threshold_time = datetime.now(timezone.utc) - timedelta(hours=24)
+
+        stmt = select(UserSecurity, Profiles.emergency_contact, Profiles.fullname)\
+            .join(Profiles, UserSecurity.user_id == Profiles.auth_user_id)\
+            .where(
+                UserSecurity.last_confirmation_ts < threshold_time,
+                ~UserSecurity.status.in_(["waiting", "overdue"])
+            )
+
+        results = session.exec(stmt).all()
+        if not results:
+            print("[notify_unconfirmed_24h] No users found.")
+            return 0
+
+        count = 0
+        for sec, email, full_name in results:
+            device_token = None
+            if TokenSecurity is not None:
+                tok = session.exec(
+                    select(TokenSecurity).where(
+                        TokenSecurity.user_id == sec.user_id,
+                        TokenSecurity.device_token != None
+                    )
+                ).first()
+                if tok:
+                    device_token = getattr(tok, "device_token", None)
+
+            notified = False
+            if device_token:
+                notified = self._send_push_notification(device_token, sec.user_id)
+            if not notified:
+                # fallback to email notification
+                print(f"[notify_unconfirmed_24h] Fallback email for user {sec.user_id}")
+                try:
+                    self._trigger_email(session, sec.user_id, "confirmation_reminder")
+                    notified = True
+                except Exception as e:
+                    print(f"[notify_unconfirmed_24h] Email send failed for {sec.user_id}: {e}")
+
+            # update status and timestamp regardless of notification success to avoid repeat spam
+            sec.status = "waiting"
+            sec.updated_at = datetime.now(timezone.utc)
+            count += 1
+
+        if count > 0:
+            session.commit()
+            print(f"[notify_unconfirmed_24h] Updated and notified {count} users.")
         return count
