@@ -64,18 +64,6 @@ class EmailService:
                 {location_html}
             </div>
             """
-        elif alert_type == "confirmation_reminder":
-            subject = f"🔔 Nhắc nhở: Vui lòng xác nhận an toàn, {user_name}"
-            body = f"""
-            <div style="font-family: Arial, sans-serif; padding: 20px; border: 1px solid #e0e0e0; border-radius: 5px;">
-                <h2 style="color: #0275d8;">Nhắc nhở xác nhận an toàn</h2>
-                <p>Xin chào, <b>{user_name}</b> </p>
-                <p>Bạn chưa xác nhận an toàn trong vòng 24 giờ qua.</p>
-                <p>Vui lòng mở ứng dụng và xác nhận để đảm bảo an toàn.</p>
-                <hr>
-                <small>Đây là email tự động, vui lòng không trả lời.</small>
-            </div>
-            """
         message = MessageSchema(
             subject=subject,
             recipients=email_to,

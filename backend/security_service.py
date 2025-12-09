@@ -192,36 +192,48 @@ class SecurityService:
             return True
 
         return False
+    
     def scan_overdue_users(self, session: Session) -> int:
         """
         Quét tất cả user có last_confirmation_ts quá 36h 
         và chưa set status='overdue'.
         Returns: Số lượng user bị update.
         """
-        # 1. Tính mốc thời gian giới hạn (Hiện tại - 36 tiếng)
-        # Lưu ý: Luôn dùng UTC
         limit_time = datetime.now(timezone.utc) - timedelta(hours=36)
 
-        # 2. Query tìm các nạn nhân
-        # Điều kiện: (last_confirmation < limit_time) VÀ (status != 'overdue')
-        statement = select(UserSecurity).where(
-            UserSecurity.last_confirmation_ts < limit_time,
-            UserSecurity.status != "overdue"
-        )
-        
+        # Query Join để lấy cả thông tin Security lẫn Email của User
+        statement = select(UserSecurity, Profiles.emergency_contact, Profiles.fullname)\
+            .join(Profiles, UserSecurity.user_id == Profiles.auth_user_id)\
+            .where(
+                UserSecurity.last_confirmation_ts < limit_time,
+                UserSecurity.status != "overdue"
+            )
+    
         results = session.exec(statement).all()
-        count = 0
+        if not results:
+            print("[scan_overdue_users] No overdue users found.")
+            return 0
 
-        # 3. Update từng user
-        for sec in results:
-            sec.status = "overdue"
-            sec.updated_at = datetime.now(timezone.utc)
-            
-            # Lưu log location (Không có toạ độ vì chạy ngầm)
-            self.save_location(session, sec.user_id, reason="timeout", location=None)
-            count += 1
-            self._trigger_email(session, sec.user_id, "overdue", location=None)
-        # Commit một lần cho tất cả thay đổi
+        count = 0
+        for sec, _, _ in results:
+            try:
+                # Update status and timestamp
+                sec.status = "overdue"
+                sec.updated_at = datetime.now(timezone.utc)
+
+                # Save a location/event record (no location available here)
+                self.save_location(session, sec.user_id, reason="timeout", location=None)
+
+                # Send email notification (uses profile emergency_contact via _trigger_email)
+                try:
+                    self._trigger_email(session, sec.user_id, "overdue")
+                except Exception as e:
+                    print(f"[scan_overdue_users] Failed to send email for {sec.user_id}: {e}")
+
+                count += 1
+            except Exception as e:
+                print(f"[scan_overdue_users] Error processing user {getattr(sec, 'user_id', 'unknown')}: {e}")
+
         if count > 0:
             session.commit()
             print(f"[Scheduler] Đã update {count} user sang trạng thái OVERDUE.")
