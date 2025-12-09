@@ -6,6 +6,7 @@ import '../config/api_config.dart';
 
 class AuthService {
   static VoidCallback? onAuthFailure;
+  static DateTime? _lastFailureTime;
 
   static bool isTokenValid(String? token) {
     if (token == null || token.isEmpty) return false;
@@ -20,8 +21,9 @@ class AuthService {
 
       final exp = payload['exp'] as int;
       final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+      const bufferSeconds = 300;
 
-      return exp > now; 
+      return exp > now + bufferSeconds; 
     } catch (_) {
       return false;
     }
@@ -59,7 +61,7 @@ class AuthService {
       final response = await http.post(
         url,
         headers: {"Content-Type": "application/json"},
-        body: jsonEncode({"refresh_token": refreshToken}),
+        body: jsonEncode({"refresh_token": refreshToken}), 
       );
 
       if (response.statusCode == 200) {
@@ -89,8 +91,11 @@ class AuthService {
   }
 
   static void _triggerAuthFailure() {
-    if (onAuthFailure != null) {
-      onAuthFailure!();
+    if (_lastFailureTime == null || DateTime.now().difference(_lastFailureTime!) > const Duration(seconds: 5)) {
+      _lastFailureTime = DateTime.now();
+      if (onAuthFailure != null) {
+        onAuthFailure!();
+      }
     }
   }
 

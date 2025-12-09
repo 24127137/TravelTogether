@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:confetti/confetti.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import '../config/api_config.dart';
+import '../services/auth_service.dart';
 
-
-// Password changing screen used from Settings
 class PasswordChangingScreen extends StatefulWidget {
   const PasswordChangingScreen({Key? key}) : super(key: key);
 
@@ -43,33 +45,123 @@ class _PasswordChangingScreenState extends State<PasswordChangingScreen> with Si
     _confettiController = ConfettiController(duration: const Duration(seconds: 2));
   }
 
+  double _calculatePasswordStrength(String password) {
+    if (password.isEmpty) return 0;
+
+    double strength = 0;
+
+    final hasLetters = RegExp(r'[a-zA-Z]').hasMatch(password);
+    final hasDigits = RegExp(r'[0-9]').hasMatch(password);
+    final hasUpper = RegExp(r'[A-Z]').hasMatch(password);
+    final hasSpecial = RegExp(r'[!@#\$&*~.,;:_^%+-]').hasMatch(password);
+
+    if (password.length < 8 || !hasLetters || !hasDigits) {
+      return 0.25;
+    }
+
+    strength = 0.5;
+
+    if (hasUpper) strength += 0.25;
+    if (hasSpecial) strength += 0.25;
+
+    if (strength > 1) strength = 1;
+
+    return strength;
+  }
+
   Future<void> _handleSave() async {
     if (_buttonState != ButtonState.idle) return;
     if (!(_formKey.currentState?.validate() ?? false)) return;
 
+    final newPass = _newController.text;
+    final strength = _calculatePasswordStrength(newPass);
+
+    if (strength < 0.5) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Mật khẩu mới quá yếu! Gợi ý: Thêm độ dài, chữ hoa, hoặc ký tự đặc biệt.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
     setState(() => _buttonState = ButtonState.loading);
     _animationController.repeat();
 
-    // Simulate network / processing
-    await Future.delayed(const Duration(seconds: 2));
+    try {
+      final token = await AuthService.getValidAccessToken();
+      
+      print('🔐 Đang gọi API change-password...');
+      print('📍 URL: ${ApiConfig.baseUrl}/auth/change-password');
+      
+      final response = await http.post(
+        Uri.parse('${ApiConfig.baseUrl}/auth/change-password'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: json.encode({
+          'old_password': _currentController.text,
+          'new_password': newPass,
+        }),
+      );
 
-    if (!mounted) return;
+      print('📥 Response Status: ${response.statusCode}');
+      print('📥 Response Body: ${response.body}');
 
-    setState(() => _buttonState = ButtonState.success);
-    _animationController.stop();
-    _confettiController.play();
+      if (response.statusCode == 200) {
+        if (!mounted) return;
+        setState(() => _buttonState = ButtonState.success);
+        _animationController.stop();
+        _confettiController.play();
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('✅ Đổi mật khẩu thành công!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        
+        Future.delayed(const Duration(seconds: 2), () {
+          if (mounted) Navigator.of(context).pop();
+        });
+      } else {
+        // Parse error message từ backend
+        String errorMsg = 'Không thể đổi mật khẩu';
+        
+        try {
+          final errorData = json.decode(response.body);
+          errorMsg = errorData['detail'] ?? errorData['message'] ?? errorMsg;
+        } catch (e) {
+          errorMsg = response.body;
+        }
 
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('password_changed'.tr())));
-
-    // close shortly after success so user sees feedback
-    Future.delayed(const Duration(seconds: 2), () { if (mounted) Navigator.of(context).pop(); });
+        throw Exception(errorMsg);
+      }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _buttonState = ButtonState.idle);
+      _animationController.stop();
+      
+      // Hiển thị lỗi chi tiết
+      String displayError = e.toString().replaceFirst('Exception: ', '');
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('❌ $displayError'),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 4),
+        ),
+      );
+      
+      print('❌ Chi tiết lỗi: $e');
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
-
-    // Colors consistent with app theme used elsewhere
     const colorBrown = Color(0xFFA15C20);
 
     return Scaffold(
@@ -79,7 +171,7 @@ class _PasswordChangingScreenState extends State<PasswordChangingScreen> with Si
           children: [
             Center(
               child: SingleChildScrollView(
-                physics: const NeverScrollableScrollPhysics(), // fixed screen as requested
+                physics: const NeverScrollableScrollPhysics(),
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 18.0),
                   child: Column(
@@ -221,7 +313,7 @@ class _PasswordChangingScreenState extends State<PasswordChangingScreen> with Si
 
                               const SizedBox(height: 20),
 
-                              // Animated confirm button (idle -> loading -> success)
+                              // Animated confirm button
                               Center(child: _buildSaveButton()),
                             ],
                           ),

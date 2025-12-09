@@ -75,6 +75,15 @@ class _SecuritySetupScreenState extends State<SecuritySetupScreen> {
     }
   }
 
+  void _onBack() {
+    if (pageController.page! > 0) {
+      pageController.previousPage(duration: const Duration(milliseconds: 300), curve: Curves.ease);
+    } else {
+      // Đối với trang đầu tiên, có thể pop màn hình nếu cần
+      Navigator.of(context).pop();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -83,9 +92,9 @@ class _SecuritySetupScreenState extends State<SecuritySetupScreen> {
         controller: pageController,
         physics: const NeverScrollableScrollPhysics(),
         children: [
-          PinSetupPage(onComplete: _onSafePinComplete),
-          DangerPinSetupPage(onConfirmed: _onDangerPinConfirmed),
-          EmergencyContactMandatoryPage(onComplete: _onFinalComplete),
+          PinSetupPage(onComplete: _onSafePinComplete, onBack: _onBack),
+          DangerPinSetupPage(onConfirmed: _onDangerPinConfirmed, onBack: _onBack),
+          EmergencyContactMandatoryPage(onComplete: _onFinalComplete, onBack: _onBack),
         ],
       ),
     );
@@ -94,7 +103,8 @@ class _SecuritySetupScreenState extends State<SecuritySetupScreen> {
 
 class PinSetupPage extends StatefulWidget {
   final Function(String) onComplete;
-  const PinSetupPage({super.key, required this.onComplete});
+  final VoidCallback onBack;
+  const PinSetupPage({super.key, required this.onComplete, required this.onBack});
 
   @override
   State<PinSetupPage> createState() => _PinSetupPageState();
@@ -150,6 +160,16 @@ class _PinSetupPageState extends State<PinSetupPage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.start,
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.arrow_back, size: 30),
+                  onPressed: widget.onBack,
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
             Text(step == 0 ? "Tạo mã PIN bảo mật" : "Xác nhận mã PIN", style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold, fontFamily: 'WorkSans')),
             const SizedBox(height: 12),
             Text(step == 0 ? "Dùng để mở app bình thường" : "Nhập lại để xác nhận", textAlign: TextAlign.center, style: const TextStyle(fontSize: 16, color: Colors.black54)),
@@ -175,7 +195,8 @@ class _PinSetupPageState extends State<PinSetupPage> {
 
 class DangerPinSetupPage extends StatefulWidget {
   final Function(String) onConfirmed;
-  const DangerPinSetupPage({super.key, required this.onConfirmed});
+  final VoidCallback onBack;
+  const DangerPinSetupPage({super.key, required this.onConfirmed, required this.onBack});
 
   @override
   State<DangerPinSetupPage> createState() => _DangerPinSetupPageState();
@@ -231,6 +252,16 @@ class _DangerPinSetupPageState extends State<DangerPinSetupPage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.start,
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.arrow_back, size: 30),
+                  onPressed: widget.onBack,
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
             const Icon(Icons.emergency, size: 100, color: Colors.red),
             const SizedBox(height: 32),
             Text(step == 0 ? "Tạo mã PIN khẩn cấp" : "Xác nhận mã PIN khẩn cấp", style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold, fontFamily: 'WorkSans')),
@@ -264,7 +295,8 @@ class _DangerPinSetupPageState extends State<DangerPinSetupPage> {
 
 class EmergencyContactMandatoryPage extends StatefulWidget {
   final Function(String) onComplete;
-  const EmergencyContactMandatoryPage({super.key, required this.onComplete});
+  final VoidCallback onBack;
+  const EmergencyContactMandatoryPage({super.key, required this.onComplete, required this.onBack});
 
   @override
   State<EmergencyContactMandatoryPage> createState() => _EmergencyContactMandatoryPageState();
@@ -290,6 +322,16 @@ class _EmergencyContactMandatoryPageState extends State<EmergencyContactMandator
       padding: const EdgeInsets.all(32),
       child: Column(
         children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.start,
+            children: [
+              IconButton(
+                icon: const Icon(Icons.arrow_back, size: 30),
+                onPressed: widget.onBack,
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
           const SizedBox(height: 60),
           const Icon(Icons.email_outlined, size: 90, color: Colors.red),
           const SizedBox(height: 32),
@@ -352,6 +394,16 @@ class SetupSuccessScreen extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.start,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.arrow_back, size: 30),
+                    onPressed: () => Navigator.of(context).pop(),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
               const Icon(Icons.check_circle, size: 120, color: Colors.green),
               const SizedBox(height: 32),
               const Text("Thiết lập thành công!", style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, fontFamily: 'WorkSans')),
