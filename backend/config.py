@@ -11,7 +11,7 @@ class settings(BaseSettings):
     GEMINI_API_KEY: str
     SUPABASE_URL: str
     SUPABASE_KEY: str
-
+    SUPABASE_ANON_KEY: str
     MAIL_USERNAME: str
     MAIL_PASSWORD: str
     MAIL_PORT: int = 587

@@ -7,7 +7,7 @@ from config import settings
 from supabase import create_client, Client
 from typing import Any
 import hashlib
-
+from fastapi import HTTPException
 # Khởi tạo Supabase client
 try:
     supabase: Client = create_client(settings.SUPABASE_URL, settings.SUPABASE_KEY)
@@ -175,40 +175,33 @@ async def sign_out_service(session: Session, user_uuid: str) -> bool:
     except Exception as e:
         print(f"Lỗi Service SignOut: {e}")
         raise e
+async def change_password_service(session: Session, user_uuid: str, old_password: str, new_password: str) -> bool:
 
-async def change_password_service(session: Session, user_uuid: str, old_password: str, new_password: str):
-    temp_client = create_client(settings.SUPABASE_URL, settings.SUPABASE_KEY)
-
+    anon_client: Client = create_client(settings.SUPABASE_URL, settings.SUPABASE_ANON_KEY)
+    admin_client: Client = create_client(settings.SUPABASE_URL, settings.SUPABASE_KEY)
     try:
-        if not supabase:
-            raise Exception("Supabase client lỗi")
-
-        user_data = supabase.auth.admin.get_user_by_id(user_uuid)
+        user_data = admin_client.auth.admin.get_user_by_id(user_uuid)
         if not user_data or not user_data.user:
-            raise Exception("Không tìm thấy thông tin người dùng")
-
+            raise HTTPException(status_code=404, detail="Không tìm thấy thông tin người dùng.")
+        
         user_email = user_data.user.email
-
         try:
-            temp_client.auth.sign_in_with_password({
+            anon_client.auth.sign_in_with_password({
                 "email": user_email,
                 "password": old_password
             })
-        except Exception:
-            raise Exception("Mật khẩu cũ không chính xác")
-
-        supabase.auth.admin.update_user_by_id(user_uuid, {"password": new_password})
-
+        except Exception:       
+            raise HTTPException(status_code=400, detail="Mật khẩu cũ không chính xác.")
+        admin_client.auth.admin.update_user_by_id(user_uuid, {"password": new_password})
         active_sessions = session.exec(
             select(TokenSecurity).where(TokenSecurity.user_id == user_uuid)
         ).all()
-
         for s in active_sessions:
             session.delete(s)
-
         session.commit()
-        print(f"User {user_uuid} đổi mật khẩu thành công. Đã xóa {len(active_sessions)} phiên đăng nhập.")
-
+        return True
+    except HTTPException as he:
+        raise he
     except Exception as e:
-        print(f"Lỗi đổi mật khẩu: {e}")
-        raise e
+        print(f"Lỗi Change Password Service: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Lỗi hệ thống: {str(e)}")
