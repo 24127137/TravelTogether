@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'dart:async';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:intl/intl.dart';
 import '../config/api_config.dart';
@@ -10,6 +11,9 @@ import '../widgets/optimized_list_widget.dart';
 import 'chatbox_screen.dart';
 import '../screens/host_member_screen.dart';
 import '../services/auth_service.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'pin_verify_screen.dart';
+import '../services/security_service.dart';
 
 class NotificationScreen extends StatefulWidget {
   const NotificationScreen({super.key});
@@ -22,8 +26,12 @@ class _NotificationScreenState extends State<NotificationScreen> {
   List<NotificationData> _notifications = [];
   bool _isLoading = true;
 
+  Timer? _securityTimer;
+
   List<Map<String, dynamic>> _groupRequests = [];
   bool _isLoadingRequests = false;
+
+  StreamSubscription? _notificationSubscription;
 
   @override
   void initState() {
@@ -32,6 +40,130 @@ class _NotificationScreenState extends State<NotificationScreen> {
     NotificationService().clearBadge();
     _loadNotifications();
     _loadGroupRequests();
+    _setupRealtimeNotificationListener();
+    _startContinuousSecurityCheck();
+  }
+
+  @override
+  void dispose() {
+    _securityTimer?.cancel();
+    _notificationSubscription?.cancel();
+    super.dispose();
+  }
+
+  void _setupRealtimeNotificationListener() {
+    _notificationSubscription = NotificationService().onMessageReceived.listen((RemoteMessage message) {
+      print("🔔 UI nhận được tin mới: ${message.notification?.title}");
+      
+      if (!mounted) return;
+
+      final newNotif = _parseNotificationFromFCM(message);
+      
+      setState(() {
+        _notifications.insert(0, newNotif);
+      });
+    });
+  }
+
+  void _startContinuousSecurityCheck() {
+    _securityTimer = Timer.periodic(const Duration(seconds: 10), (timer) async {
+      if (!mounted) return;
+      await _checkSecurityOnly();
+    });
+  }
+
+  Future<void> _checkSecurityOnly() async {
+    try {
+      final securityStatus = await SecurityApiService.getSecurityStatus();
+      
+      if (!mounted) return;
+
+      bool needsAlert = false;
+      String title = '';
+      String subtitle = '';
+      
+      if (securityStatus.status == 'danger' || securityStatus.status == 'safe') {
+         return; 
+      } else if (securityStatus.isOverdueStatus || securityStatus.status == 'overdue') {
+         needsAlert = true;
+         title = 'Cảnh báo bảo mật';
+         subtitle = 'Đã quá thời hạn. Vui lòng nhập PIN ngay!';
+         _showSecurityDialog(); 
+      } else if (securityStatus.status == 'waiting') {
+         needsAlert = true;
+         title = 'Yêu cầu xác thực bảo mật';
+         subtitle = 'Đã 24h trôi qua. Chạm để xác nhận an toàn.';
+      }
+
+      setState(() {
+        final existingIndex = _notifications.indexWhere((n) => n.type == NotificationType.security);
+
+        if (needsAlert) {
+          final alertData = NotificationData(
+            icon: 'assets/images/notification_logo.png',
+            title: title,
+            subtitle: subtitle,
+            type: NotificationType.security,
+            time: 'Ngay bây giờ',
+            unreadCount: 1,
+            payloadId: 'security_auto_check',
+          );
+
+          if (existingIndex != -1) {
+            _notifications[existingIndex] = alertData;
+          } else {
+            _notifications.insert(0, alertData);
+          }
+        } else {
+          if (existingIndex != -1) {
+            _notifications.removeAt(existingIndex);
+          }
+        }
+      });
+      
+    } catch (e) {
+      debugPrint("Silent check error: $e");
+    }
+  }
+
+  Future<void> _showSecurityDialog() async {
+    await showPinVerifyDialog(context);
+    await _checkSecurityOnly();
+  }
+
+  NotificationData _parseNotificationFromFCM(RemoteMessage message) {
+    NotificationType type = NotificationType.security;
+    String icon = 'assets/images/notification_logo.png';
+    String? payloadId;
+    
+    final data = message.data;
+    final notif = message.notification;
+
+    String typeStr = data['type'] ?? '';
+    
+    if (typeStr == 'chat' || typeStr == 'MESSAGE') {
+      type = NotificationType.message;
+      icon = 'assets/images/message.jpg';
+      payloadId = data['group_id'];
+    } else if (typeStr == 'group_request') {
+      type = NotificationType.groupRequest;
+      icon = 'assets/images/add_user_icon.jpg';
+      payloadId = data['group_id'];
+    } else if (typeStr == 'SECURITY_ALERT' || typeStr == 'security') {
+      type = NotificationType.security;
+      icon = 'assets/images/notification_logo.png';
+      payloadId = data['user_id'];
+    }
+
+    return NotificationData(
+      icon: icon,
+      title: notif?.title ?? 'Thông báo mới',
+      subtitle: notif?.body ?? '',
+      type: type,
+      time: 'Vừa xong', 
+      unreadCount: 1, 
+      payloadId: payloadId,
+    );
   }
 
   Future<void> _handleRefresh() async {
@@ -154,7 +286,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
         // Chuyển trang
         Navigator.push(
           context,
-          MaterialPageRoute(
+          MaterialPageRoute( 
             builder: (context) => MemberScreenHost(
               groupId: groupId,
               groupName: data['name'] ?? 'Nhóm',
@@ -310,171 +442,162 @@ class _NotificationScreenState extends State<NotificationScreen> {
   Future<void> _loadNotifications() async {
     setState(() => _isLoading = true);
 
-    final prefs = await SharedPreferences.getInstance();
-    final currentUserId = prefs.getString('user_id');
-    final accessToken = await AuthService.getValidAccessToken();
-
-    if (accessToken == null) {
-      setState(() => _isLoading = false);
-      return;
-    }
-
-    List<NotificationData> finalNotifications = [];
-
-    // Biến lưu danh sách nhóm đã tham gia (Dùng để check Chat & check Từ chối)
-    List<dynamic> myJoinedGroups = [];
-
-    // --- BƯỚC A: LẤY DANH SÁCH NHÓM CỦA TÔI (/groups/mine) ---
-    // Mục đích: Check Chat, Check Bị Kick/Giải tán, Lấy dữ liệu để đối chiếu đơn từ chối
     try {
-      final groupsResponse = await http.get(
-        ApiConfig.getUri(ApiConfig.myGroup),
-        headers: {"Authorization": "Bearer $accessToken"},
-      );
+      final prefs = await SharedPreferences.getInstance();
+      final currentUserId = prefs.getString('user_id');
+      final accessToken = await AuthService.getValidAccessToken();
 
-      if (groupsResponse.statusCode == 200) {
-        myJoinedGroups = jsonDecode(utf8.decode(groupsResponse.bodyBytes));
+      if (accessToken == null) {
+        setState(() => _isLoading = false);
+        return;
+      }
 
-        // 1. Logic Check Bị Kick / Giải tán (So sánh với Cache cũ)
-        final disbandedNotifs = await _checkDisbandedGroups(myJoinedGroups, prefs);
-        finalNotifications.addAll(disbandedNotifs);
+      List<NotificationData> finalNotifications = [];
+      List<dynamic> myJoinedGroups = [];
 
-        // 2. Logic Check Chat (Vòng lặp)
-        for (var group in myJoinedGroups) {
-          final String groupId = (group['id'] ?? group['group_id']).toString();
-          final String groupName = group['name']?.toString() ?? 'Nhóm chat';
+      try {
+        final groupsResponse = await http.get(
+          ApiConfig.getUri(ApiConfig.myGroup),
+          headers: {"Authorization": "Bearer $accessToken"},
+        );
 
-          // Cache lại thông tin nhóm
-          await prefs.setString('cached_group_id', groupId);
-          await prefs.setString('cached_group_name', groupName);
+        if (groupsResponse.statusCode == 200) {
+          myJoinedGroups = jsonDecode(utf8.decode(groupsResponse.bodyBytes));
 
-          try {
-            final historyResponse = await http.get(
-              Uri.parse('${ApiConfig.baseUrl}/chat/$groupId/history'),
-              headers: {"Authorization": "Bearer $accessToken"},
-            );
+          // Check Bị Kick / Giải tán
+          final disbandedNotifs = await _checkDisbandedGroups(myJoinedGroups, prefs);
+          finalNotifications.addAll(disbandedNotifs);
 
-            if (historyResponse.statusCode == 200) {
-              final List<dynamic> messages = jsonDecode(utf8.decode(historyResponse.bodyBytes));
-              final lastSeenId = prefs.getString('last_seen_message_id_$groupId');
+          // Check Chat (Vòng lặp)
+          for (var group in myJoinedGroups) {
+            final String groupId = (group['id'] ?? group['group_id']).toString();
+            final String groupName = group['name']?.toString() ?? 'Nhóm chat';
 
-              int lastSeenIndex = -1;
-              if (lastSeenId != null) {
-                for (int i = 0; i < messages.length; i++) {
-                  if (messages[i]['id'].toString() == lastSeenId) {
-                    lastSeenIndex = i;
-                    break;
+            await prefs.setString('cached_group_id', groupId);
+            await prefs.setString('cached_group_name', groupName);
+
+            try {
+              final historyResponse = await http.get(
+                Uri.parse('${ApiConfig.baseUrl}/chat/$groupId/history'),
+                headers: {"Authorization": "Bearer $accessToken"},
+              );
+
+              if (historyResponse.statusCode == 200) {
+                final List<dynamic> messages = jsonDecode(utf8.decode(historyResponse.bodyBytes));
+                final lastSeenId = prefs.getString('last_seen_message_id_$groupId');
+
+                int lastSeenIndex = -1;
+                if (lastSeenId != null) {
+                  for (int i = 0; i < messages.length; i++) {
+                    if (messages[i]['id'].toString() == lastSeenId) {
+                      lastSeenIndex = i;
+                      break;
+                    }
                   }
                 }
+
+                int unreadCount = 0;
+                String? lastMessageTime;
+
+                for (int i = lastSeenIndex + 1; i < messages.length; i++) {
+                  final msg = messages[i];
+                  final senderId = msg['sender_id']?.toString();
+                  if (senderId == currentUserId) continue;
+
+                  unreadCount++;
+                  final time = DateTime.parse(msg['created_at']).toLocal();
+                  lastMessageTime = _formatTime(time);
+                }
+
+                if (unreadCount > 0) {
+                  finalNotifications.add(NotificationData(
+                    icon: 'assets/images/message.jpg',
+                    title: groupName,
+                    subtitle: unreadCount > 1 ? ' • $unreadCount tin nhắn mới' : ' • 1 tin nhắn mới',
+                    type: NotificationType.message,
+                    time: lastMessageTime,
+                    unreadCount: unreadCount,
+                    payloadId: groupId,
+                  ));
+                }
               }
-
-              int unreadCount = 0;
-              String? lastMessageTime;
-
-              for (int i = lastSeenIndex + 1; i < messages.length; i++) {
-                final msg = messages[i];
-                final senderId = msg['sender_id']?.toString();
-                if (senderId == currentUserId) continue;
-
-                unreadCount++;
-                final time = DateTime.parse(msg['created_at']).toLocal();
-                lastMessageTime = _formatTime(time);
-              }
-
-              if (unreadCount > 0) {
-                finalNotifications.add(NotificationData(
-                  icon: 'assets/images/message.jpg',
-                  title: groupName,
-                  subtitle: unreadCount > 1 ? ' • $unreadCount tin nhắn mới' : ' • 1 tin nhắn mới',
-                  type: NotificationType.message,
-                  time: lastMessageTime,
-                  unreadCount: unreadCount,
-                  payloadId: groupId,
-                ));
-              }
+            } catch (e) {
+              print('Lỗi chat group $groupId: $e');
             }
-          } catch (e) {
-            print('Lỗi chat group $groupId: $e');
           }
         }
+      } catch (e) {
+        print('Lỗi phần Groups: $e');
       }
-    } catch (e) {
-      print('Lỗi phần Groups: $e');
-    }
 
-    // --- BƯỚC B: LẤY PROFILE CỦA TÔI (/users/me) ---
-    // Mục đích: Host check đơn xin vào (owned_groups), Member check đơn bị từ chối (pending_requests)
-    try {
-      final profileUrl = Uri.parse('${ApiConfig.baseUrl}/users/me');
-      final profileResponse = await http.get(
-        profileUrl,
-        headers: {"Authorization": "Bearer $accessToken"},
-      );
+      try {
+        final profileUrl = Uri.parse('${ApiConfig.baseUrl}/users/me');
+        final profileResponse = await http.get(
+          profileUrl,
+          headers: {"Authorization": "Bearer $accessToken"},
+        );
 
-      if (profileResponse.statusCode == 200) {
-        final profileData = jsonDecode(utf8.decode(profileResponse.bodyBytes));
+        if (profileResponse.statusCode == 200) {
+          final profileData = jsonDecode(utf8.decode(profileResponse.bodyBytes));
 
-        // 3. Logic Host check Request (Dựa trên owned_groups)
-        final List<dynamic> ownedGroups = profileData['owned_groups'] ?? [];
+          // Check Request (Host)
+          final List<dynamic> ownedGroups = profileData['owned_groups'] ?? [];
+          for (var group in ownedGroups) {
+            final groupId = group['group_id'] ?? group['id'];
+            final groupName = group['name'] ?? 'Nhóm của tôi';
 
-        for (var group in ownedGroups) {
-          final groupId = group['group_id'] ?? group['id'];
-          final groupName = group['name'] ?? 'Nhóm của tôi';
+            if (groupId != null) {
+              final requestUrl = Uri.parse('${ApiConfig.baseUrl}/groups/$groupId/requests');
+              final requestResponse = await http.get(
+                requestUrl,
+                headers: {"Authorization": "Bearer $accessToken"},
+              );
 
-          if (groupId != null) {
-            final requestUrl = Uri.parse('${ApiConfig.baseUrl}/groups/$groupId/requests');
-            final requestResponse = await http.get(
-              requestUrl,
-              headers: {"Authorization": "Bearer $accessToken"},
-            );
+              if (requestResponse.statusCode == 200) {
+                final List<dynamic> requests = jsonDecode(utf8.decode(requestResponse.bodyBytes));
 
-            if (requestResponse.statusCode == 200) {
-              final List<dynamic> requests = jsonDecode(utf8.decode(requestResponse.bodyBytes));
-
-              if (requests.isNotEmpty) {
-                finalNotifications.add(NotificationData(
-                  icon: 'assets/images/add_user_icon.jpg',
-                  title: 'join_group'.tr(),
-                  subtitle: '${'group_members'.tr()}: ${requests.length} ${'send_request'.tr()} "$groupName"',
-                  type: NotificationType.groupRequest,
-                  time: 'just_now'.tr(),
-                  unreadCount: requests.length,
-                  payloadId: groupId.toString(),
-                ));
+                if (requests.isNotEmpty) {
+                  finalNotifications.add(NotificationData(
+                    icon: 'assets/images/add_user_icon.jpg',
+                    title: 'join_group'.tr(),
+                    subtitle: '${'group_members'.tr()}: ${requests.length} ${'send_request'.tr()} "$groupName"',
+                    type: NotificationType.groupRequest,
+                    time: 'just_now'.tr(),
+                    unreadCount: requests.length,
+                    payloadId: groupId.toString(),
+                  ));
+                }
               }
             }
           }
-        }
 
-        // 4. Logic Check Đơn bị Từ chối (Rejected)
-        // Check pending_requests xem có cái nào biến mất mà không nằm trong myJoinedGroups
-        final List<dynamic> myPendingRequests = profileData['pending_requests'] ?? [];
-
-        final rejectedNotifs = await _checkRejectedRequests(
+          // Check Đơn bị Từ chối (Member)
+          final List<dynamic> myPendingRequests = profileData['pending_requests'] ?? [];
+          final rejectedNotifs = await _checkRejectedRequests(
             myPendingRequests,
             myJoinedGroups,
             prefs
-        );
-        finalNotifications.addAll(rejectedNotifs);
+          );
+          finalNotifications.addAll(rejectedNotifs);
+        }
+      } catch (e) {
+        print('Lỗi phần Profile: $e');
       }
+
+      if (mounted) {
+        setState(() {
+          _notifications = finalNotifications;
+          _isLoading = false;
+        });
+
+        // Cập nhật badge
+        final unreadCount = _notifications.where((n) => (n.unreadCount ?? 0) > 0).length;
+        NotificationService().updateBadge(unreadCount);
+      }
+
     } catch (e) {
-      print('Lỗi phần Profile: $e');
-    }
-
-    if (mounted) {
-      setState(() {
-        _notifications = finalNotifications;
-        _isLoading = false;
-      });
-
-      // === THÊM MỚI: Cập nhật badge dựa trên số thông báo ===
-      // Lưu ý: Không clear badge ở đây vì initState đã clear rồi
-      // Chỉ cập nhật để các màn hình khác biết có thông báo hay không
-      if (finalNotifications.isNotEmpty) {
-        // Nếu đang ở màn hình notification thì không cần hiện badge
-        // Nhưng cần lưu lại state để khi chuyển sang tab khác thì badge sẽ hiện
-        // Logic này được xử lý trong custom_bottom_nav_bar.dart
-      }
+      debugPrint('Error loading notifications: $e');
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -564,7 +687,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
                         type: notif.type,
                         time: notif.time,
                         unreadCount: notif.unreadCount,
-                        onTap: () {
+                        onTap: () async{
                           // Xử lý theo loại thông báo
                           switch (notif.type) {
                             case NotificationType.groupRequest:
@@ -572,6 +695,10 @@ class _NotificationScreenState extends State<NotificationScreen> {
                               break;
                             case NotificationType.message:
                               _handleMessageTap(notif);
+                              break;
+                            case NotificationType.security:
+                              await showPinVerifyDialog(context);
+                              _handleRefresh(); 
                               break;
                             default:
                               setState(() {

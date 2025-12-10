@@ -6,6 +6,8 @@ import 'package:timezone/data/latest_all.dart' as tz;
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:async';
+import 'package:firebase_messaging/firebase_messaging.dart';
 
 import '../main.dart' show navigatorKey;
 import '../screens/chatbox_screen.dart';
@@ -20,11 +22,16 @@ import 'auth_service.dart';
 class NotificationService {
   static final NotificationService _instance = NotificationService._internal();
   final ValueNotifier<bool> showBadgeNotifier = ValueNotifier(false);
+  
   factory NotificationService() => _instance;
+  
   NotificationService._internal();
 
   final FlutterLocalNotificationsPlugin _notifications = FlutterLocalNotificationsPlugin();
   bool _initialized = false;
+
+  final _onMessageStreamController = StreamController<RemoteMessage>.broadcast();
+  Stream<RemoteMessage> get onMessageReceived => _onMessageStreamController.stream;
 
   // === THÊM MỚI: Hàm xóa chấm đỏ (gọi khi user vào màn hình thông báo) ===
   void clearBadge() {
@@ -39,6 +46,10 @@ class NotificationService {
   // === THÊM MỚI: Cập nhật badge dựa trên số lượng notifications ===
   void updateBadge(int notificationCount) {
     showBadgeNotifier.value = notificationCount > 0;
+  }
+
+  void dispose() {
+    _onMessageStreamController.close();
   }
 
   /// Khởi tạo notification service
@@ -64,13 +75,34 @@ class NotificationService {
       iOS: iosSettings,
     );
 
-    // Initialize
+    // Initialize Local Notifications
     await _notifications.initialize(
       initSettings,
       onDidReceiveNotificationResponse: _onNotificationTapped,
     );
 
-    // === THÊM MỚI: Tạo notification channel với độ ưu tiên cao cho Android ===
+    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+      debugPrint("🔔 FCM received in foreground: ${message.notification?.title}");
+      
+      // 1. Bắn data vào stream để UI (NotificationScreen) cập nhật ngay lập tức
+      _onMessageStreamController.add(message);
+      
+      // 2. Bật chấm đỏ
+      showBadge();
+
+      // 3. Hiện thông báo pop-up (Local Notification)
+      // Chỉ hiện nếu có title/body, tránh hiện notification rỗng
+      if (message.notification != null) {
+        showNotification(
+          id: message.hashCode, // Dùng hashcode làm ID tạm
+          title: message.notification!.title ?? 'Thông báo mới',
+          body: message.notification!.body ?? '',
+          payload: jsonEncode(message.data), // Quan trọng: Truyền data payload để navigate
+        );
+      }
+    });
+
+    // === Tạo notification channel với độ ưu tiên cao cho Android ===
     if (defaultTargetPlatform == TargetPlatform.android) {
       final androidPlugin = _notifications.resolvePlatformSpecificImplementation<
           AndroidFlutterLocalNotificationsPlugin>();
@@ -108,11 +140,6 @@ class NotificationService {
 
     _initialized = true;
     debugPrint('✅ NotificationService initialized');
-
-    // === LUU Ý: KHÔNG tự động request permission ở đây ===
-    // Thay vào đó, app sẽ hiển thị NotificationPermissionDialog (custom UI)
-    // để giải thích tại sao cần permission trước khi gọi requestPermission()
-    // Xem: widgets/notification_permission_dialog.dart
   }
 
   /// Xử lý khi user tap vào notification

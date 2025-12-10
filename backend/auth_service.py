@@ -7,7 +7,7 @@ from config import settings
 from supabase import create_client, Client
 from typing import Any
 import hashlib
-
+from fastapi import HTTPException
 # Khởi tạo Supabase client
 try:
     supabase: Client = create_client(settings.SUPABASE_URL, settings.SUPABASE_KEY)
@@ -113,7 +113,8 @@ async def save_active_session(
     user_id: str, 
     access_token: str, 
     ip: str, 
-    user_agent: str
+    user_agent: str,
+    device_token: str = None
 ):
     """
     Lưu hoặc Cập nhật token đang hoạt động vào bảng TokenSecurity.
@@ -133,6 +134,7 @@ async def save_active_session(
             existing.ip_address = ip
             existing.user_agent = user_agent
             existing.created_at = datetime.now()
+            existing.device_token = device_token
             session.add(existing)
         else:
             # Insert mới
@@ -140,7 +142,8 @@ async def save_active_session(
                 user_id=user_id,
                 token_signature=token_hash,
                 ip_address=ip,
-                user_agent=user_agent
+                user_agent=user_agent,
+                device_token=device_token
             )
             session.add(new_sec)
             
@@ -172,3 +175,33 @@ async def sign_out_service(session: Session, user_uuid: str) -> bool:
     except Exception as e:
         print(f"Lỗi Service SignOut: {e}")
         raise e
+async def change_password_service(session: Session, user_uuid: str, old_password: str, new_password: str) -> bool:
+
+    anon_client: Client = create_client(settings.SUPABASE_URL, settings.SUPABASE_ANON_KEY)
+    admin_client: Client = create_client(settings.SUPABASE_URL, settings.SUPABASE_KEY)
+    try:
+        user_data = admin_client.auth.admin.get_user_by_id(user_uuid)
+        if not user_data or not user_data.user:
+            raise HTTPException(status_code=404, detail="Không tìm thấy thông tin người dùng.")
+        
+        user_email = user_data.user.email
+        try:
+            anon_client.auth.sign_in_with_password({
+                "email": user_email,
+                "password": old_password
+            })
+        except Exception:       
+            raise HTTPException(status_code=400, detail="Mật khẩu cũ không chính xác.")
+        admin_client.auth.admin.update_user_by_id(user_uuid, {"password": new_password})
+        active_sessions = session.exec(
+            select(TokenSecurity).where(TokenSecurity.user_id == user_uuid)
+        ).all()
+        for s in active_sessions:
+            session.delete(s)
+        session.commit()
+        return True
+    except HTTPException as he:
+        raise he
+    except Exception as e:
+        print(f"Lỗi Change Password Service: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Lỗi hệ thống: {str(e)}")

@@ -39,6 +39,7 @@ class ProfileCreate(BaseModel):
 class SignInInput(BaseModel):
     email: EmailStr
     password: str
+    device_token: Optional[str] = None
 
 class UserInfo(BaseModel):
     id: str 
@@ -72,3 +73,7 @@ class RefreshResponse(BaseModel):
 # ====================================================================
 class SignOutResponse(BaseModel):
     message: str
+
+class ChangePasswordInput(BaseModel):
+    old_password: str = Field(..., min_length=6, description="Mật khẩu hiện tại")
+    new_password: str = Field(..., min_length=6, description="Mật khẩu mới")

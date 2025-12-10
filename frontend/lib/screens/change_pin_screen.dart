@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../services/security_service.dart';
 import '../widgets/pin_grid.dart';
+import '../services/auth_service.dart';
+import 'main_app_screen.dart';
 
 class ChangePinScreen extends StatefulWidget {
   const ChangePinScreen({super.key});
@@ -135,7 +137,7 @@ class _NewPinForChangeState extends State<NewPinForChange> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF5EFE6),
-      appBar: AppBar(title: const Text("Mã PIN mới"), backgroundColor: const Color(0xFFF5EFE6), elevation: 0),
+      appBar: AppBar(title: const Text("Mã PIN mới"), backgroundColor: const Color(0xFFF5EFE6), elevation: 0, centerTitle: true,),
       body: Padding(
         padding: const EdgeInsets.all(24),
         child: Column(
@@ -211,7 +213,7 @@ class _ConfirmNewPinPageState extends State<ConfirmNewPinPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF5EFE6),
-      appBar: AppBar(title: const Text("Xác nhận mã PIN mới"), backgroundColor: const Color(0xFFF5EFE6), elevation: 0),
+      appBar: AppBar(title: const Text("Xác nhận mã PIN mới"), backgroundColor: const Color(0xFFF5EFE6), elevation: 0, centerTitle: true,),
       body: Padding(
         padding: const EdgeInsets.all(24),
         child: Column(
@@ -278,8 +280,12 @@ class SuccessPage extends StatelessWidget {
                       borderRadius: BorderRadius.circular(30),
                     ),
                   ),
-                  onPressed: () {
-                    Navigator.of(context).popUntil((route) => route.isFirst);
+                  onPressed: () async {
+                    final token = await AuthService.getValidAccessToken();
+                    Navigator.of(context).pushAndRemoveUntil(
+                      MaterialPageRoute(builder: (_) => MainAppScreen(accessToken: token!)),
+                      (route) => false,
+                    );
                   },
                   child: const Text(
                     "Hoàn tất",
