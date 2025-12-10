@@ -45,7 +45,7 @@ class EmailService:
                 <p>Xin chào,</p>
                 <p>Hệ thống phát hiện người dùng <b>{user_name}</b> đã không xác nhận an toàn trong hơn 36 giờ.</p>
                 <p>Trạng thái hiện tại: <b style="color: red;">OVERDUE (QUÁ HẠN)</b></p>
-                <p>Vị trí cuối cùng đã được lưu vào hệ thống. Vui lòng thử liên lạc với người dùng ngay lập tức.</p>
+                <p>Vui lòng thử liên lạc với người dùng ngay lập tức.</p>
                 {location_html}
                 <hr>
                 <small>Đây là email tự động, vui lòng không trả lời.</small>
