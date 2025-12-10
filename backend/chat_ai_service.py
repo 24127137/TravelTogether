@@ -1,12 +1,12 @@
 import logging
 from typing import List, Optional
-from sqlmodel import Session, select
+from sqlmodel import Session, select, col, text, func
 from sqlalchemy import desc
-from datetime import datetime, timezone
+from datetime import datetime, timezone, date
 
 # Import Model và Config
 from chat_ai_model import gemini_client
-from db_tables import AIMessages # Đảm bảo file chứa class AIMessages tên là db_tables.py hoặc sửa lại cho đúng
+from db_tables import AIMessages, Profiles, TravelGroup # Đảm bảo file chứa class AIMessages tên là db_tables.py hoặc sửa lại cho đúng
 
 class ChatService:
     
@@ -87,17 +87,93 @@ class ChatService:
 
     def _build_context_prompt(self, history: List[AIMessages], new_question: str) -> str:
         """
-        Tạo prompt chứa lịch sử chat để Gemini hiểu ngữ cảnh.
-        Format:
-        User: ...
-        Model: ...
-        User: [Câu hỏi mới]
+        Tạo prompt chứa lịch sử chat và context nhóm du lịch.
+        Xử lý logic hỏi lại nếu user thuộc nhiều nhóm mà yêu cầu chung chung.
         """
+        # 1. Lấy User Profile
+        user_id = history[0].user_id if history else None
+        user_profile = None
+        if user_id:
+            user_profile = self.db.exec(select(Profiles).where(Profiles.auth_user_id == user_id)).first()
+
+        name = (user_profile.fullname if user_profile and getattr(user_profile, 'fullname', None) else "Bạn")
+        interests = ", ".join(getattr(user_profile, 'interests', []) or [])
+        city = getattr(user_profile, 'preferred_city', None) or "Chưa rõ"
+
+        # 2. Lấy Travel Groups (Current & Upcoming)
+        today = date.today()
+        
+        # Base query: Lấy các nhóm user tham gia
+        base_query = select(TravelGroup).where(
+            TravelGroup.members.contains([{"user_id": user_id}])
+        )
+
+        # Nhóm hiện tại: Start <= Today < End
+        current_groups = self.db.exec(base_query.where(
+            func.lower(TravelGroup.travel_dates) <= today,
+            func.upper(TravelGroup.travel_dates) > today
+        )).all()
+
+        # Nhóm sắp tới: Start > Today
+        upcoming_groups = self.db.exec(base_query.where(
+            func.lower(TravelGroup.travel_dates) > today
+        )).all()
+
+        # 3. Format dữ liệu để đưa vào Prompt
+        # Lưu ý: SQLModel object trả về daterange dưới dạng property .lower và .upper
+        def format_group_list(groups):
+            if not groups:
+                return "Không có"
+            # Format: "- Tên nhóm (Ngày đi - Ngày về)"
+            return "\n".join([
+                f"- {g.name} ({g.travel_dates.lower} đến {g.travel_dates.upper})" 
+                for g in groups
+            ])
+
+        current_summary = format_group_list(current_groups)
+        upcoming_summary = format_group_list(upcoming_groups)
+        
+        # Đếm tổng số nhóm active để quyết định logic prompt
+        total_active_groups = len(current_groups) + len(upcoming_groups)
+
+        # 4. Xây dựng Prompt
+        # Kỹ thuật: Dynamic Prompting - Chỉ chèn chỉ thị "Hỏi lại" nếu tổng nhóm > 1
+        ambiguity_instruction = ""
+        if total_active_groups > 1:
+            ambiguity_instruction = f"""
+            ⚠️ **XỬ LÝ QUAN TRỌNG (ĐA NHÓM):**
+            User đang tham gia tổng cộng {total_active_groups} nhóm (đã liệt kê ở trên).
+            NẾU câu hỏi mới yêu cầu: "lên kế hoạch", "tạo lịch trình", "đi đâu chơi", "ăn gì"...
+            MÀ không nói rõ tên nhóm cụ thể.
+            -> BẠN KHÔNG ĐƯỢC TỰ Ý ĐOÁN.
+            -> HÃY HỎI LẠI: "Bạn muốn mình hỗ trợ cho chuyến đi nào: [Tên nhóm A] hay [Tên nhóm B]?"
+            """
+
         prompt_parts = [
-            "Bạn là trợ lý AI hữu ích. Hãy trả lời dựa trên lịch sử cuộc trò chuyện sau đây (nếu có):",
-            "--- Bắt đầu lịch sử ---"
+            f"""
+            [VAI TRÒ]
+            Bạn là "Travel Buddy", trợ lý du lịch ảo thân thiện, hài hước.
+
+            [THÔNG TIN USER]
+            - Tên: {name}
+            - Sở thích: {interests}
+            - Quan tâm: {city}
+            
+            [TÌNH TRẠNG DU LỊCH]
+            - Đang đi (Current): 
+            {current_summary}
+            - Sắp đi (Upcoming): 
+            {upcoming_summary}
+
+            [NGUYÊN TẮC TRẢ LỜI]
+            1. Giọng điệu: Vui vẻ, emoji 🌴✈️, xưng "mình" - gọi tên "{name}".
+            2. Ngắn gọn: Dưới 150 từ.
+            3. Luôn gợi mở bằng câu hỏi cuối cùng.
+            {ambiguity_instruction}
+            """
         ]
 
+        # 5. Append History
         for msg in history:
             role_label = "User" if msg.role == "user" else "Model"
             content = msg.content if msg.content else "[Hình ảnh]"
