@@ -50,6 +50,7 @@ async def create_feedback(
 @router.get("/", response_model=Any)
 async def list_feedbacks(
     rev_id: Optional[int] = Query(None, description="Filter by receiver profile ID"),
+    receiver_uuid: Optional[str] = Query(None, description="Filter by receiver UUID (Thay thế cho rev_id)"),
     send_id: Optional[int] = Query(None, description="Filter by sender profile ID"),
     group_id: Optional[int] = Query(None, description="Filter by group ID"),
     q: Optional[str] = Query(None, description="Search in content tags"),
@@ -79,7 +80,8 @@ async def list_feedbacks(
     try:
         res = await feedback_service.list_feedbacks_service(
             session, 
-            rev_id=rev_id, 
+            rev_id=rev_id,
+            receiver_uuid=receiver_uuid,
             send_id=send_id, 
             group_id=group_id,
             q=q, 

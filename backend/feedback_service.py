@@ -133,6 +133,7 @@ async def create_feedback_service(session: Session, sender_auth_uuid: str, paylo
 async def list_feedbacks_service(
     session: Session,
     rev_id: Optional[int] = None,
+    receiver_uuid: Optional[str] = None,
     send_id: Optional[int] = None,
     group_id: Optional[int] = None,  # ✅ NEW: Added group_id filter
     q: Optional[str] = None,
@@ -140,6 +141,15 @@ async def list_feedbacks_service(
     order: Optional[str] = "desc"
 ) -> dict:
     try:
+        # Nếu truyền UUID, tự động tìm ID số tương ứng
+        if receiver_uuid:
+            profile = session.exec(select(Profiles).where(Profiles.auth_user_id == receiver_uuid)).first()
+            if profile:
+                rev_id = profile.id # Gán ID tìm được vào biến rev_id để dùng ở dưới
+            else:
+                # Nếu UUID không tồn tại, trả về rỗng ngay
+                return {"meta": {"total": 0, "average_rating": 0.0}, "data": []}
+        # ===========================
         stmt = select(Feedbacks)
         if rev_id:
             stmt = stmt.where(Feedbacks.rev_id == rev_id)

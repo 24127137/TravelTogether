@@ -178,13 +178,20 @@ class _MemberScreenHostState extends State<MemberScreenHost> with WidgetsBinding
     await Future.wait(futures);
   }
 
+  // Thay thế hàm _fetchSingleUserReputation cũ bằng hàm này
   Future<void> _fetchSingleUserReputation(int index) async {
+    // Kiểm tra index hợp lệ để tránh lỗi RangeError
+    if (index >= _pendingRequests.length) return;
+
     final request = _pendingRequests[index];
 
     try {
+      print('🔍 Đang lấy reputation cho: ${request.name} (${request.id})');
       final reputationData = await _feedbackService.getUserReputation(_accessToken!, request.id);
 
       if (reputationData != null && mounted) {
+        print('✅ Đã lấy được reputation: ${reputationData.averageRating} sao, ${reputationData.groups.length} nhóm');
+
         // Tính top 3 tags từ tất cả feedbacks
         Map<String, int> tagCount = {};
 
@@ -203,20 +210,25 @@ class _MemberScreenHostState extends State<MemberScreenHost> with WidgetsBinding
         List<String> top3Tags = sortedTags.take(3).map((e) => e.key).toList();
 
         setState(() {
-          _pendingRequests[index] = PendingRequest(
-            id: request.id,
-            name: request.name,
-            email: request.email,
-            avatarUrl: request.avatarUrl,
-            requestedAt: request.requestedAt,
-            rating: reputationData.averageRating,
-            topTags: top3Tags,
-          );
-          _updateFilteredLists();
+          // Kiểm tra lại index một lần nữa trước khi update
+          if (index < _pendingRequests.length) {
+            _pendingRequests[index] = PendingRequest(
+              id: request.id,
+              name: request.name,
+              email: request.email,
+              avatarUrl: request.avatarUrl,
+              requestedAt: request.requestedAt,
+              rating: reputationData.averageRating, // Update rating
+              topTags: top3Tags, // Update tags
+            );
+            _updateFilteredLists();
+          }
         });
+      } else {
+        print('⚠️ Reputation data trả về NULL cho user: ${request.name}');
       }
     } catch (e) {
-      print('Error fetching reputation for ${request.id}: $e');
+      print('❌ Lỗi khi lấy reputation cho ${request.id}: $e');
     }
   }
 
