@@ -4,7 +4,7 @@ class ApiConfig {
   // Base URL for the API
   // static const String baseUrl = 'https://ddl23gmg-8000.asse.devtunnels.ms';
   // static const String baseUrl = 'http://172.25.19.7:8000';
-  static const String baseUrl = 'http://192.168.1.8:8000'; // emulator local
+  static const String baseUrl = 'http://192.168.1.7:8000'; // emulator local
 
   static const String supabaseUrl = 'https://meuqntvawakdzntewscp.supabase.co';
   static const String supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1ldXFudHZhd2FrZHpudGV3c2NwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE2MzUxOTEsImV4cCI6MjA3NzIxMTE5MX0.w0wtRkKTelo9iHQfLtJ61H5xLCUu2VVMKr8BV4Ljcgw';
@@ -21,13 +21,13 @@ class ApiConfig {
   // Chat endpoints
   static const String chatHistory = '$baseUrl/chat/history';
   // static const String chatWebSocket = 'ws://172.25.19.7:8000/chat/ws'; // Websocket endpoint
-  static const String chatWebSocket = 'ws://192.168.1.8:8000/chat/ws'; // emulator local
+  static const String chatWebSocket = 'ws://192.168.1.7:8000/chat/ws'; // emulator local
 
   // Helper method to get chat history URL with group_id
   static String chatHistoryByGroup(String groupId) => '$baseUrl/chat/$groupId/history';
   
   // Helper method to get WebSocket URL with group_id
-  static String chatWebSocketByGroup(String groupId) => 'ws://192.168.1.8:8000/chat/$groupId';
+  static String chatWebSocketByGroup(String groupId) => 'ws://192.168.1.7:8000/chat/$groupId';
 
   // Group endpoints
   static const String myGroup = '$baseUrl/groups/mine';
