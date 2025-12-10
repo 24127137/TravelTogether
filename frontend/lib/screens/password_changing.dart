@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../config/api_config.dart';
 import '../services/auth_service.dart';
+import 'login.dart';
 
 class PasswordChangingScreen extends StatefulWidget {
   const PasswordChangingScreen({Key? key}) : super(key: key);
@@ -74,15 +75,17 @@ class _PasswordChangingScreenState extends State<PasswordChangingScreen> with Si
     if (!(_formKey.currentState?.validate() ?? false)) return;
 
     final newPass = _newController.text;
+    final currentPass = _currentController.text;
+
+    if (currentPass == newPass) {
+      await _showErrorDialog('Mật khẩu mới không được trùng với mật khẩu hiện tại!');
+      return;
+    }
+
     final strength = _calculatePasswordStrength(newPass);
 
     if (strength < 0.5) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Mật khẩu mới quá yếu! Gợi ý: Thêm độ dài, chữ hoa, hoặc ký tự đặc biệt.'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      await _showErrorDialog('Mật khẩu mới quá yếu!\nGợi ý: Thêm độ dài, chữ hoa, hoặc ký tự đặc biệt.');
       return;
     }
 
@@ -93,7 +96,6 @@ class _PasswordChangingScreenState extends State<PasswordChangingScreen> with Si
       final token = await AuthService.getValidAccessToken();
       
       print('🔐 Đang gọi API change-password...');
-      print('📍 URL: ${ApiConfig.baseUrl}/auth/change-password');
       
       final response = await http.post(
         Uri.parse('${ApiConfig.baseUrl}/auth/change-password'),
@@ -108,30 +110,36 @@ class _PasswordChangingScreenState extends State<PasswordChangingScreen> with Si
       );
 
       print('📥 Response Status: ${response.statusCode}');
-      print('📥 Response Body: ${response.body}');
 
       if (response.statusCode == 200) {
         if (!mounted) return;
+        
         setState(() => _buttonState = ButtonState.success);
         _animationController.stop();
         _confettiController.play();
         
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('✅ Đổi mật khẩu thành công!'),
+          const SnackBar(
+            content: Text('✅ Đổi mật khẩu thành công! Vui lòng đăng nhập lại.'),
             backgroundColor: Colors.green,
           ),
         );
         
-        Future.delayed(const Duration(seconds: 2), () {
-          if (mounted) Navigator.of(context).pop();
-        });
+        await Future.delayed(const Duration(seconds: 2));
+        
+        if (!mounted) return;
+
+        await AuthService.clearTokens(); 
+
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (context) => const LoginScreen()),
+          (Route<dynamic> route) => false, 
+        );
       } else {
-        // Parse error message từ backend
         String errorMsg = 'Không thể đổi mật khẩu';
         
         try {
-          final errorData = json.decode(response.body);
+          final errorData = json.decode(utf8.decode(response.bodyBytes));
           errorMsg = errorData['detail'] ?? errorData['message'] ?? errorMsg;
         } catch (e) {
           errorMsg = response.body;
@@ -144,19 +152,89 @@ class _PasswordChangingScreenState extends State<PasswordChangingScreen> with Si
       setState(() => _buttonState = ButtonState.idle);
       _animationController.stop();
       
-      // Hiển thị lỗi chi tiết
-      String displayError = e.toString().replaceFirst('Exception: ', '');
-      
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('❌ $displayError'),
-          backgroundColor: Colors.red,
-          duration: const Duration(seconds: 4),
-        ),
-      );
+      await _showErrorDialog(e.toString());
       
       print('❌ Chi tiết lỗi: $e');
     }
+  }
+
+  Future<void> _showErrorDialog(String rawMessage) async {
+    if (!mounted) return;
+
+    String message = rawMessage;
+    message = message.replaceAll('Exception: ', '');
+    message = message.replaceAll(RegExp(r'\d{3}:\s*'), ''); 
+    message = message.replaceAll('Lỗi đổi mật khẩu: ', '');
+    if (message.isNotEmpty) {
+      message = message[0].toUpperCase() + message.substring(1);
+    }
+
+    return showDialog(
+      context: context,
+      builder: (ctx) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        backgroundColor: const Color(0xFFF5EFE6),
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min, 
+            crossAxisAlignment: CrossAxisAlignment.center, 
+            children: [
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.red.shade100,
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.priority_high_rounded,
+                  color: Color(0xFFD32F2F),
+                  size: 32,
+                ),
+              ),
+              
+              const SizedBox(height: 16),
+
+              Text(
+                message,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: 16,
+                  color: Color(0xFF2D1409),
+                  height: 1.4,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+
+              const SizedBox(height: 24),
+
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () => Navigator.of(ctx).pop(),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFA15C20),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    elevation: 0,
+                  ),
+                  child: const Text(
+                    "Đã hiểu",
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   @override

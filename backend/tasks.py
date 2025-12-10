@@ -118,7 +118,7 @@ scheduler.add_job(
 scheduler.add_job(
     job_check_24hour_confirmation,
     'interval',
-    seconds = 10,  # Chạy mỗi 1 giờ
+    hours = 1,  # Chạy mỗi 1 giờ
     id='check_24hour_confirmation_job',
     replace_existing=True
 )

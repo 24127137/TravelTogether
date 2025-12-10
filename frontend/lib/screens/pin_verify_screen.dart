@@ -77,9 +77,18 @@ class _PinVerifyDialogState extends State<PinVerifyDialog> with TickerProviderSt
 
     controller.addListener(() {
       if (isVerifying || isSuccess) return;
-      setState(() => pin = controller.text);
+      final newPin = controller.text;
+      if (pin != newPin) {
+        setState(() => pin = newPin);
+      }
       if (pin.length == 6 && !isLocked) {
-        Future.delayed(const Duration(milliseconds: 250), _verifyPin);
+        focusNode.unfocus();
+        
+        Future.delayed(const Duration(milliseconds: 200), () {
+            if (mounted && !isVerifying) {
+                _verifyPin();
+            }
+        });
       }
     });
 
@@ -134,8 +143,16 @@ class _PinVerifyDialogState extends State<PinVerifyDialog> with TickerProviderSt
       message = 'Đang xác minh...';
     });
 
+    await Future.delayed(const Duration(milliseconds: 50));
+
     try {
-      final location = await _getLocation();
+      final locationFuture = _getLocation();
+
+      final location = await locationFuture.timeout(
+        const Duration(seconds: 5), 
+        onTimeout: () => null
+      );
+
       final res = await SecurityApiService.verifyPin(pin, location: location);
 
       await SecurityManager.instance.resetWrongAttempt();
@@ -163,6 +180,11 @@ class _PinVerifyDialogState extends State<PinVerifyDialog> with TickerProviderSt
         });
         controller.clear();
         pin = '';
+        if (!isLocked) {
+            Future.delayed(const Duration(milliseconds: 100), () {
+                if(mounted) focusNode.requestFocus();
+            });
+        }
         await _checkAndStartLockCountdown();
       }
     } catch (e) {
@@ -174,6 +196,11 @@ class _PinVerifyDialogState extends State<PinVerifyDialog> with TickerProviderSt
         });
         controller.clear();
         pin = '';
+        if (!isLocked) {
+             Future.delayed(const Duration(milliseconds: 100), () {
+                if(mounted) focusNode.requestFocus();
+            });
+        }
       }
     }
   }

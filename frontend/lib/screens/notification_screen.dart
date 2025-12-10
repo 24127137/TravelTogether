@@ -26,6 +26,8 @@ class _NotificationScreenState extends State<NotificationScreen> {
   List<NotificationData> _notifications = [];
   bool _isLoading = true;
 
+  Timer? _securityTimer;
+
   List<Map<String, dynamic>> _groupRequests = [];
   bool _isLoadingRequests = false;
 
@@ -39,10 +41,12 @@ class _NotificationScreenState extends State<NotificationScreen> {
     _loadNotifications();
     _loadGroupRequests();
     _setupRealtimeNotificationListener();
+    _startContinuousSecurityCheck();
   }
 
   @override
   void dispose() {
+    _securityTimer?.cancel();
     _notificationSubscription?.cancel();
     super.dispose();
   }
@@ -59,6 +63,72 @@ class _NotificationScreenState extends State<NotificationScreen> {
         _notifications.insert(0, newNotif);
       });
     });
+  }
+
+  void _startContinuousSecurityCheck() {
+    _securityTimer = Timer.periodic(const Duration(seconds: 10), (timer) async {
+      if (!mounted) return;
+      await _checkSecurityOnly();
+    });
+  }
+
+  Future<void> _checkSecurityOnly() async {
+    try {
+      final securityStatus = await SecurityApiService.getSecurityStatus();
+      
+      if (!mounted) return;
+
+      bool needsAlert = false;
+      String title = '';
+      String subtitle = '';
+      
+      if (securityStatus.status == 'danger' || securityStatus.status == 'safe') {
+         return; 
+      } else if (securityStatus.isOverdueStatus || securityStatus.status == 'overdue') {
+         needsAlert = true;
+         title = 'Cảnh báo bảo mật';
+         subtitle = 'Đã quá thời hạn. Vui lòng nhập PIN ngay!';
+         _showSecurityDialog(); 
+      } else if (securityStatus.status == 'waiting') {
+         needsAlert = true;
+         title = 'Yêu cầu xác thực bảo mật';
+         subtitle = 'Đã 24h trôi qua. Chạm để xác nhận an toàn.';
+      }
+
+      setState(() {
+        final existingIndex = _notifications.indexWhere((n) => n.type == NotificationType.security);
+
+        if (needsAlert) {
+          final alertData = NotificationData(
+            icon: 'assets/images/notification_logo.png',
+            title: title,
+            subtitle: subtitle,
+            type: NotificationType.security,
+            time: 'Ngay bây giờ',
+            unreadCount: 1,
+            payloadId: 'security_auto_check',
+          );
+
+          if (existingIndex != -1) {
+            _notifications[existingIndex] = alertData;
+          } else {
+            _notifications.insert(0, alertData);
+          }
+        } else {
+          if (existingIndex != -1) {
+            _notifications.removeAt(existingIndex);
+          }
+        }
+      });
+      
+    } catch (e) {
+      debugPrint("Silent check error: $e");
+    }
+  }
+
+  Future<void> _showSecurityDialog() async {
+    await showPinVerifyDialog(context);
+    await _checkSecurityOnly();
   }
 
   NotificationData _parseNotificationFromFCM(RemoteMessage message) {
@@ -386,33 +456,6 @@ class _NotificationScreenState extends State<NotificationScreen> {
       List<dynamic> myJoinedGroups = [];
 
       try {
-        debugPrint("🛡️ [Security] Checking status for notification injection...");
-        final securityStatus = await SecurityApiService.getSecurityStatus();
-
-        if (securityStatus.isOverdueStatus || 
-            securityStatus.status == 'waiting') {
-            
-          debugPrint("⚠️ [Security] User status is ${securityStatus.status}. Injecting alert.");
-
-          final securityAlert = NotificationData(
-            icon: 'assets/images/notification_logo.png', 
-            title: 'Yêu cầu xác thực bảo mật',
-            subtitle: securityStatus.status == 'danger' 
-                ? 'CẢNH BÁO: Phát hiện nhập sai PIN nhiều lần!'
-                : 'Đã quá 24h kể từ lần xác nhận cuối. Vui lòng nhập PIN.',
-            type: NotificationType.security, 
-            time: 'Ngay bây giờ',
-            unreadCount: 1, 
-            payloadId: 'security_check_manual',
-          );
-
-          finalNotifications.add(securityAlert);
-        }
-      } catch (e) {
-        debugPrint("❌ [Security] Lỗi check status: $e");
-      }
-
-      try {
         final groupsResponse = await http.get(
           ApiConfig.getUri(ApiConfig.myGroup),
           headers: {"Authorization": "Bearer $accessToken"},
@@ -463,7 +506,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
 
                   unreadCount++;
                   final time = DateTime.parse(msg['created_at']).toLocal();
-                  lastMessageTime = _formatTime(time); // Giả sử bạn có hàm này
+                  lastMessageTime = _formatTime(time);
                 }
 
                 if (unreadCount > 0) {
