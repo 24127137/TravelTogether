@@ -9,6 +9,7 @@ import '../services/group_service.dart';
 import '../services/auth_service.dart';
 
 /// Màn hình hiển thị bản đồ và vẽ lộ trình (Multi-Start Nearest Neighbor)
+/// Sử dụng OpenStreetMap với overlay layer hiển thị biên giới Việt Nam (Hoàng Sa, Trường Sa)
 class MapRouteScreen extends StatefulWidget {
   final int? groupId;
   final String? cityFilter;
@@ -42,6 +43,9 @@ class _MapRouteScreenState extends State<MapRouteScreen> {
 
   double _totalDistance = 0.0;
   double _totalDuration = 0.0;
+
+  // Track zoom level for conditional rendering
+  double _currentZoom = 13.0;
 
   @override
   void initState() {
@@ -410,18 +414,134 @@ class _MapRouteScreenState extends State<MapRouteScreen> {
             options: MapOptions(
               initialCenter: _selectedPoints.isNotEmpty ? _selectedPoints[0] : const LatLng(21.0285, 105.8542),
               initialZoom: 13.0,
+              onPositionChanged: (position, hasGesture) {
+                if (_currentZoom != position.zoom) {
+                  setState(() {
+                    _currentZoom = position.zoom;
+                  });
+                }
+              },
             ),
             children: [
+              // Layer 1: OpenStreetMap base map (Dưới cùng)
               TileLayer(
                 urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                 userAgentPackageName: 'com.example.my_travel_app',
               ),
+
+              // ==========================================================
+              // LAYER 2: HIỂN THỊ CHỦ QUYỀN HOÀNG SA & TRƯỜNG SA
+              // Sử dụng CircleLayer để vẽ vùng lãnh thổ - hiển thị đẹp ở mọi zoom level
+              // ==========================================================
+              CircleLayer(
+                circles: [
+                  // Quần đảo Hoàng Sa (Paracel Islands)
+                  CircleMarker(
+                    point: const LatLng(16.54, 111.75),
+                    radius: 8,
+                    color: Colors.red.withValues(alpha: 0.6),
+                    borderColor: Colors.red,
+                    borderStrokeWidth: 2,
+                    useRadiusInMeter: false, // Sử dụng pixel để ổn định khi zoom
+                  ),
+                  // Quần đảo Trường Sa (Spratly Islands)
+                  CircleMarker(
+                    point: const LatLng(9.95, 114.36),
+                    radius: 8,
+                    color: Colors.red.withValues(alpha: 0.6),
+                    borderColor: Colors.red,
+                    borderStrokeWidth: 2,
+                    useRadiusInMeter: false,
+                  ),
+                ],
+              ),
+
+              // Layer 2b: Text labels cho Hoàng Sa & Trường Sa (chỉ hiển thị khi zoom < 8)
+              if (_currentZoom < 8)
+                MarkerLayer(
+                  markers: [
+                    // Label Hoàng Sa
+                    Marker(
+                      point: const LatLng(16.54, 111.75),
+                      width: 200,
+                      height: 60,
+                      alignment: Alignment.center,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.9),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.red, width: 2),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.2),
+                              blurRadius: 4,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: const Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              '🇻🇳 HOÀNG SA',
+                              style: TextStyle(
+                                color: Colors.red,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    // Label Trường Sa
+                    Marker(
+                      point: const LatLng(9.95, 114.36),
+                      width: 200,
+                      height: 60,
+                      alignment: Alignment.center,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.9),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.red, width: 2),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.2),
+                              blurRadius: 4,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: const Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              '🇻🇳 TRƯỜNG SA',
+                              style: TextStyle(
+                                color: Colors.red,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              // ==========================================================
+
+              // Layer 3: Route polyline
               if (_routePoints.isNotEmpty)
                 PolylineLayer(
                   polylines: [
                     Polyline(points: _routePoints, strokeWidth: 4.0, color: Colors.blue),
                   ],
                 ),
+              // Layer 4: Location markers (Trên cùng)
               if (_selectedPoints.isNotEmpty)
                 MarkerLayer(
                   markers: _selectedPoints.asMap().entries.map((entry) {

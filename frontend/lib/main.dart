@@ -28,7 +28,14 @@ void main() async {
   await initializeDateFormatting('vi_VN', null);
   await initializeDateFormatting('en_US', null);
 
-  await dotenv.load(fileName: ".env");
+  // Load .env file
+  try {
+    await dotenv.load(fileName: ".env");
+    debugPrint('✅ Loaded .env file successfully');
+  } catch (e) {
+    debugPrint('⚠️ Warning: Could not load .env file: $e');
+    // Continue without .env - hardcoded values will be used
+  }
 
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
