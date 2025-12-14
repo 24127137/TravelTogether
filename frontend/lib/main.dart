@@ -28,13 +28,11 @@ void main() async {
   await initializeDateFormatting('vi_VN', null);
   await initializeDateFormatting('en_US', null);
 
-  // Load .env file
   try {
     await dotenv.load(fileName: ".env");
     debugPrint('✅ Loaded .env file successfully');
   } catch (e) {
     debugPrint('⚠️ Warning: Could not load .env file: $e');
-    // Continue without .env - hardcoded values will be used
   }
 
   await Firebase.initializeApp(
@@ -42,9 +40,8 @@ void main() async {
   );
 
   await Supabase.initialize(
-    url: 'https://meuqntvawakdzntewscp.supabase.co',
-    anonKey:
-        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1ldXFudHZhd2FrZHpudGV3c2NwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE2MzUxOTEsImV4cCI6MjA3NzIxMTE5MX0.w0wtRkKTelo9iHQfLtJ61H5xLCUu2VVMKr8BV4Ljcgw',
+    url: dotenv.env['SUPABASE_URL']!,
+    anonKey: dotenv.env['SUPABASE_ANON_KEY']!,
   );
 
   AuthService.onAuthFailure = () {
