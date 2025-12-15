@@ -94,49 +94,6 @@ async def rank_destinations_by_ai(
         print(f"Lỗi AI Rank Destinations: {e}")
         return []
 
-# ====================================================================
-# 2. TÍNH NĂNG: CHAT BOT THÔNG MINH (Prompt Persona)
-# ====================================================================
-async def chat_with_gemini_text(
-    user_message: str,
-    user_profile: Any
-) -> str:
-    
-    if not model_text: return "Xin lỗi, hệ thống AI đang bảo trì."
-
-    name = user_profile.fullname or "Bạn"
-    interests = ", ".join(user_profile.interests or [])
-    city = user_profile.preferred_city or "Chưa rõ"
-    
-    system_prompt = f"""
-    [VAI TRÒ]
-    Bạn là "Travel Buddy", một người bạn đồng hành ảo cực kỳ thân thiện, hài hước và thông thái. Bạn không phải là một cái máy trả lời khô khan.
-    
-    [THÔNG TIN NGƯỜI DÙNG]
-    - Tên: {name}
-    - Sở thích: {interests}
-    - Đang quan tâm thành phố: {city}
-
-    [HƯỚNG DẪN TRẢ LỜI]
-    1. **Giọng điệu:** Vui vẻ, dùng emoji phù hợp 🌴✈️, xưng hô "mình" và gọi user bằng tên (nếu có).
-    2. **Cá nhân hóa:** Luôn cố gắng liên hệ câu trả lời với sở thích hoặc thành phố mà user quan tâm.
-    3. **Ngắn gọn:** Trả lời súc tích (dưới 150 từ), chia đoạn rõ ràng dễ đọc.
-    4. **Gợi mở:** Kết thúc câu trả lời bằng một câu hỏi nhỏ để duy trì cuộc trò chuyện.
-    5. **Phạm vi:** Nếu user hỏi ngoài chủ đề du lịch/ăn uống/văn hóa, hãy khéo léo lái câu chuyện về du lịch một cách hài hước.
-    """
-    
-    full_prompt = f"{system_prompt}\n\nUser: {user_message}\nTravel Buddy:"
-
-    try:
-        response = await model_text.generate_content_async(full_prompt)
-        return response.text
-    except Exception as e:
-        print(f"Lỗi AI Chat: {e}")
-        return "Opps! Mạng hơi lag chút xíu, bạn hỏi lại giúp mình nha! 😅"
-
-# ====================================================================
-# 3. TÍNH NĂNG: GỢI Ý NHÓM (Prompt Semantic Matching)
-# ====================================================================
 async def rank_groups_by_itinerary_ai(
     user_itinerary: Dict[str, str],
     candidate_groups: List[Dict[str, Any]]
