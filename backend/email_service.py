@@ -45,7 +45,7 @@ class EmailService:
                 <p>Xin chào,</p>
                 <p>Hệ thống phát hiện người dùng <b>{user_name}</b> đã không xác nhận an toàn trong hơn 36 giờ.</p>
                 <p>Trạng thái hiện tại: <b style="color: red;">OVERDUE (QUÁ HẠN)</b></p>
-                <p>Vị trí cuối cùng đã được lưu vào hệ thống. Vui lòng thử liên lạc với người dùng ngay lập tức.</p>
+                <p>Vui lòng thử liên lạc với người dùng ngay lập tức.</p>
                 {location_html}
                 <hr>
                 <small>Đây là email tự động, vui lòng không trả lời.</small>
@@ -65,13 +65,13 @@ class EmailService:
             </div>
             """
         elif alert_type == "confirmation_reminder":
-            subject = f"🔔 Nhắc nhở: Vui lòng xác nhận an toàn, {user_name}"
+            subject = f"🔔 Nhắc nhở: Vui lòng xác nhận an toàn hàng ngày"
             body = f"""
             <div style="font-family: Arial, sans-serif; padding: 20px; border: 1px solid #e0e0e0; border-radius: 5px;">
                 <h2 style="color: #0275d8;">Nhắc nhở xác nhận an toàn</h2>
-                <p>Xin chào, <b>{user_name}</b> </p>
+                <p>Xin chào <b>{user_name}</b>,</p>
                 <p>Bạn chưa xác nhận an toàn trong vòng 24 giờ qua.</p>
-                <p>Vui lòng mở ứng dụng và xác nhận để đảm bảo an toàn.</p>
+                <p>Vui lòng mở ứng dụng và xác nhận rằng bạn vẫn an toàn để tránh trạng thái "OVERDUE".</p>
                 <hr>
                 <small>Đây là email tự động, vui lòng không trả lời.</small>
             </div>

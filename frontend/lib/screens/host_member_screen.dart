@@ -1,85 +1,90 @@
 import 'package:flutter/material.dart';
-<<<<<<< HEAD
 import 'package:http/http.dart' as http;
+import 'package:easy_localization/easy_localization.dart';
 import 'dart:convert';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../widgets/out_group_dialog.dart';
 import '../config/api_config.dart';
 import '../services/auth_service.dart';
-=======
-import '../widgets/out_group_dialog.dart';
->>>>>>> 3ee7efe (done all groupapis)
+import '../services/chat_system_message_service.dart';
+import 'main_app_screen.dart';
+import '../services/feedback_service.dart';
+import '../models/feedback_models.dart';
+
 
 class MemberScreenHost extends StatefulWidget {
+  final String groupId;
   final String groupName;
   final int currentMembers;
   final int maxMembers;
   final List<Member> members;
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
-  final List<PendingRequest> pendingRequests;
->>>>>>> 3ee7efe (done all groupapis)
-=======
-  final List<PendingRequest> pendingRequests;
->>>>>>> 274291d (update)
+  final bool openPendingTab;
 
   const MemberScreenHost({
     super.key,
+    required this.groupId,
     required this.groupName,
     required this.currentMembers,
     required this.maxMembers,
     required this.members,
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
-    required this.pendingRequests,
->>>>>>> 3ee7efe (done all groupapis)
-=======
-    required this.pendingRequests,
->>>>>>> 274291d (update)
+    this.openPendingTab = false,
   });
 
   @override
   State<MemberScreenHost> createState() => _MemberScreenHostState();
 }
 
-class _MemberScreenHostState extends State<MemberScreenHost> {
+// === SỬA ĐỔI: Thêm WidgetsBindingObserver để handle app lifecycle ===
+class _MemberScreenHostState extends State<MemberScreenHost> with WidgetsBindingObserver {
   bool _showMembers = true;
+  bool _isApproving = false;
+  bool _isRejecting = false;
   String _searchQuery = '';
   final Set<String> _selectedRequests = <String>{};
+  final FeedbackService _feedbackService = FeedbackService();
   late List<Member> _filteredMembers;
-<<<<<<< HEAD
-<<<<<<< HEAD
   List<PendingRequest> _pendingRequests = [];
   List<PendingRequest> _filteredRequests = [];
   bool _isLoadingRequests = false;
   String? _accessToken;
-=======
-  late List<PendingRequest> _filteredRequests;
->>>>>>> 3ee7efe (done all groupapis)
-=======
-  late List<PendingRequest> _filteredRequests;
->>>>>>> 274291d (update)
 
   @override
   void initState() {
     super.initState();
+    // === THÊM: Register observer ===
+    WidgetsBinding.instance.addObserver(this);
+
+    _showMembers = !widget.openPendingTab;
     _updateFilteredLists();
-<<<<<<< HEAD
     _loadAccessToken();
   }
 
+  @override
+  void dispose() {
+    // === THÊM: Unregister observer ===
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  // === SỬA ĐỔI: Handle app lifecycle với đúng signature ===
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    // Refresh data when app comes back to foreground
+    if (state == AppLifecycleState.resumed) {
+      _refreshData();
+    }
+  }
+
   Future<void> _loadAccessToken() async {
-    final prefs = await SharedPreferences.getInstance();
-    _accessToken = prefs.getString('access_token');
-    
+    // === SỬA ĐỔI: Loại bỏ SharedPreferences duplicate ===
+    _accessToken = await AuthService.getValidAccessToken();
+
     if (_accessToken != null) {
       await _fetchPendingRequests();
     } else {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Không tìm thấy token đăng nhập')),
+          SnackBar(content: Text('no_login_token'.tr())),
         );
       }
     }
@@ -93,7 +98,10 @@ class _MemberScreenHostState extends State<MemberScreenHost> {
     });
 
     try {
-      final url = ApiConfig.getUri(ApiConfig.groupManageRequests);
+      // === SỬA: Refresh token trước mỗi API call ===
+      _accessToken = await AuthService.getValidAccessToken();
+
+      final url = Uri.parse('${ApiConfig.baseUrl}/groups/${widget.groupId}/requests');
       final response = await http.get(
         url,
         headers: {
@@ -104,18 +112,34 @@ class _MemberScreenHostState extends State<MemberScreenHost> {
 
       if (response.statusCode == 200) {
         final List<dynamic> data = json.decode(utf8.decode(response.bodyBytes));
-        
+
+        _pendingRequests = data.map((item) => PendingRequest(
+          id: item['profile_uuid'] as String,
+          name: item['fullname'] as String,
+          email: item['email'] as String,
+          avatarUrl: item['avatar_url'] as String?,
+          requestedAt: DateTime.parse(item['requested_at'] as String),
+          rating: 0.0,
+          topTags: [],
+        )).toList();
+
         setState(() {
-          _pendingRequests = data.map((item) => PendingRequest(
-            id: item['profile_uuid'] as String,
-            name: item['fullname'] as String,
-            email: item['email'] as String,
-            requestedAt: DateTime.parse(item['requested_at'] as String),
-            rating: 4.5,
-            keywords: [],
-          )).toList();
-          
           _updateFilteredLists();
+        });
+
+        // Fetch reputation cho từng pending user
+        await _fetchReputationsForPendingUsers();
+
+        setState(() {
+          _isLoadingRequests = false;
+        });
+      } else if (response.statusCode == 401) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Phiên đăng nhập đã hết hạn')),
+          );
+        }
+        setState(() {
           _isLoadingRequests = false;
         });
       } else {
@@ -138,41 +162,227 @@ class _MemberScreenHostState extends State<MemberScreenHost> {
         );
       }
     }
-=======
->>>>>>> 3ee7efe (done all groupapis)
   }
 
+  Future<void> _fetchReputationsForPendingUsers() async {
+    if (_accessToken == null || _pendingRequests.isEmpty) return;
+
+    // Tạo list các Future để gọi song song
+    List<Future<void>> futures = [];
+
+    for (int i = 0; i < _pendingRequests.length; i++) {
+      futures.add(_fetchSingleUserReputation(i));
+    }
+
+    // Gọi tất cả song song
+    await Future.wait(futures);
+  }
+
+  // Thay thế hàm _fetchSingleUserReputation cũ bằng hàm này
+  Future<void> _fetchSingleUserReputation(int index) async {
+    // Kiểm tra index hợp lệ để tránh lỗi RangeError
+    if (index >= _pendingRequests.length) return;
+
+    final request = _pendingRequests[index];
+
+    try {
+      print('🔍 Đang lấy reputation cho: ${request.name} (${request.id})');
+      final reputationData = await _feedbackService.getUserReputation(_accessToken!, request.id);
+
+      if (reputationData != null && mounted) {
+        print('✅ Đã lấy được reputation: ${reputationData.averageRating} sao, ${reputationData.groups.length} nhóm');
+
+        // Tính top 3 tags từ tất cả feedbacks
+        Map<String, int> tagCount = {};
+
+        for (var group in reputationData.groups) {
+          for (var feedback in group.feedbacks) {
+            for (var tag in feedback.content) {
+              tagCount[tag] = (tagCount[tag] ?? 0) + 1;
+            }
+          }
+        }
+
+        // Sắp xếp và lấy top 3
+        List<MapEntry<String, int>> sortedTags = tagCount.entries.toList()
+          ..sort((a, b) => b.value.compareTo(a.value));
+
+        List<String> top3Tags = sortedTags.take(3).map((e) => e.key).toList();
+
+        setState(() {
+          // Kiểm tra lại index một lần nữa trước khi update
+          if (index < _pendingRequests.length) {
+            _pendingRequests[index] = PendingRequest(
+              id: request.id,
+              name: request.name,
+              email: request.email,
+              avatarUrl: request.avatarUrl,
+              requestedAt: request.requestedAt,
+              rating: reputationData.averageRating, // Update rating
+              topTags: top3Tags, // Update tags
+            );
+            _updateFilteredLists();
+          }
+        });
+      } else {
+        print('⚠️ Reputation data trả về NULL cho user: ${request.name}');
+      }
+    } catch (e) {
+      print('❌ Lỗi khi lấy reputation cho ${request.id}: $e');
+    }
+  }
+
+  // === SỬA ĐỔI: Hoàn thiện implementation của _approveSelectedRequests ===
+  Future<void> _approveSelectedRequests() async {
+    if (_selectedRequests.isEmpty || _isApproving) return;
+
+    setState(() {
+      _isApproving = true;
+    });
+
+    try {
+      final totalAfterAccept = currentMemberCount + _selectedRequests.length;
+
+      // Kiểm tra giới hạn thành viên
+      if (totalAfterAccept > widget.maxMembers) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                  'Không thể phê duyệt! Nhóm chỉ còn ${widget.maxMembers - currentMemberCount} chỗ trống. '
+                      'Bạn đang chọn ${_selectedRequests.length} yêu cầu.'
+              ),
+              backgroundColor: Colors.red,
+              duration: const Duration(seconds: 3),
+            ),
+          );
+        }
+        return;
+      }
+
+      _accessToken = await AuthService.getValidAccessToken();
+      if (_accessToken == null) return;
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Đang xử lý...'),
+            duration: Duration(seconds: 1),
+          ),
+        );
+      }
+
+      int successCount = 0;
+      int failCount = 0;
+      List<PendingRequest> approvedRequests = [];
+
+      // Xử lý từng request
+      for (String profileUuid in _selectedRequests) {
+        // Kiểm tra giới hạn trong quá trình approve
+        if (currentMemberCount + successCount >= widget.maxMembers) {
+          failCount += (_selectedRequests.length - successCount - failCount);
+          break;
+        }
+
+        final success = await _performMemberAction(profileUuid, 'accept');
+        if (success) {
+          successCount++;
+          // Tìm request được approve để thêm vào danh sách members
+          final approvedRequest = _pendingRequests.firstWhere(
+                (request) => request.id == profileUuid,
+          );
+          approvedRequests.add(approvedRequest);
+        } else {
+          failCount++;
+        }
+      }
+
+      // Cập nhật UI sau khi hoàn thành
+      if (successCount > 0) {
+        // === THÊM MỚI: Gửi system message cho mỗi thành viên mới ===
+        for (var request in approvedRequests) {
+          await ChatSystemMessageService.sendJoinGroupMessage(
+            groupId: widget.groupId,
+            memberName: request.name,
+          );
+        }
+
+        setState(() {
+          // Thêm các thành viên mới được approve vào danh sách members
+          for (var request in approvedRequests) {
+            widget.members.add(Member(
+              id: request.id,
+              name: request.name,
+              email: request.email,
+              avatarUrl: request.avatarUrl,
+            ));
+          }
+
+          // Xóa các requests đã được approve khỏi pending list
+          _pendingRequests.removeWhere(
+                (request) => approvedRequests.any((approved) => approved.id == request.id),
+          );
+
+          _selectedRequests.clear();
+          _updateFilteredLists();
+        });
+      }
+
+      // Hiển thị kết quả
+      if (mounted) {
+        if (failCount == 0) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Đã phê duyệt $successCount yêu cầu thành công'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        } else {
+          String message = 'Thành công: $successCount, Thất bại: $failCount';
+          if (currentMemberCount >= widget.maxMembers) {
+            message += '\nNhóm đã đầy!';
+          }
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(message),
+              backgroundColor: Colors.orange,
+              duration: const Duration(seconds: 3),
+            ),
+          );
+        }
+      }
+
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Lỗi xử lý: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      // === QUAN TRỌNG: Luôn reset loading state ===
+      if (mounted) {
+        setState(() {
+          _isApproving = false;
+        });
+      }
+    }
+  }
+
+  // === Các methods còn lại giữ nguyên ===
   void _updateFilteredLists() {
     _filteredMembers = widget.members
         .where((member) =>
-<<<<<<< HEAD
-<<<<<<< HEAD
-            member.name.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-            member.email.toLowerCase().contains(_searchQuery.toLowerCase()))
+    member.name.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+        member.email.toLowerCase().contains(_searchQuery.toLowerCase()))
         .toList();
 
     _filteredRequests = _pendingRequests
         .where((request) =>
-            request.name.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-            request.email.toLowerCase().contains(_searchQuery.toLowerCase()))
-=======
-    member.name.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-        member.email.toLowerCase().contains(_searchQuery.toLowerCase()))
-        .toList();
-
-    _filteredRequests = widget.pendingRequests
-        .where((request) =>
-        request.name.toLowerCase().contains(_searchQuery.toLowerCase()))
->>>>>>> 3ee7efe (done all groupapis)
-=======
-    member.name.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-        member.email.toLowerCase().contains(_searchQuery.toLowerCase()))
-        .toList();
-
-    _filteredRequests = widget.pendingRequests
-        .where((request) =>
-        request.name.toLowerCase().contains(_searchQuery.toLowerCase()))
->>>>>>> 274291d (update)
+    request.name.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+        request.email.toLowerCase().contains(_searchQuery.toLowerCase()))
         .toList();
   }
 
@@ -193,143 +403,29 @@ class _MemberScreenHostState extends State<MemberScreenHost> {
     });
   }
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-  Future<void> _approveSelectedRequests() async {
-    if (_selectedRequests.isEmpty) return;
-
-    final totalAfterAccept = currentMemberCount + _selectedRequests.length;
-    
-    if (totalAfterAccept > widget.maxMembers) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Không thể phê duyệt! Nhóm chỉ còn ${widget.maxMembers - currentMemberCount} chỗ trống. '
-              'Bạn đang chọn ${_selectedRequests.length} yêu cầu.'
-            ),
-            backgroundColor: Colors.red,
-            duration: const Duration(seconds: 3),
-          ),
-        );
-      }
-      return;
-    }
-
-    _accessToken = await AuthService.getValidAccessToken();
-    if (_accessToken == null) return;
-
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Đang xử lý...'),
-          duration: Duration(seconds: 1),
-        ),
-      );
-    }
-
-    int successCount = 0;
-    int failCount = 0;
-
-    for (String profileUuid in _selectedRequests) {
-      if (currentMemberCount + successCount >= widget.maxMembers) {
-        failCount += (_selectedRequests.length - successCount - failCount);
-        break;
-      }
-      
-      final success = await _performMemberAction(profileUuid, 'accept');
-      if (success) {
-        successCount++;
-      } else {
-        failCount++;
-      }
-    }
-
-    if (successCount > 0) {
-      setState(() {
-        final approvedRequests = _pendingRequests
-            .where((request) => _selectedRequests.contains(request.id))
-            .take(successCount) 
-            .toList();
-
-        for (var request in approvedRequests) {
-          widget.members.add(Member(
-            id: request.id,
-            name: request.name,
-            email: request.email,
-            avatarUrl: null,
-          ));
-        }
-
-        _pendingRequests.removeWhere(
-          (request) => approvedRequests.any((approved) => approved.id == request.id),
-        );
-=======
-  void _approveSelectedRequests() {
-    if (_selectedRequests.isEmpty) return;
-
-    setState(() {
-      // Thêm các requests được chọn vào danh sách members
-      final approvedRequests = widget.pendingRequests
-          .where((request) => _selectedRequests.contains(request.id))
-          .toList();
-
-      for (var request in approvedRequests) {
-        widget.members.add(Member(
-          id: request.id,
-          name: request.name,
-          email: "${request.name.toLowerCase().replaceAll(' ', '.')}@example.com",
-          avatarUrl: "https://randomuser.me/api/portraits/men/${widget.members.length + 1}.jpg",
-        ));
-      }
-
-      // Xóa khỏi pending requests
-      widget.pendingRequests.removeWhere(
-            (request) => _selectedRequests.contains(request.id),
-      );
->>>>>>> 274291d (update)
-
-      _selectedRequests.clear();
-      _updateFilteredLists();
-    });
-  }
-
-    if (mounted) {
-      if (failCount == 0) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Đã phê duyệt $successCount yêu cầu thành công')),
-        );
-      } else {
-        String message = 'Thành công: $successCount, Thất bại: $failCount';
-        if (currentMemberCount >= widget.maxMembers) {
-          message += '\nNhóm đã đầy!';
-        }
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(message),
-            backgroundColor: Colors.orange,
-            duration: const Duration(seconds: 3),
-          ),
-        );
-      }
-    }
-  }
-
   Future<bool> _performMemberAction(String profileUuid, String action) async {
     _accessToken = await AuthService.getValidAccessToken();
-    if (_accessToken == null) return false;
-    
+    if (_accessToken == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Không thể xác thực. Vui lòng đăng nhập lại.')),
+        );
+      }
+      return false;
+    }
+
     try {
       final url = ApiConfig.getUri(ApiConfig.groupManage);
-      
+
       final requestBody = {
+        "group_id": widget.groupId,
         "profile_uuid": profileUuid,
         "action": action,
       };
-      
+
       print('📤 PATCH ${ApiConfig.groupManage}');
       print('📤 Request body: ${json.encode(requestBody)}');
-      
+
       final response = await http.patch(
         url,
         headers: {
@@ -344,40 +440,60 @@ class _MemberScreenHostState extends State<MemberScreenHost> {
 
       if (response.statusCode == 200) {
         return true;
+      } else if (response.statusCode == 401) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Phiên đăng nhập đã hết hạn')),
+          );
+        }
+        return false;
+      } else if (response.statusCode == 403) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Bạn không có quyền thực hiện hành động này')),
+          );
+        }
+        return false;
       } else {
-        print('❌ Action $action failed for $profileUuid');
+        print('❌ Action $action failed for $profileUuid: ${response.statusCode}');
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Lỗi ${response.statusCode}: ${response.body}')),
+          );
+        }
         return false;
       }
     } catch (e) {
       print('❌ Error performing action $action: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Lỗi kết nối: $e')),
+        );
+      }
       return false;
     }
   }
 
+  Future<void> _refreshData() async {
+    await _fetchPendingRequests();
+  }
+
+  // === Các methods còn lại giữ nguyên ===
   Future<void> _rejectRequest(String requestId) async {
     _accessToken = await AuthService.getValidAccessToken();
-    
+
     final success = await _performMemberAction(requestId, 'reject');
-    
+
     if (success) {
       setState(() {
         _pendingRequests.removeWhere((request) => request.id == requestId);
         _selectedRequests.remove(requestId);
         _updateFilteredLists();
       });
-      
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Đã từ chối yêu cầu')),
-        );
-      }
-    } else {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Lỗi từ chối yêu cầu'),
-            backgroundColor: Colors.red,
-          ),
         );
       }
     }
@@ -386,57 +502,76 @@ class _MemberScreenHostState extends State<MemberScreenHost> {
   Future<void> _kickMember(Member member) async {
     _accessToken = await AuthService.getValidAccessToken();
 
+    // === THÊM MỚI: Gửi system message TRƯỚC khi kick ===
+    await ChatSystemMessageService.sendKickMemberMessage(
+      groupId: widget.groupId,
+      memberName: member.name,
+    );
+
     final success = await _performMemberAction(member.id, 'kick');
-    
+
     if (success) {
       setState(() {
         widget.members.remove(member);
         _updateFilteredLists();
       });
-      
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Đã kick ${member.name} khỏi nhóm')),
         );
       }
-    } else {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Lỗi kick thành viên'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
     }
-=======
-  void _approveSelectedRequests() {
-    if (_selectedRequests.isEmpty) return;
+  }
 
-    setState(() {
-      // Thêm các requests được chọn vào danh sách members
-      final approvedRequests = widget.pendingRequests
-          .where((request) => _selectedRequests.contains(request.id))
-          .toList();
+  int get currentMemberCount => widget.members.length;
 
-      for (var request in approvedRequests) {
-        widget.members.add(Member(
-          id: request.id,
-          name: request.name,
-          email: "${request.name.toLowerCase().replaceAll(' ', '.')}@example.com",
-          avatarUrl: "https://randomuser.me/api/portraits/men/${widget.members.length + 1}.jpg",
-        ));
-      }
-
-      // Xóa khỏi pending requests
-      widget.pendingRequests.removeWhere(
-            (request) => _selectedRequests.contains(request.id),
+  // === Widget builds giữ nguyên từ code gốc ===
+  Widget _buildAvatar(String? avatarUrl, {double radius = 30}) {
+    if (avatarUrl != null && avatarUrl.isNotEmpty) {
+      return CircleAvatar(
+        radius: radius,
+        backgroundColor: const Color(0xFFD9CBB3),
+        child: ClipOval(
+          child: Image.network(
+            avatarUrl,
+            width: radius * 2,
+            height: radius * 2,
+            fit: BoxFit.cover,
+            loadingBuilder: (context, child, loadingProgress) {
+              if (loadingProgress == null) return child;
+              return Center(
+                child: CircularProgressIndicator(
+                  value: loadingProgress.expectedTotalBytes != null
+                      ? loadingProgress.cumulativeBytesLoaded /
+                      loadingProgress.expectedTotalBytes!
+                      : null,
+                  strokeWidth: 2,
+                  color: const Color(0xFFB99668),
+                ),
+              );
+            },
+            errorBuilder: (context, error, stackTrace) {
+              return Icon(
+                Icons.person,
+                size: radius,
+                color: Colors.white,
+              );
+            },
+          ),
+        ),
       );
+    }
 
-      _selectedRequests.clear();
-      _updateFilteredLists();
-    });
->>>>>>> 3ee7efe (done all groupapis)
+    return CircleAvatar(
+      radius: radius,
+      backgroundColor: const Color(0xFFD9CBB3),
+      child: Icon(
+        Icons.person,
+        size: radius,
+        color: Colors.white,
+      ),
+    );
   }
 
   @override
@@ -452,41 +587,10 @@ class _MemberScreenHostState extends State<MemberScreenHost> {
         child: SafeArea(
           child: Column(
             children: [
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
-              // Header
->>>>>>> 274291d (update)
               _buildHeader(),
-
-              // Member count
               _buildMemberCount(),
-
-              // Tab buttons
               _buildTabButtons(),
-
-              // Search bar
               _buildSearchBar(),
-<<<<<<< HEAD
-=======
-              // Header
-              _buildHeader(),
-
-              // Member count
-              _buildMemberCount(),
-
-              // Tab buttons
-              _buildTabButtons(),
-
-              // Search bar
-              _buildSearchBar(),
-
-              // Content list
->>>>>>> 3ee7efe (done all groupapis)
-=======
-
-              // Content list
->>>>>>> 274291d (update)
               Expanded(
                 child: _showMembers ? _buildMembersList() : _buildPendingList(),
               ),
@@ -497,19 +601,13 @@ class _MemberScreenHostState extends State<MemberScreenHost> {
     );
   }
 
+  // Widget để hiển thị avatar với error handling
+
   Widget _buildHeader() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 26, vertical: 20),
       child: Row(
         children: [
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
-          // Back button
->>>>>>> 3ee7efe (done all groupapis)
-=======
-          // Back button
->>>>>>> 274291d (update)
           GestureDetector(
             onTap: () => Navigator.pop(context),
             child: Container(
@@ -522,16 +620,6 @@ class _MemberScreenHostState extends State<MemberScreenHost> {
               child: const Icon(Icons.arrow_back_ios_new, size: 18),
             ),
           ),
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
-
-          // Group name
->>>>>>> 3ee7efe (done all groupapis)
-=======
-
-          // Group name
->>>>>>> 274291d (update)
           Expanded(
             child: Center(
               child: Text(
@@ -546,24 +634,35 @@ class _MemberScreenHostState extends State<MemberScreenHost> {
               ),
             ),
           ),
-<<<<<<< HEAD
-<<<<<<< HEAD
           GestureDetector(
-            onTap: () {
+            onTap: (_isApproving || _isRejecting) ? null : () {
               if (_showMembers) {
                 OutGroupDialog.show(
                   context,
+                  groupId: widget.groupId,
                   isHost: true,
-                  onSuccess: () {
-                    Navigator.of(context).pop(); 
-                    Navigator.of(context).pop(); 
+                  onSuccess: () async {
+                    // Lấy accessToken để navigate về MainAppScreen
+                    final accessToken = await AuthService.getValidAccessToken() ?? '';
 
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Đã giải tán nhóm thành công'),
-                        backgroundColor: Colors.green,
-                      ),
-                    );
+                    // Navigate về MessagesScreen (index 2) và refresh
+                    if (context.mounted) {
+                      Navigator.of(context).pushAndRemoveUntil(
+                        MaterialPageRoute(
+                          builder: (context) => MainAppScreen(
+                            initialIndex: 2,
+                            accessToken: accessToken,
+                          ),
+                        ),
+                        (route) => false, // Remove tất cả routes cũ
+                      );
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Đã giải tán nhóm thành công'),
+                          backgroundColor: Colors.green,
+                        ),
+                      );
+                    }
                   },
                 );
               } else {
@@ -571,25 +670,6 @@ class _MemberScreenHostState extends State<MemberScreenHost> {
                   _approveSelectedRequests();
                 }
               }
-=======
-
-          // Exit/Approve button
-          GestureDetector(
-            onTap: () {
-=======
-
-          // Exit/Approve button
-          GestureDetector(
-            onTap: () {
->>>>>>> 274291d (update)
-              OutGroupDialog.show(
-                context,
-                isHost: true,
-              );
-<<<<<<< HEAD
->>>>>>> 3ee7efe (done all groupapis)
-=======
->>>>>>> 274291d (update)
             },
             child: Container(
               width: 44,
@@ -597,22 +677,21 @@ class _MemberScreenHostState extends State<MemberScreenHost> {
               decoration: ShapeDecoration(
                 color: _showMembers
                     ? const Color(0xFFF6F6F8)
-                    : (_selectedRequests.isNotEmpty
-<<<<<<< HEAD
-<<<<<<< HEAD
-                        ? const Color(0xFF4CAF50)
-                        : const Color(0xFFF6F6F8)),
-=======
+                    : (_selectedRequests.isNotEmpty && !_isApproving
                     ? const Color(0xFF4CAF50)
                     : const Color(0xFFF6F6F8)),
->>>>>>> 3ee7efe (done all groupapis)
-=======
-                    ? const Color(0xFF4CAF50)
-                    : const Color(0xFFF6F6F8)),
->>>>>>> 274291d (update)
                 shape: const CircleBorder(),
               ),
-              child: Icon(
+              child: _isApproving
+                  ? const SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(
+                  color: Colors.white,
+                  strokeWidth: 2,
+                ),
+              )
+                  : Icon(
                 _showMembers ? Icons.exit_to_app : Icons.check,
                 size: 20,
                 color: _showMembers
@@ -625,8 +704,6 @@ class _MemberScreenHostState extends State<MemberScreenHost> {
       ),
     );
   }
-
-  int get currentMemberCount => widget.members.length;
 
   Widget _buildMemberCount() {
     return Padding(
@@ -646,18 +723,12 @@ class _MemberScreenHostState extends State<MemberScreenHost> {
   }
 
   Widget _buildTabButtons() {
+    bool hasPending = _pendingRequests.isNotEmpty;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
       child: Row(
         children: [
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
-          // Members tab
->>>>>>> 3ee7efe (done all groupapis)
-=======
-          // Members tab
->>>>>>> 274291d (update)
+          // Nút Thành viên
           Expanded(
             child: GestureDetector(
               onTap: () => setState(() => _showMembers = true),
@@ -670,10 +741,10 @@ class _MemberScreenHostState extends State<MemberScreenHost> {
                     borderRadius: BorderRadius.circular(30),
                   ),
                 ),
-                child: const Center(
+                child: Center(
                   child: Text(
-                    'Thành viên',
-                    style: TextStyle(
+                    'members'.tr(),
+                    style: const TextStyle(
                       color: Colors.black,
                       fontSize: 18,
                       fontFamily: 'Alumni Sans',
@@ -684,44 +755,53 @@ class _MemberScreenHostState extends State<MemberScreenHost> {
               ),
             ),
           ),
-<<<<<<< HEAD
-<<<<<<< HEAD
-          const SizedBox(width: 6),
-=======
-
           const SizedBox(width: 6),
 
-          // Pending tab
->>>>>>> 3ee7efe (done all groupapis)
-=======
-
-          const SizedBox(width: 6),
-
-          // Pending tab
->>>>>>> 274291d (update)
+          // Nút Chờ xác nhận (CÓ CHẤM CAM)
           Expanded(
             child: GestureDetector(
               onTap: () => setState(() => _showMembers = false),
-              child: Container(
-                height: 54,
-                decoration: ShapeDecoration(
-                  color: !_showMembers ? const Color(0xFFDCC9A7) : Colors.white,
-                  shape: RoundedRectangleBorder(
-                    side: const BorderSide(color: Color(0xFFB99668)),
-                    borderRadius: BorderRadius.circular(30),
-                  ),
-                ),
-                child: const Center(
-                  child: Text(
-                    'Chờ xác nhận',
-                    style: TextStyle(
-                      color: Colors.black,
-                      fontSize: 18,
-                      fontFamily: 'Alumni Sans',
-                      fontWeight: FontWeight.w400,
+              child: Stack( // Dùng Stack để đè chấm cam lên
+                clipBehavior: Clip.none,
+                children: [
+                  Container(
+                    height: 54,
+                    decoration: ShapeDecoration(
+                      color: !_showMembers ? const Color(0xFFDCC9A7) : Colors.white,
+                      shape: RoundedRectangleBorder(
+                        side: const BorderSide(color: Color(0xFFB99668)),
+                        borderRadius: BorderRadius.circular(30),
+                      ),
+                    ),
+                    child: const Center(
+                      child: Text(
+                        'Chờ xác nhận',
+                        style: TextStyle(
+                          color: Colors.black,
+                          fontSize: 18,
+                          fontFamily: 'Alumni Sans',
+                          fontWeight: FontWeight.w400,
+                        ),
+                      ),
                     ),
                   ),
-                ),
+
+                  // DOT MÀU CAM
+                  if (hasPending)
+                    Positioned(
+                      top: 0,
+                      right: 0,
+                      child: Container(
+                        width: 16,
+                        height: 16,
+                        decoration: BoxDecoration(
+                          color: Colors.redAccent, // Hoặc màu cam: Colors.orange
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white, width: 2),
+                        ),
+                      ),
+                    ),
+                ],
               ),
             ),
           ),
@@ -748,10 +828,7 @@ class _MemberScreenHostState extends State<MemberScreenHost> {
             prefixIcon: Icon(Icons.search, color: Color(0xFFB99668)),
             border: InputBorder.none,
             contentPadding: EdgeInsets.symmetric(horizontal: 20, vertical: 15),
-<<<<<<< HEAD
             hintText: 'Tìm kiếm...',
-=======
->>>>>>> 3ee7efe (done all groupapis)
           ),
         ),
       ),
@@ -767,10 +844,7 @@ class _MemberScreenHostState extends State<MemberScreenHost> {
         return Dismissible(
           key: Key(member.id),
           direction: DismissDirection.endToStart,
-<<<<<<< HEAD
-<<<<<<< HEAD
           confirmDismiss: (direction) async {
-            // Hiển thị dialog xác nhận
             final confirmed = await showDialog<bool>(
               context: context,
               builder: (BuildContext context) {
@@ -796,18 +870,6 @@ class _MemberScreenHostState extends State<MemberScreenHost> {
               await _kickMember(member);
             }
             return false;
-=======
-=======
->>>>>>> 274291d (update)
-          onDismissed: (direction) {
-            setState(() {
-              widget.members.remove(member);
-              _updateFilteredLists();
-            });
-<<<<<<< HEAD
->>>>>>> 3ee7efe (done all groupapis)
-=======
->>>>>>> 274291d (update)
           },
           background: Container(
             alignment: Alignment.centerRight,
@@ -834,42 +896,8 @@ class _MemberScreenHostState extends State<MemberScreenHost> {
       ),
       child: Row(
         children: [
-<<<<<<< HEAD
-<<<<<<< HEAD
-          CircleAvatar(
-            radius: 30,
-            backgroundImage: member.avatarUrl != null && member.avatarUrl!.isNotEmpty
-                ? NetworkImage(member.avatarUrl!)
-                : null,
-            backgroundColor: const Color(0xFFD9CBB3),
-            child: member.avatarUrl == null || member.avatarUrl!.isEmpty
-                ? const Icon(Icons.person, size: 30, color: Colors.white)
-                : null,
-=======
-          // Avatar
-          CircleAvatar(
-            radius: 30,
-            backgroundImage: NetworkImage(member.avatarUrl),
->>>>>>> 274291d (update)
-          ),
-
+          _buildAvatar(member.avatarUrl, radius: 30),
           const SizedBox(width: 16),
-<<<<<<< HEAD
-=======
-          // Avatar
-          CircleAvatar(
-            radius: 30,
-            backgroundImage: NetworkImage(member.avatarUrl),
-          ),
-
-          const SizedBox(width: 16),
-
-          // Member info
->>>>>>> 3ee7efe (done all groupapis)
-=======
-
-          // Member info
->>>>>>> 274291d (update)
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -905,7 +933,6 @@ class _MemberScreenHostState extends State<MemberScreenHost> {
   }
 
   Widget _buildPendingList() {
-<<<<<<< HEAD
     if (_isLoadingRequests) {
       return const Center(
         child: CircularProgressIndicator(color: Color(0xFFB99668)),
@@ -913,56 +940,53 @@ class _MemberScreenHostState extends State<MemberScreenHost> {
     }
 
     if (_filteredRequests.isEmpty) {
-      return const Center(
-        child: Text(
-          'Không có yêu cầu nào',
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 16,
-            fontFamily: 'DM Sans',
-          ),
+      return RefreshIndicator(
+        onRefresh: _refreshData,
+        color: const Color(0xFFB99668),
+        child: ListView(
+          children: const [
+            SizedBox(height: 200),
+            Center(
+              child: Text(
+                'Không có yêu cầu nào\nKéo để làm mới',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontFamily: 'DM Sans',
+                ),
+              ),
+            ),
+          ],
         ),
       );
     }
 
-=======
->>>>>>> 3ee7efe (done all groupapis)
-    return ListView.builder(
-      padding: const EdgeInsets.symmetric(horizontal: 15),
-      itemCount: _filteredRequests.length,
-      itemBuilder: (context, index) {
-        final request = _filteredRequests[index];
-        return Dismissible(
-          key: Key(request.id),
-          direction: DismissDirection.endToStart,
-<<<<<<< HEAD
-<<<<<<< HEAD
-          confirmDismiss: (direction) async {
-            await _rejectRequest(request.id);
-            return true;
-=======
-=======
->>>>>>> 274291d (update)
-          onDismissed: (direction) {
-            setState(() {
-              widget.pendingRequests.remove(request);
-              _selectedRequests.remove(request.id);
-              _updateFilteredLists();
-            });
-<<<<<<< HEAD
->>>>>>> 3ee7efe (done all groupapis)
-=======
->>>>>>> 274291d (update)
-          },
-          background: Container(
-            alignment: Alignment.centerRight,
-            padding: const EdgeInsets.only(right: 20),
-            color: Colors.red,
-            child: const Icon(Icons.delete, color: Colors.white),
-          ),
-          child: _buildPendingCard(request),
-        );
-      },
+    return RefreshIndicator(
+      onRefresh: _refreshData,
+      color: const Color(0xFFB99668),
+      child: ListView.builder(
+        padding: const EdgeInsets.symmetric(horizontal: 15),
+        itemCount: _filteredRequests.length,
+        itemBuilder: (context, index) {
+          final request = _filteredRequests[index];
+          return Dismissible(
+            key: Key(request.id),
+            direction: DismissDirection.endToStart,
+            confirmDismiss: (direction) async {
+              await _rejectRequest(request.id);
+              return true;
+            },
+            background: Container(
+              alignment: Alignment.centerRight,
+              padding: const EdgeInsets.only(right: 20),
+              color: Colors.red,
+              child: const Icon(Icons.delete, color: Colors.white),
+            ),
+            child: _buildPendingCard(request),
+          );
+        },
+      ),
     );
   }
 
@@ -972,54 +996,23 @@ class _MemberScreenHostState extends State<MemberScreenHost> {
     return Container(
       margin: const EdgeInsets.only(bottom: 15),
       padding: const EdgeInsets.all(16),
-      height: 135,
-      decoration: ShapeDecoration(
-        color: const Color(0xFFB99668),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFEFE7DA),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: const Color(0xFFB29079),
+          width: 1.5,
         ),
       ),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
-          // Avatar
->>>>>>> 3ee7efe (done all groupapis)
-=======
-          // Avatar
->>>>>>> 274291d (update)
-          CircleAvatar(
-            radius: 25,
-            backgroundColor: const Color(0xFFDCC9A7),
-            child: const Icon(
-              Icons.person,
-              size: 30,
-              color: Color(0xFF666666),
-            ),
-          ),
-<<<<<<< HEAD
-<<<<<<< HEAD
+          _buildAvatar(request.avatarUrl, radius: 25),
           const SizedBox(width: 16),
-=======
-
-          const SizedBox(width: 16),
-
-          // Request info
->>>>>>> 3ee7efe (done all groupapis)
-=======
-
-          const SizedBox(width: 16),
-
-          // Request info
->>>>>>> 274291d (update)
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.start,
               children: [
-<<<<<<< HEAD
-<<<<<<< HEAD
                 Text(
                   request.name,
                   style: const TextStyle(
@@ -1042,135 +1035,85 @@ class _MemberScreenHostState extends State<MemberScreenHost> {
                   overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 4),
-                Text(
-                  'Yêu cầu lúc: ${_formatDateTime(request.requestedAt)}',
-                  style: const TextStyle(
-                    color: Color(0xFF666666),
-                    fontSize: 12,
-                    fontFamily: 'DM Sans',
-                    fontWeight: FontWeight.w400,
+                const SizedBox(height: 6),
+
+                // Rating row
+                if (request.rating > 0)
+                  Row(
+                    children: [
+                      Text(
+                        request.rating.toStringAsFixed(1),
+                        style: const TextStyle(
+                          color: Color(0xFF222222),
+                          fontSize: 14,
+                          fontFamily: 'DM Sans',
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      const Icon(
+                        Icons.star,
+                        color: Color(0xFFFFD700),
+                        size: 16,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        _formatDateTime(request.requestedAt),
+                        style: const TextStyle(
+                          color: Color(0xFF555555),
+                          fontSize: 11,
+                          fontFamily: 'DM Sans',
+                        ),
+                      ),
+                    ],
+                  )
+                else
+                  Text(
+                    _formatDateTime(request.requestedAt),
+                    style: const TextStyle(
+                      color: Color(0xFF555555),
+                      fontSize: 11,
+                      fontFamily: 'DM Sans',
+                    ),
                   ),
-=======
-                // Tên và rating
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        request.name,
-                        style: const TextStyle(
-                          color: Color(0xFF222222),
-                          fontSize: 18,
-                          fontFamily: 'DM Sans',
-                          fontWeight: FontWeight.w500,
-                        ),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    // Rating
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(Icons.star, color: Colors.amber, size: 14),
-                        const SizedBox(width: 2),
-                        Text(
-                          request.rating.toString(),
-                          style: const TextStyle(
-                            color: Color(0xFF666666),
-                            fontSize: 12,
-                            fontFamily: 'DM Sans',
-                            fontWeight: FontWeight.w400,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-=======
-                // Tên và rating
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        request.name,
-                        style: const TextStyle(
-                          color: Color(0xFF222222),
-                          fontSize: 18,
-                          fontFamily: 'DM Sans',
-                          fontWeight: FontWeight.w500,
-                        ),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    // Rating
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(Icons.star, color: Colors.amber, size: 14),
-                        const SizedBox(width: 2),
-                        Text(
-                          request.rating.toString(),
-                          style: const TextStyle(
-                            color: Color(0xFF666666),
-                            fontSize: 12,
-                            fontFamily: 'DM Sans',
-                            fontWeight: FontWeight.w400,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
->>>>>>> 274291d (update)
+
                 const SizedBox(height: 8),
-                // Keywords
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 4,
-                  children: request.keywords.take(3).map((keyword) =>
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        decoration: ShapeDecoration(
-                          color: const Color(0xFFDCC9A7),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                        child: Text(
-                          keyword,
-                          style: const TextStyle(
-                            color: Color(0xFF222222),
-                            fontSize: 12,
-                            fontFamily: 'DM Sans',
-                            fontWeight: FontWeight.w400,
-                          ),
+
+                // Top 3 Tags
+                if (request.topTags.isNotEmpty)
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 6,
+                    children: request.topTags.map((tag) => Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFE6D9BE),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        tag.tr(),
+                        style: const TextStyle(
+                          color: Color(0xFF4A3728),
+                          fontSize: 11,
+                          fontFamily: 'DM Sans',
+                          fontWeight: FontWeight.w500,
                         ),
                       ),
-                  ).toList(),
-<<<<<<< HEAD
->>>>>>> 3ee7efe (done all groupapis)
-=======
->>>>>>> 274291d (update)
-                ),
+                    )).toList(),
+                  )
+                else
+                  Text(
+                    'Chưa có đánh giá',
+                    style: TextStyle(
+                      color: Colors.grey[600],
+                      fontSize: 11,
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
               ],
             ),
           ),
-<<<<<<< HEAD
-<<<<<<< HEAD
-          const SizedBox(width: 16),
-=======
-
-          const SizedBox(width: 16),
-
-          // Selection checkbox
->>>>>>> 3ee7efe (done all groupapis)
-=======
-
-          const SizedBox(width: 16),
-
-          // Selection checkbox
->>>>>>> 274291d (update)
+          const SizedBox(width: 12),
           GestureDetector(
             onTap: () => _toggleSelection(request.id),
             child: Container(
@@ -1195,13 +1138,10 @@ class _MemberScreenHostState extends State<MemberScreenHost> {
       ),
     );
   }
-<<<<<<< HEAD
 
   String _formatDateTime(DateTime dateTime) {
     return '${dateTime.day}/${dateTime.month}/${dateTime.year} ${dateTime.hour}:${dateTime.minute.toString().padLeft(2, '0')}';
   }
-=======
->>>>>>> 3ee7efe (done all groupapis)
 }
 
 // Data models
@@ -1209,61 +1149,32 @@ class Member {
   final String id;
   final String name;
   final String email;
-<<<<<<< HEAD
-<<<<<<< HEAD
   final String? avatarUrl;
-=======
-  final String avatarUrl;
->>>>>>> 3ee7efe (done all groupapis)
-=======
-  final String avatarUrl;
->>>>>>> 274291d (update)
 
   Member({
     required this.id,
     required this.name,
     required this.email,
-<<<<<<< HEAD
-<<<<<<< HEAD
     this.avatarUrl,
-=======
-    required this.avatarUrl,
->>>>>>> 3ee7efe (done all groupapis)
-=======
-    required this.avatarUrl,
->>>>>>> 274291d (update)
   });
 }
 
 class PendingRequest {
   final String id;
   final String name;
-<<<<<<< HEAD
   final String email;
+  final String? avatarUrl;
   final DateTime requestedAt;
-=======
->>>>>>> 3ee7efe (done all groupapis)
   final double rating;
-  final List<String> keywords;
+  final List<String> topTags;
 
   PendingRequest({
     required this.id,
     required this.name,
-<<<<<<< HEAD
-<<<<<<< HEAD
     required this.email,
+    this.avatarUrl,
     required this.requestedAt,
     this.rating = 0.0,
-    this.keywords = const [],
-=======
-    required this.rating,
-    required this.keywords,
->>>>>>> 274291d (update)
+    this.topTags = const [],
   });
 }
-=======
-    required this.rating,
-    required this.keywords,
-  });
-}
->>>>>>> 3ee7efe (done all groupapis)

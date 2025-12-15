@@ -35,10 +35,7 @@ class _GroupCreatingScreenState extends State<GroupCreatingScreen>
   DateTime? _selectedEndDate;
   DateTime _focusedDay = DateTime.now();
   bool _isCalendarVisible = false;
-  DateTime? _tempStartDate;
-  DateTime? _tempEndDate;
-  DateTime _tempFocusedDay = DateTime.now();
-  String _groupName = 'Mộng mơ';
+  String _groupName = 'Nhóm của bạn';
   File? _groupAvatar;
   
   // City and dates from profile
@@ -46,16 +43,8 @@ class _GroupCreatingScreenState extends State<GroupCreatingScreen>
   // (profile start/end stored directly in _selectedStartDate/_selectedEndDate)
 
   // Sở thích và lộ trình (mutable so we can load from profile)
-  List<String> _selectedInterests = [
-    'Nghỉ dưỡng',
-    'Lãng mạn',
-    'Ẩm thực',
-    'Thiên nhiên'
-  ];
-  List<String> _itineraryItems = [
-    'Hồ Xuân Hương',
-    'Thiền viện Trúc Lâm',
-  ];
+  List<String> _selectedInterests = [];
+  List<String> _itineraryItems = [];
 
   // Animation controllers
   late AnimationController _slideController;
@@ -387,44 +376,24 @@ class _GroupCreatingScreenState extends State<GroupCreatingScreen>
                     child: GestureDetector(
                       onTap: () {},
                       child: CalendarCard(
-                        focusedDay: _tempFocusedDay,
-                        rangeStart: _tempStartDate,
-                        rangeEnd: _tempEndDate,
-                        onDaySelected: (selectedDay, focusedDay) {
-                          setState(() {
-                            // Mirror earlier temp logic: start new range if no start or existing end
-                            if (_tempStartDate == null || _tempEndDate != null) {
-                              _tempStartDate = selectedDay;
-                              _tempEndDate = null;
-                            } else {
-                              // if selectedDay after start -> set end, else restart start
-                              if (selectedDay.isAfter(_tempStartDate!)) {
-                                _tempEndDate = selectedDay;
-                              } else {
-                                _tempStartDate = selectedDay;
-                                _tempEndDate = null;
-                              }
-                            }
-                            _tempFocusedDay = focusedDay;
-                          });
-                        },
-                        onPageChanged: (focusedDay) {
-                          setState(() => _tempFocusedDay = focusedDay);
-                        },
+                        focusedDay: _focusedDay,
+                        initialRangeStart: _selectedStartDate,
+                        initialRangeEnd: _selectedEndDate,
                         onClose: () {
-                          // Commit temp values
                           setState(() {
-                            _selectedStartDate = _tempStartDate;
-                            _selectedEndDate = _tempEndDate;
-                            _focusedDay = _tempFocusedDay;
                             _isCalendarVisible = false;
                           });
-
-                          final start = _tempStartDate;
-                          final end = _tempEndDate;
-                          if (start != null && end != null) {
-                            _updateTravelDatesAPI(start, end);
-                          }
+                        },
+                        // === THÊM MỚI: Callback để cập nhật ngày khi user chọn xong ===
+                        onRangeSelected: (start, end) {
+                          setState(() {
+                            _selectedStartDate = start;
+                            _selectedEndDate = end;
+                            if (start != null) {
+                              _focusedDay = start;
+                            }
+                          });
+                          debugPrint('📅 Group Creating - Updated dates: $start -> $end');
                         },
                         accentColor: const Color(0xFFB99668),
                       ),
@@ -539,14 +508,21 @@ class _GroupCreatingScreenState extends State<GroupCreatingScreen>
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
                             border: Border.all(color: Colors.white, width: 3),
-                            image: DecorationImage(
-                              image: _groupAvatar != null
-                                  ? FileImage(_groupAvatar!)
-                                  : const AssetImage('assets/images/group_creating/avatar_gr.jpg')
-                              as ImageProvider,
-                              fit: BoxFit.cover,
-                            ),
+                            color: _groupAvatar == null ? const Color(0xFFDCC9A7) : null,
+                            image: _groupAvatar != null
+                                ? DecorationImage(
+                                    image: FileImage(_groupAvatar!),
+                                    fit: BoxFit.cover,
+                                  )
+                                : null,
                           ),
+                          child: _groupAvatar == null
+                              ? const Icon(
+                                  Icons.group,
+                                  size: 60,
+                                  color: Color(0xFF8A724C),
+                                )
+                              : null,
                         ),
                         Positioned(
                           right: 0,
@@ -572,27 +548,38 @@ class _GroupCreatingScreenState extends State<GroupCreatingScreen>
                   const SizedBox(height: 12),
                   GestureDetector(
                     onTap: _showEditGroupNameDialog,
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          _groupName,
-                          style: const TextStyle(
-                            fontSize: 40,
-                            fontWeight: FontWeight.w500,
-                            color: Color(0xFFF7F3E8),
-                            decoration: TextDecoration.none,
-                            fontFamily: 'Alegreya',
-                            height: 1.0,
+                    child: Container(
+                      constraints: BoxConstraints(
+                        maxWidth: MediaQuery.of(context).size.width - 80, // Giới hạn chiều rộng
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Flexible(
+                            child: Text(
+                              _groupName,
+                              style: const TextStyle(
+                                fontSize: 32, // Giảm font size từ 40 xuống 32
+                                fontWeight: FontWeight.w500,
+                                color: Color(0xFFF7F3E8),
+                                decoration: TextDecoration.none,
+                                fontFamily: 'Alegreya',
+                                height: 1.0,
+                              ),
+                              overflow: TextOverflow.ellipsis, // Thêm ellipsis khi quá dài
+                              maxLines: 1,
+                              textAlign: TextAlign.center,
+                            ),
                           ),
-                        ),
-                        const SizedBox(width: 8),
-                        const Icon(
-                          Icons.edit,
-                          color: Color(0xFFE5CDB1),
-                          size: 20,
-                        ),
-                      ],
+                          const SizedBox(width: 8),
+                          const Icon(
+                            Icons.edit,
+                            color: Color(0xFFE5CDB1),
+                            size: 20,
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ],
@@ -652,6 +639,22 @@ class _GroupCreatingScreenState extends State<GroupCreatingScreen>
   }
 
   Widget _buildLocationAndDate() {
+    String dateDisplay = 'choose_date'.tr();
+    
+    print('🔍 _buildLocationAndDate called:');
+    print('  - _selectedStartDate: $_selectedStartDate');
+    print('  - _selectedEndDate: $_selectedEndDate');
+    
+    if (_selectedStartDate != null && _selectedEndDate != null) {
+      final format = DateFormat('dd/MM');
+      dateDisplay = '${format.format(_selectedStartDate!)} - ${format.format(_selectedEndDate!)}';
+      print('  - dateDisplay: $dateDisplay');
+    } else if (_selectedStartDate != null) {
+      final format = DateFormat('dd/MM');
+      dateDisplay = format.format(_selectedStartDate!);
+      print('  - dateDisplay (start only): $dateDisplay');
+    }
+    
     return Row(
       children: [
         Expanded(
@@ -672,18 +675,21 @@ class _GroupCreatingScreenState extends State<GroupCreatingScreen>
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Image.asset(
-                  'assets/images/group_creating/search_24px.jpg',
-                  width: 20,
-                  height: 20,
+                const Icon(
+                  Icons.location_on,
+                  size: 20,
+                  color: Color(0xFF8A724C),
                 ),
                 const SizedBox(width: 8),
-                Text(
-                  _profileCity ?? widget.destinationName ?? '',
-                  style: const TextStyle(
-                    fontSize: 14,
-                    color: Color(0xFF000000),
-                    fontWeight: FontWeight.w500,
+                Flexible(
+                  child: Text(
+                    _profileCity ?? widget.destinationName ?? '',
+                    style: const TextStyle(
+                      fontSize: 14,
+                      color: Color(0xFF000000),
+                      fontWeight: FontWeight.w500,
+                    ),
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
               ],
@@ -720,13 +726,15 @@ class _GroupCreatingScreenState extends State<GroupCreatingScreen>
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      _selectedStartDate != null && _selectedEndDate != null
-                          ? '${_selectedStartDate!.day} - ${_selectedEndDate!.day} / ${_selectedStartDate!.month} / ${_selectedStartDate!.year}'
-                          : 'choose_date'.tr(),
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: Color(0xFF000000),
-                        fontWeight: FontWeight.w500,
+                      dateDisplay,
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: (_selectedStartDate != null && _selectedEndDate != null)
+                            ? const Color(0xFF000000)
+                            : const Color(0xFF8A724C),
+                        fontWeight: (_selectedStartDate != null && _selectedEndDate != null)
+                            ? FontWeight.w600
+                            : FontWeight.w500,
                       ),
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -1060,11 +1068,7 @@ class _GroupCreatingScreenState extends State<GroupCreatingScreen>
   }
 
   void _showCalendarDialog() {
-    // Initialize temp values and show inline overlay (mirrors HomePage behavior)
     setState(() {
-      _tempStartDate = _selectedStartDate;
-      _tempEndDate = _selectedEndDate;
-      _tempFocusedDay = _focusedDay;
       _isCalendarVisible = true;
     });
   }
@@ -1176,7 +1180,8 @@ class _GroupCreatingScreenState extends State<GroupCreatingScreen>
 
   Future<void> _loadProfileData() async {
     try {
-      debugPrint('Loading profile data...');
+      debugPrint('Loading profile data for group creation...');
+
       final token = await AuthService.getValidAccessToken();
       if (token == null) {
         debugPrint('No token available');
@@ -1195,200 +1200,127 @@ class _GroupCreatingScreenState extends State<GroupCreatingScreen>
       debugPrint('Profile response status: ${response.statusCode}');
       debugPrint('Profile response body: ${response.body}');
 
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body) as Map<String, dynamic>;
-        
-        if (mounted) {
-          setState(() {
-            _profileCity = data['prefered_city'] as String? ?? data['preferred_city'] as String?;
-            debugPrint('Loaded city: $_profileCity');
+      if (response.statusCode != 200) return;
 
-            final travelDatesRaw = data['travel_dates'];
-            debugPrint('Loaded travel_dates raw: $travelDatesRaw (type: ${travelDatesRaw.runtimeType})');
+      final data = jsonDecode(response.body) as Map<String, dynamic>;
 
-            final parsed = _parseTravelDates(travelDatesRaw);
-            if (parsed != null) {
-              final startDate = parsed[0];
-              final endDate = parsed[1];
-              if (startDate != null && endDate != null) {
-                _selectedStartDate = startDate;
-                _selectedEndDate = endDate;
-                _tempStartDate = startDate;
-                _tempEndDate = endDate;
-                _tempFocusedDay = startDate;
-                debugPrint('Loaded dates (via parser): $startDate to $endDate');
-              }
-            }
+      if (!mounted) return;
 
-            // Load interests if provided
-            final interestsRaw = data['interests'];
-            if (interestsRaw is List) {
-              try {
-                _selectedInterests = interestsRaw.map((e) => e.toString()).where((s) => s.isNotEmpty).toList();
-                debugPrint('Loaded interests: $_selectedInterests');
-              } catch (e) {
-                debugPrint('Error parsing interests: $e');
-              }
-            }
+      setState(() {
+        _profileCity = data['preferred_city']?.toString()
+                    ?? widget.destinationName;
 
-            // Load itinerary if provided (can be Map<string,string> or List)
-            final itineraryRaw = data['itinerary'];
-            if (itineraryRaw != null) {
-              try {
-                if (itineraryRaw is Map) {
-                  final entries = itineraryRaw.entries.toList();
-                  entries.sort((a, b) {
-                    final ai = int.tryParse(a.key.toString()) ?? 0;
-                    final bi = int.tryParse(b.key.toString()) ?? 0;
-                    return ai.compareTo(bi);
-                  });
-                  _itineraryItems = entries.map((e) => e.value?.toString() ?? '').where((s) => s.isNotEmpty).toList();
-                } else if (itineraryRaw is List) {
-                  _itineraryItems = itineraryRaw.map((e) => e.toString()).where((s) => s.isNotEmpty).toList();
-                } else if (itineraryRaw is String) {
-                  final parts = itineraryRaw.split(',').map((s) => s.trim()).where((s) => s.isNotEmpty).toList();
-                  if (parts.isNotEmpty) _itineraryItems = parts;
-                }
-                debugPrint('Loaded itinerary: $_itineraryItems');
-              } catch (e) {
-                debugPrint('Error parsing itinerary: $e');
-              }
-            }
-          });
+        final interestsRaw = data['interests'];
+        if (interestsRaw is List) {
+          _selectedInterests = interestsRaw
+              .map((e) => e.toString())
+              .where((s) => s.isNotEmpty)
+              .toList();
         }
-      }
+
+        final itineraryRaw = data['itinerary'];
+        if (itineraryRaw != null) {
+          if (itineraryRaw is Map) {
+            final entries = itineraryRaw.entries.toList();
+            entries.sort((a, b) {
+              final ai = int.tryParse(a.key.toString()) ?? 0;
+              final bi = int.tryParse(b.key.toString()) ?? 0;
+              return ai.compareTo(bi);
+            });
+            _itineraryItems = entries.map((e) => e.value?.toString() ?? '').where((s) => s.isNotEmpty).toList();
+          } else if (itineraryRaw is List) {
+            _itineraryItems = itineraryRaw.map((e) => e.toString()).where((s) => s.isNotEmpty).toList();
+          }
+        }
+
+        final travelDatesRaw = data['travel_dates'];
+        debugPrint('Raw travel_dates from API: $travelDatesRaw (type: ${travelDatesRaw.runtimeType})');
+
+        if (travelDatesRaw != null && travelDatesRaw.toString().trim().isNotEmpty) {
+          _parseTravelDates(travelDatesRaw.toString());
+        } else {
+          _selectedStartDate = null;
+          _selectedEndDate = null;
+        }
+      });
+
+      debugPrint('✅ Profile loaded successfully for group creation');
+      debugPrint('   City: $_profileCity');
+      debugPrint('   Dates: $_selectedStartDate → $_selectedEndDate');
+      debugPrint('   Interests: $_selectedInterests');
+      debugPrint('   Itinerary: $_itineraryItems');
+
     } catch (e) {
       debugPrint('Error loading profile data: $e');
     }
   }
 
-  // Update travel_dates via API when user selects dates in calendar
-  Future<void> _updateTravelDatesAPI(DateTime startDate, DateTime endDate) async {
+  void _parseTravelDates(String dateRange) {
     try {
-      final token = await AuthService.getValidAccessToken();
-      if (token == null) return;
+      String s = dateRange.trim();
 
-      // Format dates as yyyy-MM-dd
-      final startStr = '${startDate.year}-${startDate.month.toString().padLeft(2, '0')}-${startDate.day.toString().padLeft(2, '0')}';
-      final endStr = '${endDate.year}-${endDate.month.toString().padLeft(2, '0')}-${endDate.day.toString().padLeft(2, '0')}';
-      
-      // Format as PostgreSQL DATERANGE: "[2025-12-03,2025-12-11)"
-      final travelDatesStr = '[$startStr,$endStr)';
-      
+      if (s.contains('lower') && s.contains('upper')) {
+        final cleaned = s.replaceAll('{', '').replaceAll('}', '').replaceAll(' ', '');
+        String? lower;
+        String? upper;
 
-      final url = ApiConfig.getUri(ApiConfig.userProfile);
-      final data = await _getCurrentUserData(token);
-      if (data == null) return;
-
-      final body = {
-        'fullname': data['fullname'] ?? '',
-        'email': data['email'] ?? '',
-        'gender': data['gender'] ?? '',
-        'birth_date': data['birth_date'] ?? '',
-        'description': data['description'] ?? '',
-        'interests': data['interests'] ?? [],
-        'travel_dates': travelDatesStr,
-      };
-
-      final response = await http.patch(
-        url,
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $token',
-        },
-        body: jsonEncode(body),
-      );
-
-      debugPrint('Update travel dates status: ${response.statusCode}');
-      debugPrint('Update travel dates body: ${response.body}');
-    } catch (e) {
-      debugPrint('Error updating travel dates: $e');
-    }
-  }
-
-  // Get current user data for PATCH request
-  Future<Map<String, dynamic>?> _getCurrentUserData(String token) async {
-    try {
-      final url = ApiConfig.getUri(ApiConfig.userProfile);
-      final response = await http.get(
-        url,
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $token',
-        },
-      );
-
-      if (response.statusCode == 200) {
-        return jsonDecode(response.body) as Map<String, dynamic>;
-      }
-      return null;
-    } catch (e) {
-      debugPrint('Error getting user data: $e');
-      return null;
-    }
-  }
-
-  // Parse travel_dates from multiple possible shapes into [start, end]
-  List<DateTime?>? _parseTravelDates(dynamic raw) {
-    try {
-      if (raw == null) return null;
-
-      DateTime? start;
-      DateTime? end;
-
-      if (raw is String) {
-        var s = raw.trim();
-
-        // remove wrapping quotes if present
-        if (s.startsWith('"') && s.endsWith('"')) {
-          s = s.substring(1, s.length - 1);
+        final parts = cleaned.split(',');
+        for (var part in parts) {
+          if (part.startsWith('lower:')) lower = part.substring(6);
+          if (part.startsWith('upper:')) upper = part.substring(6);
         }
 
-        // common range formats: [YYYY-MM-DD,YYYY-MM-DD), (YYYY-MM-DD,YYYY-MM-DD], YYYY-MM-DD/YYYY-MM-DD, "YYYY-MM-DD,YYYY-MM-DD"
-        // normalize by removing leading [ or ( and trailing ] or )
-        if (s.startsWith('[') || s.startsWith('(')) s = s.substring(1);
-        if (s.endsWith(']') || s.endsWith(')')) s = s.substring(0, s.length - 1);
-
-        // now try comma or slash separators
-        if (s.contains(',')) {
-          final parts = s.split(',').map((p) => p.trim()).toList();
-          if (parts.length >= 2) {
-            start = DateTime.tryParse(parts[0]);
-            end = DateTime.tryParse(parts[1]);
+        if (lower != null && upper != null) {
+          _selectedStartDate = DateTime.tryParse(lower);
+          _selectedEndDate = DateTime.tryParse(upper);
+          if (_selectedStartDate != null && _selectedEndDate != null) {
+            debugPrint('Parsed travel_dates (JSON format): $_selectedStartDate → $_selectedEndDate');
+            return;
           }
-        } else if (s.contains('/')) {
-          final parts = s.split('/').map((p) => p.trim()).toList();
-          if (parts.length >= 2) {
-            start = DateTime.tryParse(parts[0]);
-            end = DateTime.tryParse(parts[1]);
-          }
-        } else if (RegExp(r"\d{4}-\d{2}-\d{2}").hasMatch(s)) {
-          // contains a date, but unknown separator — try to extract two dates
-          final matches = RegExp(r"(\d{4}-\d{2}-\d{2})").allMatches(s).toList();
-          if (matches.length >= 2) {
-            start = DateTime.tryParse(matches[0].group(0)!);
-            end = DateTime.tryParse(matches[1].group(0)!);
-          }
-        }
-      } else if (raw is List) {
-        if (raw.length >= 2) {
-          start = DateTime.tryParse(raw[0].toString());
-          end = DateTime.tryParse(raw[1].toString());
-        }
-      } else if (raw is Map<String, dynamic>) {
-        final s = raw['start'] ?? raw['from'] ?? raw['begin'];
-        final e = raw['end'] ?? raw['to'] ?? raw['until'];
-        if (s != null && e != null) {
-          start = DateTime.tryParse(s.toString());
-          end = DateTime.tryParse(e.toString());
         }
       }
 
-      if (start != null && end != null) return [start, end];
-      return null;
+      if (s.startsWith('[') && s.endsWith(')')) {
+        final cleaned = s.substring(1, s.length - 1);
+        final parts = cleaned.split(',');
+        if (parts.length == 2) {
+          final start = DateTime.tryParse(parts[0].trim());
+          final end = DateTime.tryParse(parts[1].trim());
+          if (start != null && end != null) {
+            _selectedStartDate = start;
+            _selectedEndDate = end;
+            debugPrint('Parsed travel_dates (bracket format): $start → $end');
+            return;
+          }
+        }
+      }
+
+      if (s.startsWith('"') && s.endsWith('"')) {
+        s = s.substring(1, s.length - 1);
+        return _parseTravelDates(s);
+      }
+
+      final dateRegex = RegExp(r'\d{4}-\d{2}-\d{2}');
+      final matches = dateRegex.allMatches(s).toList();
+      if (matches.length >= 2) {
+        final start = DateTime.tryParse(matches[0].group(0)!);
+        final end = DateTime.tryParse(matches[1].group(0)!);
+        if (start != null && end != null) {
+          _selectedStartDate = start;
+          _selectedEndDate = end;
+          debugPrint('Parsed travel_dates (fallback regex): $start → $end');
+          return;
+        }
+      }
+
+      debugPrint('⚠️ Cannot parse travel_dates: $dateRange');
+      _selectedStartDate = null;
+      _selectedEndDate = null;
+
     } catch (e) {
-      debugPrint('Error parsing travel_dates raw: $e');
-      return null;
+      debugPrint('❌ Exception when parsing travel_dates: $e');
+      _selectedStartDate = null;
+      _selectedEndDate = null;
     }
   }
 }

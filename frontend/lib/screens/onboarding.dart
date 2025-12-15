@@ -1,5 +1,6 @@
 // Onboarding thay cho Trang đầu
 import 'package:flutter/material.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'welcome.dart';
 
@@ -17,21 +18,18 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   final List<Map<String, String>> _onboardingData = [
     {
       "image": "assets/images/onboarding/1.png",
-      "title": "Không còn đi một mình nữa",
-      "desc":
-      "Mỗi chuyến đi sẽ tuyệt hơn khi có người hiểu bạn.\nGặp gỡ những người cùng đam mê khám phá và bắt đầu hành trình cùng nhau.",
+      "titleKey": "onboarding_title_1",
+      "descKey": "onboarding_desc_1",
     },
     {
       "image": "assets/images/onboarding/2.png",
-      "title": "Ghép nối hành trình hoàn hảo",
-      "desc":
-      "Tìm người có cùng điểm đến, thời gian và phong cách du lịch.\nTất cả chỉ trong vài chạm.",
+      "titleKey": "onboarding_title_2",
+      "descKey": "onboarding_desc_2",
     },
     {
       "image": "assets/images/onboarding/3.png",
-      "title": "Cùng nhau tạo nên ký ức",
-      "desc":
-      "Lên kế hoạch, khám phá và chia sẻ trải nghiệm đáng nhớ.\nNhững chuyến đi tuyệt vời luôn được kể lại... cùng người khác.",
+      "titleKey": "onboarding_title_3",
+      "descKey": "onboarding_desc_3",
     },
   ];
 
@@ -88,12 +86,12 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                             const SizedBox(height: 30),
 
                             Text(
-                              data["title"]!,
+                              data["titleKey"]!.tr(),
                               textAlign: TextAlign.center,
                               style: const TextStyle(
                                 fontSize: 36,
                                 fontWeight: FontWeight.w700,
-                                fontFamily: 'WorkSans',
+                                fontFamily: 'Alumni Sans',
                                 color: Colors.black87,
                                 height: 1.3,
                               ),
@@ -101,12 +99,12 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                             const SizedBox(height: 18),
 
                             Text(
-                              data["desc"]!,
+                              data["descKey"]!.tr(),
                               textAlign: TextAlign.center,
                               style: const TextStyle(
                                 fontSize: 16,
                                 height: 1.6,
-                                fontFamily: 'WorkSans',
+                                fontFamily: 'Alegreya',
                                 color: Colors.black54,
                               ),
                             ),
@@ -164,14 +162,14 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                         transitionBuilder: (child, animation) =>
                             FadeTransition(opacity: animation, child: child),
                         child: _currentPage == 2
-                            ? const Text(
-                          "Bắt đầu",
-                          key: ValueKey('start'),
-                          style: TextStyle(
+                            ? Text(
+                          'start_button'.tr(),
+                          key: const ValueKey('start'),
+                          style: const TextStyle(
                             color: Colors.white,
                             fontSize: 20,
                             fontWeight: FontWeight.w600,
-                            fontFamily: 'WorkSans',
+                            fontFamily: 'Alegreya',
                           ),
                         )
                             : const Icon(

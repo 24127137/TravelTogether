@@ -122,13 +122,13 @@ class _DestinationSearchModalState extends State<DestinationSearchModal> {
             ),
           ),
 
-          // Cream-colored container wrapping the list (like in the image)
+
           Expanded(
             child: Container(
               margin: const EdgeInsets.symmetric(horizontal: 16),
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
               decoration: BoxDecoration(
-                color: kCardColor, // Màu kem bao bọc
+                color: kCardColor,
                 borderRadius: BorderRadius.circular(20),
               ),
               child: _results.isEmpty

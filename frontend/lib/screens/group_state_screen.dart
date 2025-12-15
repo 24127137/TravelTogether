@@ -1,21 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
-<<<<<<< HEAD
-<<<<<<< HEAD
-import '../services/user_service.dart';
-import '../services/group_service.dart';
-import '../services/auth_service.dart';
-=======
-=======
->>>>>>> 274291d (update)
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../services/auth_service.dart';
 import '../config/api_config.dart';
-<<<<<<< HEAD
->>>>>>> 3ee7efe (done all groupapis)
-=======
->>>>>>> 274291d (update)
 
 class GroupStateScreen extends StatefulWidget {
   final VoidCallback? onBack;
@@ -30,106 +18,19 @@ class GroupStateScreen extends StatefulWidget {
 }
 
 class _GroupStateScreenState extends State<GroupStateScreen> {
-  final UserService _userService = UserService();
-  final GroupService _groupService = GroupService();
-
-<<<<<<< HEAD
-<<<<<<< HEAD
-  List<GroupApplication> _applications = [];
-=======
-  List<GroupApplication> applications = [];
->>>>>>> 3ee7efe (done all groupapis)
-  List<GroupApplication> _filteredApplications = [];
-  bool _isLoading = true;
-  String? _errorMessage;
-
   final TextEditingController _searchController = TextEditingController();
-  bool _isLoading = true;
-=======
+
   List<GroupApplication> applications = [];
   List<GroupApplication> _filteredApplications = [];
   bool _isLoading = true;
   String? _errorMessage;
->>>>>>> 274291d (update)
 
   @override
   void initState() {
     super.initState();
-<<<<<<< HEAD
-<<<<<<< HEAD
-    _loadData();
-  }
-
-  Future<void> _loadData() async {
-    final token = await AuthService.getValidAccessToken();
-    if (token == null) return;
-
-    try {
-      final profile = await _userService.getUserProfile();
-      if (profile != null) {
-        List requests = profile['pending_requests'] ?? [];
-
-        // Chuyển đổi dữ liệu JSON sang Model
-        List<GroupApplication> loadedApps = [];
-
-        for (var req in requests) {
-          // Chỉ lấy những yêu cầu đang PENDING
-          // (Thực ra trong DB thường chỉ lưu pending, nhưng check cho chắc)
-          if (req['status'] == 'pending') {
-            loadedApps.add(GroupApplication(
-              id: req['group_id'].toString(), // ID nhóm
-              groupName: req['group_name'] ?? 'Nhóm chưa đặt tên',
-              status: ApplicationStatus.pending,
-              // Avatar tạm thời để null, sẽ load sau
-              avatar: null,
-            ));
-          }
-        }
-
-        if (mounted) {
-          setState(() {
-            _applications = loadedApps;
-            _filteredApplications = List.from(loadedApps);
-            _isLoading = false;
-          });
-        }
-      }
-    } catch (e) {
-      print("Lỗi load pending requests: $e");
-      if (mounted) setState(() => _isLoading = false);
-    }
-  }
-
-  Future<void> _deleteApplication(String groupIdStr) async {
-    final token = await AuthService.getValidAccessToken();
-    if (token == null) return;
-
-    int groupId = int.parse(groupIdStr);
-
-    // Gọi API hủy
-    bool success = await _groupService.cancelJoinRequest(token, groupId);
-
-    if (success) {
-      setState(() {
-        _applications.removeWhere((app) => app.id == groupIdStr);
-        _filteredApplications.removeWhere((app) => app.id == groupIdStr);
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Đã hủy yêu cầu'.tr()), backgroundColor: Colors.green),
-      );
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Lỗi khi hủy yêu cầu'.tr()), backgroundColor: Colors.red),
-      );
-=======
     _fetchPendingRequests();
   }
 
-=======
-    _fetchPendingRequests();
-  }
-
->>>>>>> 274291d (update)
   Future<void> _fetchPendingRequests() async {
     setState(() {
       _isLoading = true;
@@ -155,7 +56,6 @@ class _GroupStateScreenState extends State<GroupStateScreen> {
 
         if (pendingRequests != null) {
           List<GroupApplication> tempApplications = [];
-<<<<<<< HEAD
           
           for (var i = 0; i < pendingRequests.length; i++) {
             final item = pendingRequests[i];
@@ -165,17 +65,6 @@ class _GroupStateScreenState extends State<GroupStateScreen> {
             final requestId = item['id']?.toString() ?? '';
             final groupId = item['group_id']?.toString() ?? '';
             
-=======
-
-          for (var i = 0; i < pendingRequests.length; i++) {
-            final item = pendingRequests[i];
-
-            print('📦 Pending request item $i: $item');
-
-            final requestId = item['id']?.toString() ?? '';
-            final groupId = item['group_id']?.toString() ?? '';
-
->>>>>>> 274291d (update)
             String uniqueId;
             if (groupId.isNotEmpty) {
               uniqueId = groupId;
@@ -184,7 +73,6 @@ class _GroupStateScreenState extends State<GroupStateScreen> {
             } else {
               uniqueId = 'request_$i';
             }
-<<<<<<< HEAD
             
             print('📦 Using ID: $uniqueId (request_id: "$requestId", group_id: "$groupId")');
             
@@ -194,17 +82,6 @@ class _GroupStateScreenState extends State<GroupStateScreen> {
               groupName: item['group_name']?.toString() ?? 
                         item['groupName']?.toString() ?? 
                         'Unknown Group',
-=======
-
-            print('📦 Using ID: $uniqueId (request_id: "$requestId", group_id: "$groupId")');
-
-            tempApplications.add(GroupApplication(
-              id: uniqueId,
-              groupId: groupId.isNotEmpty ? groupId : null,
-              groupName: item['group_name']?.toString() ??
-                  item['groupName']?.toString() ??
-                  'Unknown Group',
->>>>>>> 274291d (update)
               avatar: 'https://placehold.co/60x60',
               status: _parseStatus(item['status']),
             ));
@@ -246,19 +123,11 @@ class _GroupStateScreenState extends State<GroupStateScreen> {
 
       try {
         final groupUrl = Uri.parse('${ApiConfig.baseUrl}/groups/${app.groupId}/public-plan');
-<<<<<<< HEAD
         
         print('🔍 Fetching group image for: ${app.groupName}');
         print('🔍 Group ID: ${app.groupId}');
         print('🔍 Full URL: $groupUrl');
         
-=======
-
-        print('🔍 Fetching group image for: ${app.groupName}');
-        print('🔍 Group ID: ${app.groupId}');
-        print('🔍 Full URL: $groupUrl');
-
->>>>>>> 274291d (update)
         final response = await http.get(
           groupUrl,
           headers: {
@@ -268,7 +137,6 @@ class _GroupStateScreenState extends State<GroupStateScreen> {
         );
 
         print('🔍 Response status: ${response.statusCode}');
-<<<<<<< HEAD
         
         if (response.statusCode == 200) {
           final groupData = json.decode(utf8.decode(response.bodyBytes));
@@ -276,15 +144,6 @@ class _GroupStateScreenState extends State<GroupStateScreen> {
           
           final groupImageUrl = groupData['group_image_url']?.toString();
           
-=======
-
-        if (response.statusCode == 200) {
-          final groupData = json.decode(utf8.decode(response.bodyBytes));
-          print('🔍 Response data: $groupData');
-
-          final groupImageUrl = groupData['group_image_url']?.toString();
-
->>>>>>> 274291d (update)
           if (groupImageUrl != null && groupImageUrl.isNotEmpty) {
             app.avatar = groupImageUrl;
             print('✅ Loaded image for ${app.groupName}: $groupImageUrl');
@@ -306,11 +165,7 @@ class _GroupStateScreenState extends State<GroupStateScreen> {
 
   ApplicationStatus _parseStatus(dynamic status) {
     if (status == null) return ApplicationStatus.pending;
-<<<<<<< HEAD
     
-=======
-
->>>>>>> 274291d (update)
     final statusStr = status.toString().toLowerCase();
     switch (statusStr) {
       case 'accepted':
@@ -332,20 +187,12 @@ class _GroupStateScreenState extends State<GroupStateScreen> {
     print('🗑️ Current applications IDs: ${applications.map((a) => '"${a.id}"').toList()}');
 
     final deletedAppIndex = applications.indexWhere((app) => app.id == id);
-<<<<<<< HEAD
     
-=======
-
->>>>>>> 274291d (update)
     if (deletedAppIndex == -1) {
       print('❌ Application with ID "$id" not found!');
       return;
     }
-<<<<<<< HEAD
     
-=======
-
->>>>>>> 274291d (update)
     final deletedApp = applications[deletedAppIndex];
 
     if (deletedApp.groupId == null || deletedApp.groupId!.isEmpty) {
@@ -361,11 +208,7 @@ class _GroupStateScreenState extends State<GroupStateScreen> {
       }
       return;
     }
-<<<<<<< HEAD
     
-=======
-
->>>>>>> 274291d (update)
     print('🗑️ Found item to delete: ${deletedApp.groupName}');
     print('🗑️ Group ID: ${deletedApp.groupId}');
     print('🗑️ At index: $deletedAppIndex');
@@ -374,11 +217,7 @@ class _GroupStateScreenState extends State<GroupStateScreen> {
       applications.removeWhere((app) => app.id == id);
       _filteredApplications.removeWhere((app) => app.id == id);
     });
-<<<<<<< HEAD
     
-=======
-
->>>>>>> 274291d (update)
     print('🔄 UI updated - applications count: ${applications.length}');
 
     try {
@@ -407,11 +246,7 @@ class _GroupStateScreenState extends State<GroupStateScreen> {
 
       if (response.statusCode == 200) {
         print('✅ Successfully cancelled request');
-<<<<<<< HEAD
         
-=======
-
->>>>>>> 274291d (update)
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -429,11 +264,7 @@ class _GroupStateScreenState extends State<GroupStateScreen> {
           applications.insert(deletedAppIndex, deletedApp);
           _filteredApplications = List.from(applications);
         });
-<<<<<<< HEAD
         
-=======
-
->>>>>>> 274291d (update)
         print('🔄 Rollback - applications count: ${applications.length}');
 
         if (mounted) {
@@ -453,11 +284,7 @@ class _GroupStateScreenState extends State<GroupStateScreen> {
         applications.insert(deletedAppIndex, deletedApp);
         _filteredApplications = List.from(applications);
       });
-<<<<<<< HEAD
       
-=======
-
->>>>>>> 274291d (update)
       print('🔄 Rollback after error - applications count: ${applications.length}');
 
       if (mounted) {
@@ -469,10 +296,6 @@ class _GroupStateScreenState extends State<GroupStateScreen> {
           ),
         );
       }
-<<<<<<< HEAD
->>>>>>> 3ee7efe (done all groupapis)
-=======
->>>>>>> 274291d (update)
     }
   }
 
@@ -480,9 +303,9 @@ class _GroupStateScreenState extends State<GroupStateScreen> {
     final q = query.trim().toLowerCase();
     setState(() {
       if (q.isEmpty) {
-        _filteredApplications = List.from(_applications);
+        _filteredApplications = List.from(applications);
       } else {
-        _filteredApplications = _applications
+        _filteredApplications = applications
             .where((app) => app.groupName.toLowerCase().contains(q))
             .toList();
       }
@@ -499,7 +322,7 @@ class _GroupStateScreenState extends State<GroupStateScreen> {
         height: double.infinity,
         decoration: const BoxDecoration(
           image: DecorationImage(
-            image: AssetImage("assets/images/state_background.jpg"),
+            image: AssetImage("assets/images/state_background.png"),
             fit: BoxFit.cover,
           ),
         ),
@@ -507,19 +330,26 @@ class _GroupStateScreenState extends State<GroupStateScreen> {
           bottom: false,
           child: Column(
             children: [
-              // Header
+              // Header với nút back
               Padding(
                 padding: const EdgeInsets.fromLTRB(18, 20, 18, 0),
                 child: Row(
                   children: [
                     GestureDetector(
                       onTap: () {
-                        if (widget.onBack != null) widget.onBack!();
-                        else Navigator.pop(context);
+                        if (widget.onBack != null) {
+                          widget.onBack!();
+                        } else {
+                          Navigator.pop(context);
+                        }
                       },
                       child: Container(
-                        width: 44, height: 44,
-                        decoration: const BoxDecoration(color: Color(0xFFF6F6F8), shape: BoxShape.circle),
+                        width: 44,
+                        height: 44,
+                        decoration: const BoxDecoration(
+                          color: Color(0xFFF6F6F8),
+                          shape: BoxShape.circle,
+                        ),
                         child: const Icon(Icons.arrow_back, color: Colors.black),
                       ),
                     ),
@@ -537,44 +367,36 @@ class _GroupStateScreenState extends State<GroupStateScreen> {
                         child: const Icon(Icons.refresh, color: Colors.black),
                       ),
                     ),
-<<<<<<< HEAD
-=======
-                    const Spacer(),
-                    // Nút refresh
-                    GestureDetector(
-                      onTap: _fetchPendingRequests,
-                      child: Container(
-                        width: 44,
-                        height: 44,
-                        decoration: const BoxDecoration(
-                          color: Color(0xFFF6F6F8),
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(Icons.refresh, color: Colors.black),
-                      ),
-                    ),
->>>>>>> 274291d (update)
                   ],
                 ),
               ),
 
               Padding(
-                padding: const EdgeInsets.only(top: 10),
+                padding: EdgeInsets.only(top: 10),
                 child: Text(
                   'group_list'.tr(),
-                  style: const TextStyle(fontSize: 60, fontFamily: 'Alumni Sans', fontWeight: FontWeight.w800, color: Color(0xFFB99668)),
+                  style: TextStyle(
+                    fontSize: 60,
+                    fontFamily: 'Alumni Sans',
+                    fontWeight: FontWeight.w800,
+                    color: Color(0xFFB99668),
+                  ),
                 ),
               ),
 
               Padding(
-                padding: const EdgeInsets.only(top: 0),
+                padding: EdgeInsets.only(top: 0),
                 child: Text(
-                  'pending_groups'.tr(), // "Các nhóm đang chờ duyệt"
-                  style: const TextStyle(fontSize: 32, fontFamily: 'Alegreya', fontWeight: FontWeight.w600, color: Colors.black),
+                  'pending_groups'.tr(),
+                  style: TextStyle(
+                    fontSize: 32,
+                    fontFamily: 'Alegreya',
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black,
+                  ),
                 ),
               ),
 
-              // Search Bar
               Padding(
                 padding: const EdgeInsets.fromLTRB(15, 16, 15, 0),
                 child: Container(
@@ -596,7 +418,7 @@ class _GroupStateScreenState extends State<GroupStateScreen> {
                           decoration: InputDecoration(
                             hintText: 'search_group'.tr(),
                             border: InputBorder.none,
-                            hintStyle: const TextStyle(color: Color(0xFF8A724C)),
+                            hintStyle: TextStyle(color: Color(0xFF8A724C)),
                           ),
                         ),
                       ),
@@ -607,7 +429,7 @@ class _GroupStateScreenState extends State<GroupStateScreen> {
 
               const SizedBox(height: 8),
 
-              // List
+              // List với padding bottom 100
               Expanded(
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(12, 8, 12, 130),
@@ -617,24 +439,6 @@ class _GroupStateScreenState extends State<GroupStateScreen> {
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: _isLoading
-<<<<<<< HEAD
-<<<<<<< HEAD
-                        ? const Center(child: CircularProgressIndicator(color: Color(0xFFB99668)))
-                        : _filteredApplications.isEmpty
-                        ? Center(child: Text('no_requests'.tr(), style: TextStyle(fontSize: 16, color: Colors.grey[600])))
-                        : ListView.separated(
-                      padding: const EdgeInsets.all(16),
-                      itemCount: _filteredApplications.length,
-                      separatorBuilder: (context, index) => const SizedBox(height: 12),
-                      itemBuilder: (context, index) {
-                        // Dùng Widget Stateful để tự load ảnh
-                        return ApplicationCard(
-                          application: _filteredApplications[index],
-                          onDelete: () => _deleteApplication(_filteredApplications[index].id),
-                        );
-                      },
-                    ),
-=======
                         ? const Center(
                             child: CircularProgressIndicator(
                               color: Color(0xFFB99668),
@@ -695,69 +499,6 @@ class _GroupStateScreenState extends State<GroupStateScreen> {
                                       );
                                     },
                                   ),
->>>>>>> 3ee7efe (done all groupapis)
-=======
-                        ? const Center(
-                      child: CircularProgressIndicator(
-                        color: Color(0xFFB99668),
-                      ),
-                    )
-                        : _errorMessage != null
-                        ? Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.error_outline,
-                            size: 48,
-                            color: Colors.red[300],
-                          ),
-                          const SizedBox(height: 16),
-                          Text(
-                            _errorMessage!,
-                            style: TextStyle(
-                              fontSize: 16,
-                              color: Colors.red[600],
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                          const SizedBox(height: 16),
-                          ElevatedButton(
-                            onPressed: _fetchPendingRequests,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFFB99668),
-                            ),
-                            child: Text('retry'.tr()),
-                          ),
-                        ],
-                      ),
-                    )
-                        : _filteredApplications.isEmpty
-                        ? Center(
-                      child: Text(
-                        'no_requests'.tr(),
-                        style: TextStyle(
-                          fontSize: 16,
-                          color: Colors.grey[600],
-                        ),
-                      ),
-                    )
-                        : ListView.separated(
-                      padding: const EdgeInsets.all(16),
-                      itemCount: _filteredApplications.length,
-                      separatorBuilder: (context, index) =>
-                      const SizedBox(height: 12),
-                      itemBuilder: (context, index) {
-                        final app = _filteredApplications[index];
-                        return ApplicationCard(
-                          application: app,
-                          onDelete: () async {
-                            await _deleteApplication(app.id);
-                          },
-                        );
-                      },
-                    ),
->>>>>>> 274291d (update)
                   ),
                 ),
               ),
@@ -775,8 +516,7 @@ class _GroupStateScreenState extends State<GroupStateScreen> {
   }
 }
 
-// === CARD HIỂN THỊ (Stateful để Load Ảnh) ===
-class ApplicationCard extends StatefulWidget {
+class ApplicationCard extends StatelessWidget {
   final GroupApplication application;
   final Future<void> Function() onDelete;
 
@@ -787,77 +527,46 @@ class ApplicationCard extends StatefulWidget {
   }) : super(key: key);
 
   @override
-  State<ApplicationCard> createState() => _ApplicationCardState();
-}
-
-class _ApplicationCardState extends State<ApplicationCard> {
-  final GroupService _groupService = GroupService();
-  String? _fetchedImage;
-
-  @override
-  void initState() {
-    super.initState();
-    if (widget.application.avatar == null) {
-      _loadGroupImage();
-    }
-  }
-
-  Future<void> _loadGroupImage() async {
-    String? token = await AuthService.getValidAccessToken();
-    if (token != null) {
-      try {
-        int groupId = int.parse(widget.application.id);
-        final data = await _groupService.getGroupPlanById(token, groupId);
-        if (data != null && data['group_image_url'] != null && mounted) {
-          setState(() {
-            _fetchedImage = data['group_image_url'];
-          });
-        }
-      } catch (_) {}
-    }
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final displayImage = _fetchedImage ?? widget.application.avatar;
-    final hasImage = displayImage != null && displayImage.isNotEmpty;
-
     return Dismissible(
-      key: Key(widget.application.id),
+      key: Key(application.id),
       direction: DismissDirection.endToStart,
       confirmDismiss: (direction) async {
         return await showDialog(
           context: context,
           builder: (BuildContext context) {
             return AlertDialog(
-              title: Text('confirm_delete'.tr()), // "Xác nhận hủy?"
-              content: Text('delete_request_message'.tr()), // "Bạn có chắc muốn hủy yêu cầu này?"
+              title: Text('confirm_delete'.tr()),
+              content: Text('delete_request_message'.tr()),
               actions: [
-                TextButton(onPressed: () => Navigator.of(context).pop(false), child: Text('cancel'.tr())),
-                TextButton(onPressed: () => Navigator.of(context).pop(true), child: Text('delete'.tr(), style: const TextStyle(color: Colors.red))),
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(false),
+                  child: Text('cancel'.tr()),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(true),
+                  child: Text('delete'.tr()),
+                ),
               ],
             );
           },
         );
       },
-<<<<<<< HEAD
-<<<<<<< HEAD
-      onDismissed: (direction) => widget.onDelete(),
-=======
       onDismissed: (direction) async {
         await onDelete();
       },
->>>>>>> 3ee7efe (done all groupapis)
-=======
-      onDismissed: (direction) async {
-        await onDelete();
-      },
->>>>>>> 274291d (update)
       background: Container(
-        decoration: BoxDecoration(color: Colors.red, borderRadius: BorderRadius.circular(5)),
+        decoration: BoxDecoration(
+          color: Colors.red,
+          borderRadius: BorderRadius.circular(5),
+        ),
         alignment: Alignment.centerRight,
         padding: const EdgeInsets.only(right: 20),
-        child: const Icon(Icons.delete, color: Colors.white, size: 32),
+        child: const Icon(
+          Icons.delete,
+          color: Colors.white,
+          size: 32,
+        ),
       ),
       child: Container(
         padding: const EdgeInsets.all(16),
@@ -869,14 +578,13 @@ class _ApplicationCardState extends State<ApplicationCard> {
           children: [
             // Avatar với loading indicator và error handling
             Container(
-              width: 60, height: 60,
+              width: 60,
+              height: 60,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 color: const Color(0xFFD9CBB3),
                 image: DecorationImage(
-                  image: hasImage
-                      ? NetworkImage(displayImage!) as ImageProvider
-                      : const AssetImage('assets/images/default_group.jpg'),
+                  image: NetworkImage(application.avatar),
                   fit: BoxFit.cover,
                   onError: (exception, stackTrace) {
                     print('❌ Error loading image: $exception');
@@ -885,84 +593,109 @@ class _ApplicationCardState extends State<ApplicationCard> {
               ),
               child: application.avatar == 'https://placehold.co/60x60'
                   ? const Icon(
-<<<<<<< HEAD
                       Icons.group,
                       size: 30,
                       color: Colors.white,
                     )
-=======
-                Icons.group,
-                size: 30,
-                color: Colors.white,
-              )
->>>>>>> 274291d (update)
                   : null,
             ),
+
             const SizedBox(width: 16),
+
             // Group name
             Expanded(
               child: Text(
-                widget.application.groupName,
-                style: const TextStyle(color: Color(0xFF222222), fontSize: 18, fontFamily: 'DM Sans', fontWeight: FontWeight.w500),
+                application.groupName,
+                style: const TextStyle(
+                  color: Color(0xFF222222),
+                  fontSize: 18,
+                  fontFamily: 'DM Sans',
+                  fontWeight: FontWeight.w500,
+                ),
               ),
             ),
+
             const SizedBox(width: 12),
-            // Status badge (Luôn là Pending)
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(color: const Color(0xFFCD7F32), borderRadius: BorderRadius.circular(30)),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(Icons.access_time, size: 12, color: Colors.black),
-                  const SizedBox(width: 4),
-                  Text('status_pending'.tr(), style: const TextStyle(color: Colors.black, fontSize: 10, fontFamily: 'DM Sans', fontWeight: FontWeight.w500)),
-                ],
-              ),
-            ),
+
+            // Status badge
+            _buildStatusBadge(application.status),
           ],
         ),
       ),
     );
   }
+
+  Widget _buildStatusBadge(ApplicationStatus status) {
+    Color bgColor;
+    String text;
+    IconData icon;
+
+    switch (status) {
+      case ApplicationStatus.accepted:
+        bgColor = const Color(0xFF00674F);
+        text = 'status_accepted'.tr();
+        icon = Icons.check;
+        break;
+      case ApplicationStatus.rejected:
+        bgColor = const Color(0xFFB64B12);
+        text = 'status_rejected'.tr();
+        icon = Icons.close;
+        break;
+      case ApplicationStatus.pending:
+        bgColor = const Color(0xFFCD7F32);
+        text = 'status_pending'.tr();
+        icon = Icons.access_time;
+        break;
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(30),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            icon,
+            size: 12,
+            color: Colors.black,
+          ),
+          const SizedBox(width: 4),
+          Text(
+            text,
+            style: const TextStyle(
+              color: Colors.black,
+              fontSize: 10,
+              fontFamily: 'DM Sans',
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-// Models
-enum ApplicationStatus { pending, accepted, rejected }
-=======
-=======
->>>>>>> 274291d (update)
 enum ApplicationStatus {
   pending,
   accepted,
   rejected,
 }
->>>>>>> 3ee7efe (done all groupapis)
 
 class GroupApplication {
   final String id;
-<<<<<<< HEAD
   final String? groupId; 
   final String groupName;
-<<<<<<< HEAD
-  final String? avatar; // Cho phép null
-=======
   String avatar; 
->>>>>>> 3ee7efe (done all groupapis)
-=======
-  final String? groupId;
-  final String groupName;
-  String avatar;
->>>>>>> 274291d (update)
   final ApplicationStatus status;
 
   GroupApplication({
     required this.id,
     this.groupId,
     required this.groupName,
-    this.avatar,
+    required this.avatar,
     required this.status,
   });
 }

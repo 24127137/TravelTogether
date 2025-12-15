@@ -5,7 +5,6 @@ import '../config/api_config.dart';
 class GroupService {
   final String baseUrl = ApiConfig.baseUrl;
 
-<<<<<<< HEAD
   // 1. Lấy chi tiết nhóm (để check status: open, closed, expired)
   Future<Map<String, dynamic>?> getMyGroupDetail(String token) async {
     try {
@@ -32,12 +31,6 @@ class GroupService {
   // 2. Lấy Plan theo ID (Dùng khi status = open)
   Future<Map<String, dynamic>?> getGroupPlanById(String token, int groupId) async {
     try {
-=======
-  // Lấy kế hoạch của nhóm mình đang tham gia
-  Future<Map<String, dynamic>?> getGroupPlanById(String token, int groupId) async {
-    try {
-      // Gọi vào endpoint: /groups/{id}/public-plan
->>>>>>> 3ee7efe (done all groupapis)
       final url = Uri.parse('$baseUrl/groups/$groupId/public-plan');
       final response = await http.get(
         url,
@@ -49,7 +42,6 @@ class GroupService {
 
       if (response.statusCode == 200) {
         return jsonDecode(utf8.decode(response.bodyBytes));
-<<<<<<< HEAD
       }
       return null;
     } catch (e) {
@@ -77,15 +69,4 @@ class GroupService {
       return false;
     }
   }
-=======
-      } else {
-        print('❌ Lỗi lấy Public Plan: ${response.statusCode}');
-        return null;
-      }
-    } catch (e) {
-      print('❌ Exception GroupService: $e');
-      return null;
-    }
-  }
->>>>>>> 3ee7efe (done all groupapis)
 }

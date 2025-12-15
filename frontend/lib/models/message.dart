@@ -8,10 +8,11 @@ class Message {
   final bool isOnline;
   final bool isUser;
   final String? imageUrl;
-  final String messageType; // 'text' hoặc 'image'
-  final String? senderAvatarUrl; // === THÊM MỚI: Avatar của người gửi ===
-  final bool isSeen; // === THÊM MỚI: Trạng thái đã seen hay chưa ===
-  final DateTime? createdAt; // === THÊM MỚI: Thời gian tạo tin nhắn (để group theo ngày) ===
+  final String messageType; // 'text', 'image', 'system', 'leave_group', 'join_group'
+  final String? senderAvatarUrl; //Avatar của người gửi
+  final bool isSeen; //Trạng thái đã seen hay chưa
+  final DateTime? createdAt; //Thời gian tạo tin nhắn (để group theo ngày)
+  final String? senderName; //Tên người gửi (dùng cho system message)
 
   const Message({
     required this.sender,
@@ -23,8 +24,16 @@ class Message {
     this.messageType = 'text',
     this.senderAvatarUrl,
     this.isSeen = true,
-    this.createdAt, // === THÊM MỚI ===
+    this.createdAt, 
+    this.senderName, 
   });
+
+  //Kiểm tra có phải system message không
+  bool get isSystemMessage =>
+      messageType == 'system' ||
+      messageType == 'leave_group' ||
+      messageType == 'join_group' ||
+      messageType == 'kick_member';
 
   /// Create a Message from a dynamic map (e.g., Firestore document) safely.
   factory Message.fromMap(Map<String, dynamic>? map) {
@@ -49,12 +58,13 @@ class Message {
     final isUser = parseBool(map['isUser'] ?? map['userIs'] ?? map['fromUser']);
     final isOnline = parseBool(map['isOnline'] ?? map['online']);
 
-    // === THÊM MỚI (GĐ 13): Parse imageUrl và messageType ===
+
     final imageUrl = map['image_url']?.toString();
     final messageType = map['message_type']?.toString() ?? 'text';
     final senderAvatarUrl = map['sender_avatar_url']?.toString();
+    final senderName = map['sender_name']?.toString(); 
 
-    // === THÊM MỚI: Parse createdAt ===
+    //Parse createdAt
     DateTime? createdAt;
     if (map['created_at'] != null) {
       try {
@@ -73,7 +83,8 @@ class Message {
       imageUrl: imageUrl,
       messageType: messageType,
       senderAvatarUrl: senderAvatarUrl,
-      createdAt: createdAt, // === THÊM MỚI ===
+      createdAt: createdAt,
+      senderName: senderName, 
     );
   }
 }

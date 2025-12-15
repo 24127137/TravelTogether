@@ -1,29 +1,39 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 import 'enter_bar.dart';
 import '../config/api_config.dart';
 import '../services/auth_service.dart';
+import '../services/chat_system_message_service.dart';
 
 class OutGroupDialog extends StatelessWidget {
   final VoidCallback? onConfirm;
   final bool isHost;
+  final String groupId;
+  final String? memberName; // Tên thành viên để gửi system message
 
   const OutGroupDialog({
     super.key,
     this.onConfirm,
     this.isHost = false,
+    required this.groupId,
+    this.memberName,
   });
 
   static void show(
     BuildContext context, {
+    required String groupId,
     bool isHost = false,
+    String? memberName,
     VoidCallback? onSuccess,
   }) {
     showDialog(
       context: context,
       barrierDismissible: true,
       builder: (dialogContext) => OutGroupDialog(
+        groupId: groupId,
         isHost: isHost,
+        memberName: memberName,
         onConfirm: onSuccess,
       ),
     );
@@ -34,7 +44,19 @@ class OutGroupDialog extends StatelessWidget {
 
     try {
       final accessToken = await AuthService.getValidAccessToken();
-      final endpoint = isHost ? '/groups/dissolve' : '/groups/leave';
+
+      //  Gửi system message TRƯỚC khi rời nhóm
+      if (memberName != null && memberName!.isNotEmpty && !isHost) {
+        print('📤 Sending leave group system message for: $memberName');
+        await ChatSystemMessageService.sendLeaveGroupMessage(
+          groupId: groupId,
+          memberName: memberName!,
+        );
+      }
+
+      final endpoint = isHost
+                              ? '/groups/$groupId/dissolve'  // Owner
+                              : '/groups/$groupId/leave';     // Member
       final url = Uri.parse('${ApiConfig.baseUrl}$endpoint');
 
       print('🔄 Calling $endpoint');
@@ -52,6 +74,21 @@ class OutGroupDialog extends StatelessWidget {
 
       if (response.statusCode == 200) {
         print('✅ Success!');
+
+        //  Xóa cached data của group đã rời
+        try {
+          final prefs = await SharedPreferences.getInstance();
+          final cachedGroupId = prefs.getString('cached_group_id');
+          if (cachedGroupId == groupId) {
+            await prefs.remove('cached_group_id');
+            print('🗑️ Removed cached_group_id');
+          }
+          // Xóa last_seen_message_id của group này
+          await prefs.remove('last_seen_message_id_$groupId');
+          print('🗑️ Removed last_seen_message_id_$groupId');
+        } catch (e) {
+          print('⚠️ Error clearing cache: $e');
+        }
 
         if (onConfirm != null) {
           onConfirm!();
