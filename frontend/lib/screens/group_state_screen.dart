@@ -2,20 +2,26 @@ import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 import '../services/user_service.dart';
 import '../services/group_service.dart';
 import '../services/auth_service.dart';
 =======
 =======
 >>>>>>> 274291d (update)
+=======
+>>>>>>> week10
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../services/auth_service.dart';
 import '../config/api_config.dart';
 <<<<<<< HEAD
+<<<<<<< HEAD
 >>>>>>> 3ee7efe (done all groupapis)
 =======
 >>>>>>> 274291d (update)
+=======
+>>>>>>> week10
 
 class GroupStateScreen extends StatefulWidget {
   final VoidCallback? onBack;
@@ -30,6 +36,7 @@ class GroupStateScreen extends StatefulWidget {
 }
 
 class _GroupStateScreenState extends State<GroupStateScreen> {
+<<<<<<< HEAD
   final UserService _userService = UserService();
   final GroupService _groupService = GroupService();
 
@@ -46,15 +53,23 @@ class _GroupStateScreenState extends State<GroupStateScreen> {
   final TextEditingController _searchController = TextEditingController();
   bool _isLoading = true;
 =======
+=======
+  final TextEditingController _searchController = TextEditingController();
+
+>>>>>>> week10
   List<GroupApplication> applications = [];
   List<GroupApplication> _filteredApplications = [];
   bool _isLoading = true;
   String? _errorMessage;
+<<<<<<< HEAD
 >>>>>>> 274291d (update)
+=======
+>>>>>>> week10
 
   @override
   void initState() {
     super.initState();
+<<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
     _loadData();
@@ -130,6 +145,11 @@ class _GroupStateScreenState extends State<GroupStateScreen> {
   }
 
 >>>>>>> 274291d (update)
+=======
+    _fetchPendingRequests();
+  }
+
+>>>>>>> week10
   Future<void> _fetchPendingRequests() async {
     setState(() {
       _isLoading = true;
@@ -156,6 +176,9 @@ class _GroupStateScreenState extends State<GroupStateScreen> {
         if (pendingRequests != null) {
           List<GroupApplication> tempApplications = [];
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> week10
           
           for (var i = 0; i < pendingRequests.length; i++) {
             final item = pendingRequests[i];
@@ -165,6 +188,7 @@ class _GroupStateScreenState extends State<GroupStateScreen> {
             final requestId = item['id']?.toString() ?? '';
             final groupId = item['group_id']?.toString() ?? '';
             
+<<<<<<< HEAD
 =======
 
           for (var i = 0; i < pendingRequests.length; i++) {
@@ -176,6 +200,8 @@ class _GroupStateScreenState extends State<GroupStateScreen> {
             final groupId = item['group_id']?.toString() ?? '';
 
 >>>>>>> 274291d (update)
+=======
+>>>>>>> week10
             String uniqueId;
             if (groupId.isNotEmpty) {
               uniqueId = groupId;
@@ -185,6 +211,9 @@ class _GroupStateScreenState extends State<GroupStateScreen> {
               uniqueId = 'request_$i';
             }
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> week10
             
             print('📦 Using ID: $uniqueId (request_id: "$requestId", group_id: "$groupId")');
             
@@ -194,6 +223,7 @@ class _GroupStateScreenState extends State<GroupStateScreen> {
               groupName: item['group_name']?.toString() ?? 
                         item['groupName']?.toString() ?? 
                         'Unknown Group',
+<<<<<<< HEAD
 =======
 
             print('📦 Using ID: $uniqueId (request_id: "$requestId", group_id: "$groupId")');
@@ -205,6 +235,8 @@ class _GroupStateScreenState extends State<GroupStateScreen> {
                   item['groupName']?.toString() ??
                   'Unknown Group',
 >>>>>>> 274291d (update)
+=======
+>>>>>>> week10
               avatar: 'https://placehold.co/60x60',
               status: _parseStatus(item['status']),
             ));
@@ -247,11 +279,15 @@ class _GroupStateScreenState extends State<GroupStateScreen> {
       try {
         final groupUrl = Uri.parse('${ApiConfig.baseUrl}/groups/${app.groupId}/public-plan');
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> week10
         
         print('🔍 Fetching group image for: ${app.groupName}');
         print('🔍 Group ID: ${app.groupId}');
         print('🔍 Full URL: $groupUrl');
         
+<<<<<<< HEAD
 =======
 
         print('🔍 Fetching group image for: ${app.groupName}');
@@ -259,6 +295,8 @@ class _GroupStateScreenState extends State<GroupStateScreen> {
         print('🔍 Full URL: $groupUrl');
 
 >>>>>>> 274291d (update)
+=======
+>>>>>>> week10
         final response = await http.get(
           groupUrl,
           headers: {
@@ -269,6 +307,9 @@ class _GroupStateScreenState extends State<GroupStateScreen> {
 
         print('🔍 Response status: ${response.statusCode}');
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> week10
         
         if (response.statusCode == 200) {
           final groupData = json.decode(utf8.decode(response.bodyBytes));
@@ -276,6 +317,7 @@ class _GroupStateScreenState extends State<GroupStateScreen> {
           
           final groupImageUrl = groupData['group_image_url']?.toString();
           
+<<<<<<< HEAD
 =======
 
         if (response.statusCode == 200) {
@@ -285,6 +327,8 @@ class _GroupStateScreenState extends State<GroupStateScreen> {
           final groupImageUrl = groupData['group_image_url']?.toString();
 
 >>>>>>> 274291d (update)
+=======
+>>>>>>> week10
           if (groupImageUrl != null && groupImageUrl.isNotEmpty) {
             app.avatar = groupImageUrl;
             print('✅ Loaded image for ${app.groupName}: $groupImageUrl');
@@ -307,10 +351,14 @@ class _GroupStateScreenState extends State<GroupStateScreen> {
   ApplicationStatus _parseStatus(dynamic status) {
     if (status == null) return ApplicationStatus.pending;
 <<<<<<< HEAD
+<<<<<<< HEAD
     
 =======
 
 >>>>>>> 274291d (update)
+=======
+    
+>>>>>>> week10
     final statusStr = status.toString().toLowerCase();
     switch (statusStr) {
       case 'accepted':
@@ -333,19 +381,27 @@ class _GroupStateScreenState extends State<GroupStateScreen> {
 
     final deletedAppIndex = applications.indexWhere((app) => app.id == id);
 <<<<<<< HEAD
-    
-=======
-
->>>>>>> 274291d (update)
-    if (deletedAppIndex == -1) {
-      print('❌ Application with ID "$id" not found!');
-      return;
-    }
 <<<<<<< HEAD
     
 =======
 
 >>>>>>> 274291d (update)
+=======
+    
+>>>>>>> week10
+    if (deletedAppIndex == -1) {
+      print('❌ Application with ID "$id" not found!');
+      return;
+    }
+<<<<<<< HEAD
+<<<<<<< HEAD
+    
+=======
+
+>>>>>>> 274291d (update)
+=======
+    
+>>>>>>> week10
     final deletedApp = applications[deletedAppIndex];
 
     if (deletedApp.groupId == null || deletedApp.groupId!.isEmpty) {
@@ -362,10 +418,14 @@ class _GroupStateScreenState extends State<GroupStateScreen> {
       return;
     }
 <<<<<<< HEAD
+<<<<<<< HEAD
     
 =======
 
 >>>>>>> 274291d (update)
+=======
+    
+>>>>>>> week10
     print('🗑️ Found item to delete: ${deletedApp.groupName}');
     print('🗑️ Group ID: ${deletedApp.groupId}');
     print('🗑️ At index: $deletedAppIndex');
@@ -375,10 +435,14 @@ class _GroupStateScreenState extends State<GroupStateScreen> {
       _filteredApplications.removeWhere((app) => app.id == id);
     });
 <<<<<<< HEAD
+<<<<<<< HEAD
     
 =======
 
 >>>>>>> 274291d (update)
+=======
+    
+>>>>>>> week10
     print('🔄 UI updated - applications count: ${applications.length}');
 
     try {
@@ -408,10 +472,14 @@ class _GroupStateScreenState extends State<GroupStateScreen> {
       if (response.statusCode == 200) {
         print('✅ Successfully cancelled request');
 <<<<<<< HEAD
+<<<<<<< HEAD
         
 =======
 
 >>>>>>> 274291d (update)
+=======
+        
+>>>>>>> week10
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -430,10 +498,14 @@ class _GroupStateScreenState extends State<GroupStateScreen> {
           _filteredApplications = List.from(applications);
         });
 <<<<<<< HEAD
+<<<<<<< HEAD
         
 =======
 
 >>>>>>> 274291d (update)
+=======
+        
+>>>>>>> week10
         print('🔄 Rollback - applications count: ${applications.length}');
 
         if (mounted) {
@@ -454,10 +526,14 @@ class _GroupStateScreenState extends State<GroupStateScreen> {
         _filteredApplications = List.from(applications);
       });
 <<<<<<< HEAD
+<<<<<<< HEAD
       
 =======
 
 >>>>>>> 274291d (update)
+=======
+      
+>>>>>>> week10
       print('🔄 Rollback after error - applications count: ${applications.length}');
 
       if (mounted) {
@@ -470,9 +546,12 @@ class _GroupStateScreenState extends State<GroupStateScreen> {
         );
       }
 <<<<<<< HEAD
+<<<<<<< HEAD
 >>>>>>> 3ee7efe (done all groupapis)
 =======
 >>>>>>> 274291d (update)
+=======
+>>>>>>> week10
     }
   }
 
@@ -480,9 +559,15 @@ class _GroupStateScreenState extends State<GroupStateScreen> {
     final q = query.trim().toLowerCase();
     setState(() {
       if (q.isEmpty) {
+<<<<<<< HEAD
         _filteredApplications = List.from(_applications);
       } else {
         _filteredApplications = _applications
+=======
+        _filteredApplications = List.from(applications);
+      } else {
+        _filteredApplications = applications
+>>>>>>> week10
             .where((app) => app.groupName.toLowerCase().contains(q))
             .toList();
       }
@@ -499,7 +584,11 @@ class _GroupStateScreenState extends State<GroupStateScreen> {
         height: double.infinity,
         decoration: const BoxDecoration(
           image: DecorationImage(
+<<<<<<< HEAD
             image: AssetImage("assets/images/state_background.jpg"),
+=======
+            image: AssetImage("assets/images/state_background.png"),
+>>>>>>> week10
             fit: BoxFit.cover,
           ),
         ),
@@ -507,19 +596,39 @@ class _GroupStateScreenState extends State<GroupStateScreen> {
           bottom: false,
           child: Column(
             children: [
+<<<<<<< HEAD
               // Header
+=======
+              // Header với nút back
+>>>>>>> week10
               Padding(
                 padding: const EdgeInsets.fromLTRB(18, 20, 18, 0),
                 child: Row(
                   children: [
                     GestureDetector(
                       onTap: () {
+<<<<<<< HEAD
                         if (widget.onBack != null) widget.onBack!();
                         else Navigator.pop(context);
                       },
                       child: Container(
                         width: 44, height: 44,
                         decoration: const BoxDecoration(color: Color(0xFFF6F6F8), shape: BoxShape.circle),
+=======
+                        if (widget.onBack != null) {
+                          widget.onBack!();
+                        } else {
+                          Navigator.pop(context);
+                        }
+                      },
+                      child: Container(
+                        width: 44,
+                        height: 44,
+                        decoration: const BoxDecoration(
+                          color: Color(0xFFF6F6F8),
+                          shape: BoxShape.circle,
+                        ),
+>>>>>>> week10
                         child: const Icon(Icons.arrow_back, color: Colors.black),
                       ),
                     ),
@@ -538,6 +647,7 @@ class _GroupStateScreenState extends State<GroupStateScreen> {
                       ),
                     ),
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
                     const Spacer(),
                     // Nút refresh
@@ -554,19 +664,34 @@ class _GroupStateScreenState extends State<GroupStateScreen> {
                       ),
                     ),
 >>>>>>> 274291d (update)
+=======
+>>>>>>> week10
                   ],
                 ),
               ),
 
               Padding(
+<<<<<<< HEAD
                 padding: const EdgeInsets.only(top: 10),
                 child: Text(
                   'group_list'.tr(),
                   style: const TextStyle(fontSize: 60, fontFamily: 'Alumni Sans', fontWeight: FontWeight.w800, color: Color(0xFFB99668)),
+=======
+                padding: EdgeInsets.only(top: 10),
+                child: Text(
+                  'group_list'.tr(),
+                  style: TextStyle(
+                    fontSize: 60,
+                    fontFamily: 'Alumni Sans',
+                    fontWeight: FontWeight.w800,
+                    color: Color(0xFFB99668),
+                  ),
+>>>>>>> week10
                 ),
               ),
 
               Padding(
+<<<<<<< HEAD
                 padding: const EdgeInsets.only(top: 0),
                 child: Text(
                   'pending_groups'.tr(), // "Các nhóm đang chờ duyệt"
@@ -575,6 +700,20 @@ class _GroupStateScreenState extends State<GroupStateScreen> {
               ),
 
               // Search Bar
+=======
+                padding: EdgeInsets.only(top: 0),
+                child: Text(
+                  'pending_groups'.tr(),
+                  style: TextStyle(
+                    fontSize: 32,
+                    fontFamily: 'Alegreya',
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black,
+                  ),
+                ),
+              ),
+
+>>>>>>> week10
               Padding(
                 padding: const EdgeInsets.fromLTRB(15, 16, 15, 0),
                 child: Container(
@@ -596,7 +735,11 @@ class _GroupStateScreenState extends State<GroupStateScreen> {
                           decoration: InputDecoration(
                             hintText: 'search_group'.tr(),
                             border: InputBorder.none,
+<<<<<<< HEAD
                             hintStyle: const TextStyle(color: Color(0xFF8A724C)),
+=======
+                            hintStyle: TextStyle(color: Color(0xFF8A724C)),
+>>>>>>> week10
                           ),
                         ),
                       ),
@@ -607,7 +750,11 @@ class _GroupStateScreenState extends State<GroupStateScreen> {
 
               const SizedBox(height: 8),
 
+<<<<<<< HEAD
               // List
+=======
+              // List với padding bottom 100
+>>>>>>> week10
               Expanded(
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(12, 8, 12, 130),
@@ -617,6 +764,7 @@ class _GroupStateScreenState extends State<GroupStateScreen> {
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: _isLoading
+<<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
                         ? const Center(child: CircularProgressIndicator(color: Color(0xFFB99668)))
@@ -635,6 +783,8 @@ class _GroupStateScreenState extends State<GroupStateScreen> {
                       },
                     ),
 =======
+=======
+>>>>>>> week10
                         ? const Center(
                             child: CircularProgressIndicator(
                               color: Color(0xFFB99668),
@@ -695,6 +845,7 @@ class _GroupStateScreenState extends State<GroupStateScreen> {
                                       );
                                     },
                                   ),
+<<<<<<< HEAD
 >>>>>>> 3ee7efe (done all groupapis)
 =======
                         ? const Center(
@@ -758,6 +909,8 @@ class _GroupStateScreenState extends State<GroupStateScreen> {
                       },
                     ),
 >>>>>>> 274291d (update)
+=======
+>>>>>>> week10
                   ),
                 ),
               ),
@@ -775,8 +928,12 @@ class _GroupStateScreenState extends State<GroupStateScreen> {
   }
 }
 
+<<<<<<< HEAD
 // === CARD HIỂN THỊ (Stateful để Load Ảnh) ===
 class ApplicationCard extends StatefulWidget {
+=======
+class ApplicationCard extends StatelessWidget {
+>>>>>>> week10
   final GroupApplication application;
   final Future<void> Function() onDelete;
 
@@ -787,6 +944,7 @@ class ApplicationCard extends StatefulWidget {
   }) : super(key: key);
 
   @override
+<<<<<<< HEAD
   State<ApplicationCard> createState() => _ApplicationCardState();
 }
 
@@ -824,22 +982,42 @@ class _ApplicationCardState extends State<ApplicationCard> {
 
     return Dismissible(
       key: Key(widget.application.id),
+=======
+  Widget build(BuildContext context) {
+    return Dismissible(
+      key: Key(application.id),
+>>>>>>> week10
       direction: DismissDirection.endToStart,
       confirmDismiss: (direction) async {
         return await showDialog(
           context: context,
           builder: (BuildContext context) {
             return AlertDialog(
+<<<<<<< HEAD
               title: Text('confirm_delete'.tr()), // "Xác nhận hủy?"
               content: Text('delete_request_message'.tr()), // "Bạn có chắc muốn hủy yêu cầu này?"
               actions: [
                 TextButton(onPressed: () => Navigator.of(context).pop(false), child: Text('cancel'.tr())),
                 TextButton(onPressed: () => Navigator.of(context).pop(true), child: Text('delete'.tr(), style: const TextStyle(color: Colors.red))),
+=======
+              title: Text('confirm_delete'.tr()),
+              content: Text('delete_request_message'.tr()),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(false),
+                  child: Text('cancel'.tr()),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(true),
+                  child: Text('delete'.tr()),
+                ),
+>>>>>>> week10
               ],
             );
           },
         );
       },
+<<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
       onDismissed: (direction) => widget.onDelete(),
@@ -858,6 +1036,23 @@ class _ApplicationCardState extends State<ApplicationCard> {
         alignment: Alignment.centerRight,
         padding: const EdgeInsets.only(right: 20),
         child: const Icon(Icons.delete, color: Colors.white, size: 32),
+=======
+      onDismissed: (direction) async {
+        await onDelete();
+      },
+      background: Container(
+        decoration: BoxDecoration(
+          color: Colors.red,
+          borderRadius: BorderRadius.circular(5),
+        ),
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.only(right: 20),
+        child: const Icon(
+          Icons.delete,
+          color: Colors.white,
+          size: 32,
+        ),
+>>>>>>> week10
       ),
       child: Container(
         padding: const EdgeInsets.all(16),
@@ -869,14 +1064,23 @@ class _ApplicationCardState extends State<ApplicationCard> {
           children: [
             // Avatar với loading indicator và error handling
             Container(
+<<<<<<< HEAD
               width: 60, height: 60,
+=======
+              width: 60,
+              height: 60,
+>>>>>>> week10
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 color: const Color(0xFFD9CBB3),
                 image: DecorationImage(
+<<<<<<< HEAD
                   image: hasImage
                       ? NetworkImage(displayImage!) as ImageProvider
                       : const AssetImage('assets/images/default_group.jpg'),
+=======
+                  image: NetworkImage(application.avatar),
+>>>>>>> week10
                   fit: BoxFit.cover,
                   onError: (exception, stackTrace) {
                     print('❌ Error loading image: $exception');
@@ -886,10 +1090,14 @@ class _ApplicationCardState extends State<ApplicationCard> {
               child: application.avatar == 'https://placehold.co/60x60'
                   ? const Icon(
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> week10
                       Icons.group,
                       size: 30,
                       color: Colors.white,
                     )
+<<<<<<< HEAD
 =======
                 Icons.group,
                 size: 30,
@@ -920,11 +1128,36 @@ class _ApplicationCardState extends State<ApplicationCard> {
                 ],
               ),
             ),
+=======
+                  : null,
+            ),
+
+            const SizedBox(width: 16),
+
+            // Group name
+            Expanded(
+              child: Text(
+                application.groupName,
+                style: const TextStyle(
+                  color: Color(0xFF222222),
+                  fontSize: 18,
+                  fontFamily: 'DM Sans',
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+
+            const SizedBox(width: 12),
+
+            // Status badge
+            _buildStatusBadge(application.status),
+>>>>>>> week10
           ],
         ),
       ),
     );
   }
+<<<<<<< HEAD
 }
 
 <<<<<<< HEAD
@@ -934,11 +1167,68 @@ enum ApplicationStatus { pending, accepted, rejected }
 =======
 =======
 >>>>>>> 274291d (update)
+=======
+
+  Widget _buildStatusBadge(ApplicationStatus status) {
+    Color bgColor;
+    String text;
+    IconData icon;
+
+    switch (status) {
+      case ApplicationStatus.accepted:
+        bgColor = const Color(0xFF00674F);
+        text = 'status_accepted'.tr();
+        icon = Icons.check;
+        break;
+      case ApplicationStatus.rejected:
+        bgColor = const Color(0xFFB64B12);
+        text = 'status_rejected'.tr();
+        icon = Icons.close;
+        break;
+      case ApplicationStatus.pending:
+        bgColor = const Color(0xFFCD7F32);
+        text = 'status_pending'.tr();
+        icon = Icons.access_time;
+        break;
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(30),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            icon,
+            size: 12,
+            color: Colors.black,
+          ),
+          const SizedBox(width: 4),
+          Text(
+            text,
+            style: const TextStyle(
+              color: Colors.black,
+              fontSize: 10,
+              fontFamily: 'DM Sans',
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+>>>>>>> week10
 enum ApplicationStatus {
   pending,
   accepted,
   rejected,
 }
+<<<<<<< HEAD
 >>>>>>> 3ee7efe (done all groupapis)
 
 class GroupApplication {
@@ -956,13 +1246,25 @@ class GroupApplication {
   final String groupName;
   String avatar;
 >>>>>>> 274291d (update)
+=======
+
+class GroupApplication {
+  final String id;
+  final String? groupId; 
+  final String groupName;
+  String avatar; 
+>>>>>>> week10
   final ApplicationStatus status;
 
   GroupApplication({
     required this.id,
     this.groupId,
     required this.groupName,
+<<<<<<< HEAD
     this.avatar,
+=======
+    required this.avatar,
+>>>>>>> week10
     required this.status,
   });
 }

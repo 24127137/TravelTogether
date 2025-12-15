@@ -4,13 +4,17 @@ import 'dart:io';
 import 'edit_profile.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+<<<<<<< HEAD
 import 'package:shared_preferences/shared_preferences.dart';
+=======
+>>>>>>> week10
 import '../config/api_config.dart';
 import '../services/auth_service.dart';
 import 'package:easy_localization/easy_localization.dart';
 
 class ProfilePage extends StatefulWidget {
   final VoidCallback? onBack;
+<<<<<<< HEAD
   final Map<String, dynamic>? cachedData; // === THÊM MỚI: Cached profile data ===
 
   const ProfilePage({
@@ -18,6 +22,11 @@ class ProfilePage extends StatefulWidget {
     this.onBack,
     this.cachedData, // === THÊM MỚI ===
   });
+=======
+  final Map<String, dynamic>? cachedData;
+
+  const ProfilePage({super.key, this.onBack, this.cachedData});
+>>>>>>> week10
 
   @override
   State<ProfilePage> createState() => _ProfilePageState();
@@ -34,6 +43,10 @@ class _ProfilePageState extends State<ProfilePage> {
   String email = "";
   String description = "";
   List<String> interests = [];
+<<<<<<< HEAD
+=======
+  bool _isLoading = true;
+>>>>>>> week10
 
   // Mapping to translate stored interest values to translation keys
   final Map<String, String> _interestKeyByValueProfile = {
@@ -73,9 +86,53 @@ class _ProfilePageState extends State<ProfilePage> {
   @override
   void initState() {
     super.initState();
+<<<<<<< HEAD
     _fetchProfile();
   }
 
+=======
+
+    if (widget.cachedData != null) {
+      _loadFromCache(widget.cachedData!);
+      _isLoading = false;
+    }
+
+    _fetchProfile();
+  }
+
+  void _loadFromCache(Map<String, dynamic> data) {
+    setState(() {
+      fullName = data['fullname'] ?? fullName;
+      email = data['email'] ?? email;
+      description = data['description'] ?? description;
+
+      final serverGender = data['gender'];
+      if (serverGender == "male") {
+        gender = "male".tr();
+      } else if (serverGender == "female") {
+        gender = "female".tr();
+      } else {
+        gender = "other".tr();
+      }
+
+      final serverBirth = data['birth_date'] ?? data['birthday'];
+      if (serverBirth != null && serverBirth is String && serverBirth.isNotEmpty) {
+        try {
+          final dt = DateTime.parse(serverBirth);
+          birthDate = '${dt.day.toString().padLeft(2,'0')}/'
+              '${dt.month.toString().padLeft(2,'0')}/'
+              '${dt.year}';
+        } catch (_) {
+          birthDate = data['birthday'] ?? birthDate;
+        }
+      }
+
+      interests = List<String>.from(data['interests'] ?? interests);
+      _avatarNetworkUrl = data['avatar_url'] as String?;
+    });
+  }
+
+>>>>>>> week10
   @override
   Widget build(BuildContext context) {
     ImageProvider<Object>? avatarProvider;
@@ -86,6 +143,10 @@ class _ProfilePageState extends State<ProfilePage> {
     } else {
       avatarProvider = null;
     }
+<<<<<<< HEAD
+=======
+
+>>>>>>> week10
     return Scaffold(
       backgroundColor: bgColor,
       body: Stack(
@@ -118,7 +179,11 @@ class _ProfilePageState extends State<ProfilePage> {
                     ),
                     Padding(
                       padding:
+<<<<<<< HEAD
                       const EdgeInsets.symmetric(horizontal: 30, vertical: 10),
+=======
+                          const EdgeInsets.symmetric(horizontal: 30, vertical: 10),
+>>>>>>> week10
                       child: Container(
                         width: double.infinity,
                         height: 150,
@@ -176,7 +241,11 @@ class _ProfilePageState extends State<ProfilePage> {
                                   shape: BoxShape.circle,
                                   color: const Color(0xFF8A724C),
                                   border:
+<<<<<<< HEAD
                                   Border.all(color: Colors.white, width: 2),
+=======
+                                      Border.all(color: Colors.white, width: 2),
+>>>>>>> week10
                                 ),
                                 child: IconButton(
                                   icon: const Icon(Icons.arrow_back_ios_new,
@@ -204,7 +273,11 @@ class _ProfilePageState extends State<ProfilePage> {
                                   shape: BoxShape.circle,
                                   color: const Color(0xFF8A724C),
                                   border:
+<<<<<<< HEAD
                                   Border.all(color: Colors.white, width: 2),
+=======
+                                      Border.all(color: Colors.white, width: 2),
+>>>>>>> week10
                                 ),
                                 child: IconButton(
                                   icon: const Icon(Icons.edit_outlined,
@@ -226,7 +299,15 @@ class _ProfilePageState extends State<ProfilePage> {
                                       ),
                                     );
 
+<<<<<<< HEAD
                                     if (result != null) {
+=======
+                                    // Refresh profile khi quay lại từ trang edit
+                                    if (result != null || result == true) {
+                                      setState(() {
+                                        _isLoading = true;
+                                      });
+>>>>>>> week10
                                       await _fetchProfile();
                                     }
                                   },
@@ -245,6 +326,7 @@ class _ProfilePageState extends State<ProfilePage> {
                     SizedBox(
                       height: 550,
                       child: Expanded(
+<<<<<<< HEAD
                         child: SingleChildScrollView(
                           padding: const EdgeInsets.symmetric(horizontal: 30),
                           child: Container(
@@ -320,6 +402,95 @@ class _ProfilePageState extends State<ProfilePage> {
                             ),
                           ),
                         ),
+=======
+                        child: _isLoading
+                            ? const Center(
+                                child: CircularProgressIndicator(
+                                  color: Color(0xFFB99668),
+                                ),
+                              )
+                            : SingleChildScrollView(
+                                padding: const EdgeInsets.symmetric(horizontal: 30),
+                                child: Container(
+                                  width: double.infinity,
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 16, vertical: 20),
+                                  decoration: BoxDecoration(
+                                    color: const Color.fromARGB(220, 138, 114, 76),
+                                    borderRadius: BorderRadius.circular(36),
+                                  ),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      const SizedBox(height: 50),
+                                      buildDisplayBox("full_name".tr(), fullName),
+                                      Row(
+                                        children: [
+                                          Expanded(
+                                              child: buildDisplayBox(
+                                                  "birth_date".tr(), birthDate)),
+                                          const SizedBox(width: 48),
+                                          Expanded(
+                                              child: buildDisplayBox(
+                                                  "gender".tr(), gender)),
+                                        ],
+                                      ),
+                                      buildDisplayBox("email".tr(), email),
+
+                                      const SizedBox(height: 10),
+                                      Text(
+                                        "travel_interests".tr(),
+                                        style: TextStyle(
+                                          fontFamily: 'WorkSans',
+                                          fontWeight: FontWeight.w500,
+                                          fontSize: 15,
+                                          color: labelColor,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 8),
+
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 12, vertical: 12),
+                                        decoration: BoxDecoration(
+                                          color: boxColor,
+                                          borderRadius: BorderRadius.circular(16),
+                                        ),
+                                        child: Column(
+                                          children: [
+                                            for (int i = 0;
+                                                i < interests.length;
+                                                i += 2)
+                                              Padding(
+                                                padding: EdgeInsets.only(
+                                                    bottom: i + 2 < interests.length
+                                                        ? 18
+                                                        : 0),
+                                                child: Row(
+                                                  mainAxisAlignment:
+                                                      MainAxisAlignment.spaceBetween,
+                                                  children: [
+                                                    buildInterestBox(interests[i]),
+                                                    if (i + 1 < interests.length)
+                                                      buildInterestBox(
+                                                          interests[i + 1]),
+                                                  ],
+                                                ),
+                                              ),
+                                          ],
+                                        ),
+                                      ),
+
+                                      const SizedBox(height: 15),
+                                      buildDisplayBox(
+                                          "self_description".tr(), description,
+                                          maxLines: 3),
+                                      const SizedBox(height: 30),
+                                    ],
+                                  ),
+                                ),
+                              ),
+>>>>>>> week10
                       ),
                     )
                   ],
@@ -340,6 +511,21 @@ class _ProfilePageState extends State<ProfilePage> {
                     ),
                   ),
                 ),
+<<<<<<< HEAD
+=======
+
+                if (_isLoading)
+                  Positioned.fill(
+                    child: Container(
+                      color: Colors.black26,
+                      child: const Center(
+                        child: CircularProgressIndicator(
+                          color: Color(0xFFB99668),
+                        ),
+                      ),
+                    ),
+                  ),
+>>>>>>> week10
               ],
             ),
           ),
@@ -367,7 +553,11 @@ class _ProfilePageState extends State<ProfilePage> {
           Container(
             width: double.infinity,
             padding:
+<<<<<<< HEAD
             const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+=======
+                const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+>>>>>>> week10
             decoration: BoxDecoration(
               color: boxColor,
               borderRadius: BorderRadius.circular(10),
@@ -423,6 +613,7 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Future<void> _fetchProfile() async {
+<<<<<<< HEAD
     // === THÊM MỚI: Sử dụng cached data nếu có ===
     if (widget.cachedData != null) {
       final data = widget.cachedData!;
@@ -460,6 +651,8 @@ class _ProfilePageState extends State<ProfilePage> {
     }
 
     // === Fallback: Load từ API nếu không có cache ===
+=======
+>>>>>>> week10
     try {
       String? accessToken = await AuthService.getValidAccessToken();
 
@@ -503,13 +696,29 @@ class _ProfilePageState extends State<ProfilePage> {
 
           interests = List<String>.from(data['interests'] ?? interests);
           _avatarNetworkUrl = data['avatar_url'] as String?;
+<<<<<<< HEAD
         });
       } else {
         print('Không thể load profile: ${response.body}');
+=======
+          _isLoading = false;
+        });
+      } else {
+        print('Không thể load profile: ${response.body}');
+        setState(() {
+          _isLoading = false;
+        });
+>>>>>>> week10
       }
 
     } catch (e) {
       print('Lỗi khi gọi API profile: $e');
+<<<<<<< HEAD
+=======
+      setState(() {
+        _isLoading = false;
+      });
+>>>>>>> week10
     }
   }
 }

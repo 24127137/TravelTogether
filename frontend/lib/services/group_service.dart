@@ -6,6 +6,9 @@ class GroupService {
   final String baseUrl = ApiConfig.baseUrl;
 
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> week10
   // 1. Lấy chi tiết nhóm (để check status: open, closed, expired)
   Future<Map<String, dynamic>?> getMyGroupDetail(String token) async {
     try {
@@ -32,12 +35,15 @@ class GroupService {
   // 2. Lấy Plan theo ID (Dùng khi status = open)
   Future<Map<String, dynamic>?> getGroupPlanById(String token, int groupId) async {
     try {
+<<<<<<< HEAD
 =======
   // Lấy kế hoạch của nhóm mình đang tham gia
   Future<Map<String, dynamic>?> getGroupPlanById(String token, int groupId) async {
     try {
       // Gọi vào endpoint: /groups/{id}/public-plan
 >>>>>>> 3ee7efe (done all groupapis)
+=======
+>>>>>>> week10
       final url = Uri.parse('$baseUrl/groups/$groupId/public-plan');
       final response = await http.get(
         url,
@@ -50,6 +56,9 @@ class GroupService {
       if (response.statusCode == 200) {
         return jsonDecode(utf8.decode(response.bodyBytes));
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> week10
       }
       return null;
     } catch (e) {
@@ -77,6 +86,7 @@ class GroupService {
       return false;
     }
   }
+<<<<<<< HEAD
 =======
       } else {
         print('❌ Lỗi lấy Public Plan: ${response.statusCode}');
@@ -88,4 +98,6 @@ class GroupService {
     }
   }
 >>>>>>> 3ee7efe (done all groupapis)
+=======
+>>>>>>> week10
 }

@@ -35,10 +35,14 @@ class _GroupCreatingScreenState extends State<GroupCreatingScreen>
   DateTime? _selectedEndDate;
   DateTime _focusedDay = DateTime.now();
   bool _isCalendarVisible = false;
+<<<<<<< HEAD
   DateTime? _tempStartDate;
   DateTime? _tempEndDate;
   DateTime _tempFocusedDay = DateTime.now();
   String _groupName = 'Mộng mơ';
+=======
+  String _groupName = 'Nhóm của bạn';
+>>>>>>> week10
   File? _groupAvatar;
   
   // City and dates from profile
@@ -46,6 +50,7 @@ class _GroupCreatingScreenState extends State<GroupCreatingScreen>
   // (profile start/end stored directly in _selectedStartDate/_selectedEndDate)
 
   // Sở thích và lộ trình (mutable so we can load from profile)
+<<<<<<< HEAD
   List<String> _selectedInterests = [
     'Nghỉ dưỡng',
     'Lãng mạn',
@@ -56,6 +61,10 @@ class _GroupCreatingScreenState extends State<GroupCreatingScreen>
     'Hồ Xuân Hương',
     'Thiền viện Trúc Lâm',
   ];
+=======
+  List<String> _selectedInterests = [];
+  List<String> _itineraryItems = [];
+>>>>>>> week10
 
   // Animation controllers
   late AnimationController _slideController;
@@ -387,6 +396,7 @@ class _GroupCreatingScreenState extends State<GroupCreatingScreen>
                     child: GestureDetector(
                       onTap: () {},
                       child: CalendarCard(
+<<<<<<< HEAD
                         focusedDay: _tempFocusedDay,
                         rangeStart: _tempStartDate,
                         rangeEnd: _tempEndDate,
@@ -425,6 +435,26 @@ class _GroupCreatingScreenState extends State<GroupCreatingScreen>
                           if (start != null && end != null) {
                             _updateTravelDatesAPI(start, end);
                           }
+=======
+                        focusedDay: _focusedDay,
+                        initialRangeStart: _selectedStartDate,
+                        initialRangeEnd: _selectedEndDate,
+                        onClose: () {
+                          setState(() {
+                            _isCalendarVisible = false;
+                          });
+                        },
+                        // === THÊM MỚI: Callback để cập nhật ngày khi user chọn xong ===
+                        onRangeSelected: (start, end) {
+                          setState(() {
+                            _selectedStartDate = start;
+                            _selectedEndDate = end;
+                            if (start != null) {
+                              _focusedDay = start;
+                            }
+                          });
+                          debugPrint('📅 Group Creating - Updated dates: $start -> $end');
+>>>>>>> week10
                         },
                         accentColor: const Color(0xFFB99668),
                       ),
@@ -539,6 +569,7 @@ class _GroupCreatingScreenState extends State<GroupCreatingScreen>
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
                             border: Border.all(color: Colors.white, width: 3),
+<<<<<<< HEAD
                             image: DecorationImage(
                               image: _groupAvatar != null
                                   ? FileImage(_groupAvatar!)
@@ -547,6 +578,23 @@ class _GroupCreatingScreenState extends State<GroupCreatingScreen>
                               fit: BoxFit.cover,
                             ),
                           ),
+=======
+                            color: _groupAvatar == null ? const Color(0xFFDCC9A7) : null,
+                            image: _groupAvatar != null
+                                ? DecorationImage(
+                                    image: FileImage(_groupAvatar!),
+                                    fit: BoxFit.cover,
+                                  )
+                                : null,
+                          ),
+                          child: _groupAvatar == null
+                              ? const Icon(
+                                  Icons.group,
+                                  size: 60,
+                                  color: Color(0xFF8A724C),
+                                )
+                              : null,
+>>>>>>> week10
                         ),
                         Positioned(
                           right: 0,
@@ -572,6 +620,7 @@ class _GroupCreatingScreenState extends State<GroupCreatingScreen>
                   const SizedBox(height: 12),
                   GestureDetector(
                     onTap: _showEditGroupNameDialog,
+<<<<<<< HEAD
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
@@ -593,6 +642,40 @@ class _GroupCreatingScreenState extends State<GroupCreatingScreen>
                           size: 20,
                         ),
                       ],
+=======
+                    child: Container(
+                      constraints: BoxConstraints(
+                        maxWidth: MediaQuery.of(context).size.width - 80, // Giới hạn chiều rộng
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Flexible(
+                            child: Text(
+                              _groupName,
+                              style: const TextStyle(
+                                fontSize: 32, // Giảm font size từ 40 xuống 32
+                                fontWeight: FontWeight.w500,
+                                color: Color(0xFFF7F3E8),
+                                decoration: TextDecoration.none,
+                                fontFamily: 'Alegreya',
+                                height: 1.0,
+                              ),
+                              overflow: TextOverflow.ellipsis, // Thêm ellipsis khi quá dài
+                              maxLines: 1,
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          const Icon(
+                            Icons.edit,
+                            color: Color(0xFFE5CDB1),
+                            size: 20,
+                          ),
+                        ],
+                      ),
+>>>>>>> week10
                     ),
                   ),
                 ],
@@ -652,6 +735,25 @@ class _GroupCreatingScreenState extends State<GroupCreatingScreen>
   }
 
   Widget _buildLocationAndDate() {
+<<<<<<< HEAD
+=======
+    String dateDisplay = 'choose_date'.tr();
+    
+    print('🔍 _buildLocationAndDate called:');
+    print('  - _selectedStartDate: $_selectedStartDate');
+    print('  - _selectedEndDate: $_selectedEndDate');
+    
+    if (_selectedStartDate != null && _selectedEndDate != null) {
+      final format = DateFormat('dd/MM');
+      dateDisplay = '${format.format(_selectedStartDate!)} - ${format.format(_selectedEndDate!)}';
+      print('  - dateDisplay: $dateDisplay');
+    } else if (_selectedStartDate != null) {
+      final format = DateFormat('dd/MM');
+      dateDisplay = format.format(_selectedStartDate!);
+      print('  - dateDisplay (start only): $dateDisplay');
+    }
+    
+>>>>>>> week10
     return Row(
       children: [
         Expanded(
@@ -672,6 +774,7 @@ class _GroupCreatingScreenState extends State<GroupCreatingScreen>
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
+<<<<<<< HEAD
                 Image.asset(
                   'assets/images/group_creating/search_24px.jpg',
                   width: 20,
@@ -684,6 +787,23 @@ class _GroupCreatingScreenState extends State<GroupCreatingScreen>
                     fontSize: 14,
                     color: Color(0xFF000000),
                     fontWeight: FontWeight.w500,
+=======
+                const Icon(
+                  Icons.location_on,
+                  size: 20,
+                  color: Color(0xFF8A724C),
+                ),
+                const SizedBox(width: 8),
+                Flexible(
+                  child: Text(
+                    _profileCity ?? widget.destinationName ?? '',
+                    style: const TextStyle(
+                      fontSize: 14,
+                      color: Color(0xFF000000),
+                      fontWeight: FontWeight.w500,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+>>>>>>> week10
                   ),
                 ),
               ],
@@ -720,6 +840,7 @@ class _GroupCreatingScreenState extends State<GroupCreatingScreen>
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
+<<<<<<< HEAD
                       _selectedStartDate != null && _selectedEndDate != null
                           ? '${_selectedStartDate!.day} - ${_selectedEndDate!.day} / ${_selectedStartDate!.month} / ${_selectedStartDate!.year}'
                           : 'choose_date'.tr(),
@@ -727,6 +848,17 @@ class _GroupCreatingScreenState extends State<GroupCreatingScreen>
                         fontSize: 12,
                         color: Color(0xFF000000),
                         fontWeight: FontWeight.w500,
+=======
+                      dateDisplay,
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: (_selectedStartDate != null && _selectedEndDate != null)
+                            ? const Color(0xFF000000)
+                            : const Color(0xFF8A724C),
+                        fontWeight: (_selectedStartDate != null && _selectedEndDate != null)
+                            ? FontWeight.w600
+                            : FontWeight.w500,
+>>>>>>> week10
                       ),
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -1060,11 +1192,15 @@ class _GroupCreatingScreenState extends State<GroupCreatingScreen>
   }
 
   void _showCalendarDialog() {
+<<<<<<< HEAD
     // Initialize temp values and show inline overlay (mirrors HomePage behavior)
     setState(() {
       _tempStartDate = _selectedStartDate;
       _tempEndDate = _selectedEndDate;
       _tempFocusedDay = _focusedDay;
+=======
+    setState(() {
+>>>>>>> week10
       _isCalendarVisible = true;
     });
   }
@@ -1176,7 +1312,12 @@ class _GroupCreatingScreenState extends State<GroupCreatingScreen>
 
   Future<void> _loadProfileData() async {
     try {
+<<<<<<< HEAD
       debugPrint('Loading profile data...');
+=======
+      debugPrint('Loading profile data for group creation...');
+
+>>>>>>> week10
       final token = await AuthService.getValidAccessToken();
       if (token == null) {
         debugPrint('No token available');
@@ -1195,6 +1336,7 @@ class _GroupCreatingScreenState extends State<GroupCreatingScreen>
       debugPrint('Profile response status: ${response.statusCode}');
       debugPrint('Profile response body: ${response.body}');
 
+<<<<<<< HEAD
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body) as Map<String, dynamic>;
         
@@ -1257,11 +1399,64 @@ class _GroupCreatingScreenState extends State<GroupCreatingScreen>
           });
         }
       }
+=======
+      if (response.statusCode != 200) return;
+
+      final data = jsonDecode(response.body) as Map<String, dynamic>;
+
+      if (!mounted) return;
+
+      setState(() {
+        _profileCity = data['preferred_city']?.toString()
+                    ?? widget.destinationName;
+
+        final interestsRaw = data['interests'];
+        if (interestsRaw is List) {
+          _selectedInterests = interestsRaw
+              .map((e) => e.toString())
+              .where((s) => s.isNotEmpty)
+              .toList();
+        }
+
+        final itineraryRaw = data['itinerary'];
+        if (itineraryRaw != null) {
+          if (itineraryRaw is Map) {
+            final entries = itineraryRaw.entries.toList();
+            entries.sort((a, b) {
+              final ai = int.tryParse(a.key.toString()) ?? 0;
+              final bi = int.tryParse(b.key.toString()) ?? 0;
+              return ai.compareTo(bi);
+            });
+            _itineraryItems = entries.map((e) => e.value?.toString() ?? '').where((s) => s.isNotEmpty).toList();
+          } else if (itineraryRaw is List) {
+            _itineraryItems = itineraryRaw.map((e) => e.toString()).where((s) => s.isNotEmpty).toList();
+          }
+        }
+
+        final travelDatesRaw = data['travel_dates'];
+        debugPrint('Raw travel_dates from API: $travelDatesRaw (type: ${travelDatesRaw.runtimeType})');
+
+        if (travelDatesRaw != null && travelDatesRaw.toString().trim().isNotEmpty) {
+          _parseTravelDates(travelDatesRaw.toString());
+        } else {
+          _selectedStartDate = null;
+          _selectedEndDate = null;
+        }
+      });
+
+      debugPrint('✅ Profile loaded successfully for group creation');
+      debugPrint('   City: $_profileCity');
+      debugPrint('   Dates: $_selectedStartDate → $_selectedEndDate');
+      debugPrint('   Interests: $_selectedInterests');
+      debugPrint('   Itinerary: $_itineraryItems');
+
+>>>>>>> week10
     } catch (e) {
       debugPrint('Error loading profile data: $e');
     }
   }
 
+<<<<<<< HEAD
   // Update travel_dates via API when user selects dates in calendar
   Future<void> _updateTravelDatesAPI(DateTime startDate, DateTime endDate) async {
     try {
@@ -1389,6 +1584,74 @@ class _GroupCreatingScreenState extends State<GroupCreatingScreen>
     } catch (e) {
       debugPrint('Error parsing travel_dates raw: $e');
       return null;
+=======
+  void _parseTravelDates(String dateRange) {
+    try {
+      String s = dateRange.trim();
+
+      if (s.contains('lower') && s.contains('upper')) {
+        final cleaned = s.replaceAll('{', '').replaceAll('}', '').replaceAll(' ', '');
+        String? lower;
+        String? upper;
+
+        final parts = cleaned.split(',');
+        for (var part in parts) {
+          if (part.startsWith('lower:')) lower = part.substring(6);
+          if (part.startsWith('upper:')) upper = part.substring(6);
+        }
+
+        if (lower != null && upper != null) {
+          _selectedStartDate = DateTime.tryParse(lower);
+          _selectedEndDate = DateTime.tryParse(upper);
+          if (_selectedStartDate != null && _selectedEndDate != null) {
+            debugPrint('Parsed travel_dates (JSON format): $_selectedStartDate → $_selectedEndDate');
+            return;
+          }
+        }
+      }
+
+      if (s.startsWith('[') && s.endsWith(')')) {
+        final cleaned = s.substring(1, s.length - 1);
+        final parts = cleaned.split(',');
+        if (parts.length == 2) {
+          final start = DateTime.tryParse(parts[0].trim());
+          final end = DateTime.tryParse(parts[1].trim());
+          if (start != null && end != null) {
+            _selectedStartDate = start;
+            _selectedEndDate = end;
+            debugPrint('Parsed travel_dates (bracket format): $start → $end');
+            return;
+          }
+        }
+      }
+
+      if (s.startsWith('"') && s.endsWith('"')) {
+        s = s.substring(1, s.length - 1);
+        return _parseTravelDates(s);
+      }
+
+      final dateRegex = RegExp(r'\d{4}-\d{2}-\d{2}');
+      final matches = dateRegex.allMatches(s).toList();
+      if (matches.length >= 2) {
+        final start = DateTime.tryParse(matches[0].group(0)!);
+        final end = DateTime.tryParse(matches[1].group(0)!);
+        if (start != null && end != null) {
+          _selectedStartDate = start;
+          _selectedEndDate = end;
+          debugPrint('Parsed travel_dates (fallback regex): $start → $end');
+          return;
+        }
+      }
+
+      debugPrint('⚠️ Cannot parse travel_dates: $dateRange');
+      _selectedStartDate = null;
+      _selectedEndDate = null;
+
+    } catch (e) {
+      debugPrint('❌ Exception when parsing travel_dates: $e');
+      _selectedStartDate = null;
+      _selectedEndDate = null;
+>>>>>>> week10
     }
   }
 }

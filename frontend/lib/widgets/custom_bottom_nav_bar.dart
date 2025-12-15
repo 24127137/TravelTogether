@@ -101,7 +101,11 @@ class CustomBottomNavBar extends StatelessWidget {
             clipBehavior: Clip.none,
             children: [
               Icon(icon, color: color),
+<<<<<<< HEAD
               // === LOGIC HIỂN THỊ CHẤM ĐỎ ===
+=======
+              //LOGIC HIỂN THỊ CHẤM ĐỎ
+>>>>>>> week10
               if (hasBadge)
                 Positioned(
                   top: -4,

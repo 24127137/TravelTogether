@@ -25,7 +25,10 @@ class DestinationCard extends StatelessWidget {
             destination.imagePath,
             fit: BoxFit.cover,
           ),
+<<<<<<< HEAD
           // Gradient overlay for text readability
+=======
+>>>>>>> week10
           Container(
             decoration: const BoxDecoration(
               gradient: LinearGradient(

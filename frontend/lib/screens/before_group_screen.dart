@@ -2,6 +2,11 @@
 //File này là screen tên là Group or Solo trong figma
 import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
+<<<<<<< HEAD
+=======
+import 'group_creating.dart';
+import 'join_group_screen.dart';
+>>>>>>> week10
 
 // Chuyển thành StatefulWidget để quản lý trạng thái của icon trái tim
 class BeforeGroup extends StatefulWidget {
@@ -28,6 +33,7 @@ class _BeforeGroupState extends State<BeforeGroup> {
   // Hàm xử lý logic khi nhấn vào card
   // Dùng 'async' để có thể đợi (await) trước khi chuyển trang
   void _handleCardTap(String cardType) async {
+<<<<<<< HEAD
     setState(() {
       if (cardType == 'create_group_button'.tr()) {
         _isTaoNhomFav = true;
@@ -48,6 +54,85 @@ class _BeforeGroupState extends State<BeforeGroup> {
         widget.onJoinGroup!();
       }
     }
+=======
+    print('🟢 _handleCardTap called with: $cardType');
+    
+    setState(() {
+      if (cardType == 'create_group_button'.tr()) {
+        _isTaoNhomFav = true;
+        print('🟢 Set _isTaoNhomFav = true');
+      } else {
+        _isGiaNhapFav = true;
+        print('🟢 Set _isGiaNhapFav = true');
+      }
+    });
+    
+    await Future.delayed(const Duration(milliseconds: 300));
+    print('🟡 Delay completed, mounted: $mounted');
+
+    if (!mounted) {
+      print('🔴 Widget not mounted!');
+      return;
+    }
+
+    if (cardType == 'create_group_button'.tr()) {
+      print('🔵 Attempting to navigate to GroupCreatingScreen...');
+      
+      try {
+        await Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) {
+              print('✅ Building GroupCreatingScreen');
+              return GroupCreatingScreen(
+                destinationName: 'Đà Lạt',
+                onBack: () {
+                  print('GroupCreatingScreen onBack called');
+                  Navigator.pop(context);
+                },
+              );
+            },
+          ),
+        );
+        print('✅ Navigation completed');
+      } catch (e, stackTrace) {
+        print('❌ Navigation error: $e');
+        print('❌ StackTrace: $stackTrace');
+      }
+    } else {
+      print('🔵 Attempting to navigate to JoinGroupScreen...');
+      
+      try {
+        await Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) {
+              print('✅ Building JoinGroupScreen');
+              return JoinGroupScreen(
+                onBack: () {
+                  print('JoinGroupScreen onBack called');
+                  Navigator.pop(context);
+                },
+              );
+            },
+          ),
+        );
+        print('✅ Navigation completed');
+      } catch (e, stackTrace) {
+        print('❌ Navigation error: $e');
+        print('❌ StackTrace: $stackTrace');
+      }
+    }
+    
+    // Reset favorite sau khi quay về
+    if (mounted) {
+      setState(() {
+        _isTaoNhomFav = false;
+        _isGiaNhapFav = false;
+        print('🔄 Reset favorites');
+      });
+    }
+>>>>>>> week10
   }
 
   @override

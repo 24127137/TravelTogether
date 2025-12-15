@@ -1,29 +1,44 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:easy_localization/easy_localization.dart';
+<<<<<<< HEAD
 import 'package:shared_preferences/shared_preferences.dart'; // Cần để lưu trạng thái đã xem
+=======
+import 'package:shared_preferences/shared_preferences.dart';
+>>>>>>> week10
 import '../data/mock_destinations.dart';
 import '../models/destination.dart';
 import '../widgets/destination_search_modal.dart';
 import '../widgets/calendar_card.dart';
 import 'group_matcing_announcement_screen.dart';
+<<<<<<< HEAD
 import '../services/user_service.dart'; // Import UserService
 import '../services/auth_service.dart'; // Import AuthService
+=======
+import '../services/user_service.dart';
+import '../services/auth_service.dart';
+>>>>>>> week10
 
 class HomePage extends StatefulWidget {
   final void Function(Destination)? onDestinationTap;
   final VoidCallback? onSettingsTap;
   final void Function(int index)? onTabChangeRequest;
 <<<<<<< HEAD
+<<<<<<< HEAD
   const HomePage({Key? key, this.onDestinationTap, this.onSettingsTap, this.onTabChangeRequest,}) : super(key: key);
 =======
+=======
+>>>>>>> week10
   const HomePage({
     Key? key,
     this.onDestinationTap,
     this.onSettingsTap,
     this.onTabChangeRequest,
   }) : super(key: key);
+<<<<<<< HEAD
 >>>>>>> 274291d (update)
+=======
+>>>>>>> week10
 
   @override
   _HomePageState createState() => _HomePageState();
@@ -35,17 +50,26 @@ class _HomePageState extends State<HomePage> {
   DateTime? _rangeEnd;
   DateTime _focusedDay = DateTime.now();
 
+<<<<<<< HEAD
   final UserService _userService = UserService(); // Init Service
 
 <<<<<<< HEAD
 <<<<<<< HEAD
   String _userName = 'User'; // Mặc định
   String? _userAvatar;
+=======
+  final UserService _userService = UserService();
+
+  String _userName = 'User';
+  String? _userAvatar;
+  String? _preferredCity;
+>>>>>>> week10
 
   @override
   void initState() {
     super.initState();
     _loadUserInfo();
+<<<<<<< HEAD
 =======
   @override
   void initState() {
@@ -72,6 +96,96 @@ class _HomePageState extends State<HomePage> {
     });
 
     // 2. Gọi API để lấy dữ liệu mới nhất
+=======
+
+    // Gọi hàm kiểm tra nhóm mới ngay khi widget được build xong
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkNewGroupAcceptance();
+    });
+  }
+
+  // === [UPDATED] LOGIC KIỂM TRA NHÓM MỚI ĐỂ HIỆN POPUP ===
+  Future<void> _checkNewGroupAcceptance() async {
+    try {
+      final token = await AuthService.getValidAccessToken();
+      if (token == null) return;
+
+      // 1. Lấy thông tin user mới nhất từ API
+      final profile = await _userService.getUserProfile();
+      if (profile == null) return;
+
+      final List<dynamic> currentJoinedGroups = profile['joined_groups'] ?? [];
+
+      // 2. Lấy danh sách ID nhóm đã lưu trong Cache (Lần mở app trước)
+      final prefs = await SharedPreferences.getInstance();
+      final List<String> cachedIds = prefs.getStringList('joined_group_ids_cache') ?? [];
+
+      // 3. Tìm nhóm MỚI (Có trong Current nhưng KHÔNG có trong Cache)
+      for (var group in currentJoinedGroups) {
+        final String groupId = (group['group_id'] ?? group['id']).toString();
+        final String groupName = group['name'] ?? 'Nhóm mới';
+
+        // Nếu ID này chưa từng thấy trong cache -> Đây là nhóm mới được duyệt!
+        if (!cachedIds.contains(groupId)) {
+          if (!mounted) return;
+
+          // 4. Hiện Popup "Vào Thôi!"
+          Navigator.of(context).push(MaterialPageRoute(
+            builder: (_) => GroupMatchingAnnouncementScreen(
+              groupName: groupName,
+              groupId: groupId,
+              onBack: () => Navigator.of(context).pop(),
+              onGoToChat: () {
+                Navigator.of(context).pop(); // Tắt popup
+                // Chuyển sang tab Chat (Index 2)
+                if (widget.onTabChangeRequest != null) {
+                  widget.onTabChangeRequest!(2);
+                }
+              },
+            ),
+          ));
+
+          // Chỉ hiện 1 popup mỗi lần để tránh spam
+          break;
+        }
+      }
+
+      // 5. Cập nhật lại Cache mới nhất cho lần sau
+      // (Lưu tất cả ID nhóm hiện tại vào máy)
+      List<String> newIds = currentJoinedGroups
+          .map((g) => (g['group_id'] ?? g['id']).toString())
+          .toList()
+          .cast<String>();
+
+      await prefs.setStringList('joined_group_ids_cache', newIds);
+
+    } catch (e) {
+      print('❌ Lỗi check nhóm mới: $e');
+    }
+  }
+
+  Future<void> _loadUserInfo() async {
+    final prefs = await SharedPreferences.getInstance();
+
+    // 1. Load từ cache trước (để hiển thị ngay)
+    final cachedFirstName = prefs.getString('user_firstname');
+    final cachedAvatar = prefs.getString('user_avatar');
+    final cachedCity = prefs.getString('user_preferred_city');
+    final cachedDates = prefs.getString('user_travel_dates');
+
+    if (cachedFirstName != null) {
+      setState(() {
+        _userName = cachedFirstName;
+        _userAvatar = cachedAvatar;
+        _preferredCity = cachedCity;
+
+        if (cachedDates != null && cachedDates.isNotEmpty) {
+          _parseTravelDates(cachedDates);
+        }
+      });
+    }
+
+>>>>>>> week10
     try {
       final token = await AuthService.getValidAccessToken();
       if (token == null) return;
@@ -79,17 +193,28 @@ class _HomePageState extends State<HomePage> {
       final profile = await _userService.getUserProfile();
       if (profile == null) return;
 
+<<<<<<< HEAD
       // Lấy fullname từ API: "Nguyễn Văn Toàn" hoặc "Toàn"
       String fullName = profile['fullname']?.toString() ?? 'User';
       String? avatarUrl = profile['avatar_url']?.toString();
 
       // Tách tên: Lấy từ cuối cùng (tên người Việt)
       // "Nguyễn Văn Toàn" -> "Toàn"
+=======
+      String fullName = profile['fullname']?.toString() ?? 'User';
+      String? avatarUrl = profile['avatar_url']?.toString();
+      String? preferredCity = profile['preferred_city']?.toString();
+      String? travelDates = profile['travel_dates']?.toString();
+
+>>>>>>> week10
       String firstName = fullName.trim().contains(' ')
           ? fullName.trim().split(' ').last
           : fullName.trim();
 
+<<<<<<< HEAD
       // Lưu cache để lần sau load nhanh
+=======
+>>>>>>> week10
       await prefs.setString('user_firstname', firstName);
       if (avatarUrl != null && avatarUrl.isNotEmpty) {
         await prefs.setString('user_avatar', avatarUrl);
@@ -97,11 +222,37 @@ class _HomePageState extends State<HomePage> {
         await prefs.remove('user_avatar');
       }
 
+<<<<<<< HEAD
       // Cập nhật UI
+=======
+      if (preferredCity != null && preferredCity.isNotEmpty) {
+        await prefs.setString('user_preferred_city', preferredCity);
+      } else {
+        await prefs.remove('user_preferred_city');
+      }
+
+      if (travelDates != null && travelDates.isNotEmpty) {
+        await prefs.setString('user_travel_dates', travelDates);
+      } else {
+        await prefs.remove('user_travel_dates');
+      }
+
+>>>>>>> week10
       if (mounted) {
         setState(() {
           _userName = firstName;
           _userAvatar = avatarUrl;
+<<<<<<< HEAD
+=======
+          _preferredCity = preferredCity;
+
+          if (travelDates != null && travelDates.isNotEmpty) {
+            _parseTravelDates(travelDates);
+          } else {
+            _rangeStart = null;
+            _rangeEnd = null;
+          }
+>>>>>>> week10
         });
       }
     } catch (e) {
@@ -109,6 +260,7 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
+<<<<<<< HEAD
   // === THÊM MỚI: Hàm refresh cho pull-to-refresh ===
   Future<void> _handleRefresh() async {
     await _loadUserInfo();
@@ -165,10 +317,69 @@ class _HomePageState extends State<HomePage> {
   // --- LOGIC NÚT LOA (THỦ CÔNG) ---
 <<<<<<< HEAD
   // --- LOGIC NÚT LOA (ĐÃ ĐIỀN ĐỦ THAM SỐ) ---
+=======
+  void _parseTravelDates(String dateRange) {
+    try {
+      if (dateRange.contains('lower') && dateRange.contains('upper')) {
+        final cleaned = dateRange
+            .replaceAll('{', '')
+            .replaceAll('}', '')
+            .replaceAll(' ', '');
+
+        String? lower;
+        String? upper;
+
+        final parts = cleaned.split(',');
+        for (var part in parts) {
+          if (part.startsWith('lower:')) {
+            lower = part.replaceAll('lower:', '');
+          } else if (part.startsWith('upper:')) {
+            upper = part.replaceAll('upper:', '');
+          }
+        }
+
+        if (lower != null && upper != null) {
+          _rangeStart = DateTime.parse(lower);
+          _rangeEnd = DateTime.parse(upper);
+          return;
+        }
+      }
+
+      if (dateRange.startsWith('[') && dateRange.endsWith(')')) {
+        final cleaned = dateRange.replaceAll('[', '').replaceAll(')', '');
+        final parts = cleaned.split(',');
+
+        if (parts.length == 2) {
+          _rangeStart = DateTime.parse(parts[0].trim());
+          _rangeEnd = DateTime.parse(parts[1].trim());
+          return;
+        }
+      }
+
+      _rangeStart = null;
+      _rangeEnd = null;
+
+    } catch (e) {
+      print('❌ Lỗi parse travel_dates: $e');
+      _rangeStart = null;
+      _rangeEnd = null;
+    }
+  }
+
+  Future<void> _handleRefresh() async {
+    await _loadUserInfo();
+    // Check lại popup khi refresh
+    await _checkNewGroupAcceptance();
+    await Future.delayed(const Duration(milliseconds: 500));
+  }
+
+  // Hàm xử lý nút cái loa (Thông báo thủ công)
+>>>>>>> week10
   void _handleAnnouncementTap() async {
     final token = await AuthService.getValidAccessToken();
     if (token == null) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Vui lòng đăng nhập'.tr())));
+<<<<<<< HEAD
 =======
   void _handleAnnouncementTap() async {
     final token = await AuthService.getValidAccessToken();
@@ -177,6 +388,8 @@ class _HomePageState extends State<HomePage> {
         SnackBar(content: Text('Vui lòng đăng nhập'.tr())),
       );
 >>>>>>> 274291d (update)
+=======
+>>>>>>> week10
       return;
     }
 
@@ -186,6 +399,7 @@ class _HomePageState extends State<HomePage> {
     List joined = profile['joined_groups'] ?? [];
 
     if (joined.isNotEmpty) {
+<<<<<<< HEAD
       // Lấy thông tin nhóm
       var group = joined[0];
 
@@ -204,18 +418,35 @@ class _HomePageState extends State<HomePage> {
             Navigator.of(context).pop(); // Đóng popup Announcement trước
             if (widget.onTabChangeRequest != null) {
               widget.onTabChangeRequest!(2); // Yêu cầu MainApp chuyển sang Tab 2 (Messages)
+=======
+      var group = joined[0]; // Mở nhóm đầu tiên hoặc logic khác tùy bạn
+
+      Navigator.of(context).push(MaterialPageRoute(
+        builder: (_) => GroupMatchingAnnouncementScreen(
+          groupName: group['name'] ?? "Nhóm",
+          groupId: group['group_id'].toString(),
+          onBack: () => Navigator.of(context).pop(),
+          onGoToChat: () {
+            Navigator.of(context).pop();
+            if (widget.onTabChangeRequest != null) {
+              widget.onTabChangeRequest!(2);
+>>>>>>> week10
             }
           },
         ),
       ));
     } else {
+<<<<<<< HEAD
       // Nếu không có nhóm -> Thông báo
+=======
+>>>>>>> week10
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Bạn chưa tham gia nhóm nào hoặc là Host.'.tr())),
       );
     }
   }
 
+<<<<<<< HEAD
 <<<<<<< HEAD
   // ... (Các hàm lịch và duration giữ nguyên)
 =======
@@ -229,11 +460,43 @@ class _HomePageState extends State<HomePage> {
 
   void _showCalendar() => setState(() => _isCalendarVisible = true);
   void _hideCalendar() => setState(() => _isCalendarVisible = false);
+=======
+  String get _destinationText {
+    if (_preferredCity != null && _preferredCity!.isNotEmpty) {
+      return _preferredCity!;
+    }
+    return 'destination'.tr();
+  }
+
+  String get _durationText {
+    if (_rangeStart != null && _rangeEnd != null) {
+      final format = DateFormat('dd/MM');
+      return '${format.format(_rangeStart!)} - ${format.format(_rangeEnd!)}';
+    }
+
+    if (_rangeStart != null) {
+      final format = DateFormat('dd/MM');
+      return format.format(_rangeStart!);
+    }
+    return 'travel_time'.tr();
+  }
+
+  void _showCalendar() => setState(() => _isCalendarVisible = true);
+
+  void _hideCalendar() {
+    setState(() => _isCalendarVisible = false);
+    _loadUserInfo();
+  }
+>>>>>>> week10
 
   void _onDaySelected(DateTime selectedDay, DateTime focusedDay) {
     setState(() {
       if (_rangeStart == null || _rangeEnd != null) {
         _rangeStart = selectedDay;
+<<<<<<< HEAD
+=======
+        _rangeEnd = null;
+>>>>>>> week10
       } else if (selectedDay.isAfter(_rangeStart!)) {
         _rangeEnd = selectedDay;
       } else {
@@ -283,14 +546,22 @@ class _HomePageState extends State<HomePage> {
               child: Column(
                 children: [
                   _TopSection(
+<<<<<<< HEAD
+=======
+                    destinationText: _destinationText,
+>>>>>>> week10
                     durationText: _durationText,
                     onDestinationTap: _openDestinationScreen,
                     onDurationTap: _showCalendar,
                     onSettingsTap: widget.onSettingsTap,
+<<<<<<< HEAD
                     // Truyền hàm xử lý nút Loa xuống dưới
                     onAnnouncementTap: _handleAnnouncementTap,
 <<<<<<< HEAD
 <<<<<<< HEAD
+=======
+                    onAnnouncementTap: _handleAnnouncementTap,
+>>>>>>> week10
                     userName: _userName,
                     avatarUrl: _userAvatar,
                   ),
@@ -327,6 +598,7 @@ class _HomePageState extends State<HomePage> {
                           ),
                         ],
                       ),
+<<<<<<< HEAD
 =======
                   ),
                   Expanded(
@@ -365,6 +637,8 @@ class _HomePageState extends State<HomePage> {
 >>>>>>> 3ee7efe (done all groupapis)
 =======
 >>>>>>> 274291d (update)
+=======
+>>>>>>> week10
                     ),
                   ),
                 ],
@@ -386,12 +660,20 @@ class _HomePageState extends State<HomePage> {
   }
 }
 
+<<<<<<< HEAD
 // --- Top Section Widgets (Đã cập nhật callback) ---
 class _TopSection extends StatelessWidget {
+=======
+// === CÁC WIDGET PHỤ (Giữ nguyên như cũ) ===
+
+class _TopSection extends StatelessWidget {
+  final String destinationText;
+>>>>>>> week10
   final String durationText;
   final VoidCallback onDestinationTap;
   final VoidCallback onDurationTap;
   final VoidCallback? onSettingsTap;
+<<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
   final VoidCallback onAnnouncementTap;
@@ -405,10 +687,19 @@ class _TopSection extends StatelessWidget {
 >>>>>>> 274291d (update)
 
   const _TopSection({
+=======
+  final VoidCallback onAnnouncementTap;
+  final String userName;
+  final String? avatarUrl;
+
+  const _TopSection({
+    required this.destinationText,
+>>>>>>> week10
     required this.durationText,
     required this.onDestinationTap,
     required this.onDurationTap,
     this.onSettingsTap,
+<<<<<<< HEAD
     required this.onAnnouncementTap, // Required
 <<<<<<< HEAD
 <<<<<<< HEAD
@@ -418,6 +709,11 @@ class _TopSection extends StatelessWidget {
 >>>>>>> 3ee7efe (done all groupapis)
 =======
 >>>>>>> 274291d (update)
+=======
+    required this.onAnnouncementTap,
+    required this.userName,
+    this.avatarUrl,
+>>>>>>> week10
   });
 
   @override
@@ -434,6 +730,7 @@ class _TopSection extends StatelessWidget {
         children: [
           _CustomAppBar(
             onSettingsTap: onSettingsTap,
+<<<<<<< HEAD
             onAnnouncementTap: onAnnouncementTap, // Truyền tiếp
 <<<<<<< HEAD
 <<<<<<< HEAD
@@ -447,6 +744,15 @@ class _TopSection extends StatelessWidget {
           const SizedBox(height: 24),
           _SelectionButton(
             hint: 'destination'.tr(),
+=======
+            onAnnouncementTap: onAnnouncementTap,
+            userName: userName,
+            avatarUrl: avatarUrl,
+          ),
+          const SizedBox(height: 24),
+          _SelectionButton(
+            hint: destinationText,
+>>>>>>> week10
             icon: Icons.search,
             onTap: onDestinationTap,
           ),
@@ -464,6 +770,7 @@ class _TopSection extends StatelessWidget {
 
 class _CustomAppBar extends StatelessWidget {
   final VoidCallback? onSettingsTap;
+<<<<<<< HEAD
   final VoidCallback onAnnouncementTap; // Callback mới
 <<<<<<< HEAD
 <<<<<<< HEAD
@@ -473,10 +780,16 @@ class _CustomAppBar extends StatelessWidget {
 >>>>>>> 3ee7efe (done all groupapis)
 =======
 >>>>>>> 274291d (update)
+=======
+  final VoidCallback onAnnouncementTap;
+  final String userName;
+  final String? avatarUrl;
+>>>>>>> week10
 
   const _CustomAppBar({
     this.onSettingsTap,
     required this.onAnnouncementTap,
+<<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
     required this.userName,   // Thêm
@@ -485,13 +798,20 @@ class _CustomAppBar extends StatelessWidget {
 >>>>>>> 3ee7efe (done all groupapis)
 =======
 >>>>>>> 274291d (update)
+=======
+    required this.userName,
+    this.avatarUrl,
+>>>>>>> week10
   });
 
   @override
   Widget build(BuildContext context) {
     return Row(
       children: [
+<<<<<<< HEAD
         // AVATAR ĐỘNG
+=======
+>>>>>>> week10
         Container(
           decoration: const ShapeDecoration(
             shape: OvalBorder(
@@ -502,6 +822,7 @@ class _CustomAppBar extends StatelessWidget {
               ),
             ),
           ),
+<<<<<<< HEAD
 <<<<<<< HEAD
           child: CircleAvatar(
 =======
@@ -520,13 +841,31 @@ class _CustomAppBar extends StatelessWidget {
         // TÊN ĐỘNG
         Text(
           'hello_user'.tr(args: [userName]), // Dùng tham số dịch: "Xin chào, {name}"
+=======
+          child: CircleAvatar(
+            radius: 18,
+            backgroundColor: Colors.grey[300],
+            backgroundImage: (avatarUrl != null && avatarUrl!.isNotEmpty)
+                ? NetworkImage(avatarUrl!) as ImageProvider
+                : const AssetImage('assets/images/avatar.jpg'),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Text(
+          'hello_user'.tr(args: [userName]),
+>>>>>>> week10
           style: const TextStyle(
               fontFamily: 'Poppins', fontSize: 16, fontWeight: FontWeight.w600),
         ),
         const Spacer(),
+<<<<<<< HEAD
         // NÚT LOA (CAMPAIGN)
         GestureDetector(
           onTap: onAnnouncementTap, // Gọi hàm từ HomePage
+=======
+        GestureDetector(
+          onTap: onAnnouncementTap,
+>>>>>>> week10
           child: Container(
             width: 36,
             height: 36,
@@ -555,7 +894,10 @@ class _CustomAppBar extends StatelessWidget {
   }
 }
 
+<<<<<<< HEAD
 // ... (Các widget _SelectionButton, _RecommendedCard, _CalendarOverlay giữ nguyên)
+=======
+>>>>>>> week10
 class _SelectionButton extends StatelessWidget {
   final String hint;
   final IconData icon;
@@ -566,6 +908,7 @@ class _SelectionButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     const accentColor = Color(0xFFA15C20);
+<<<<<<< HEAD
 
     final isDateHint = RegExp(r'\d{2}/\d{2}').hasMatch(hint);
     final isDefaultHint = hint == 'destination'.tr() || hint == 'travel_time'.tr();
@@ -573,16 +916,24 @@ class _SelectionButton extends StatelessWidget {
     final textColor = isDefaultHint
         ? accentColor
         : (isDateHint ? accentColor : Colors.black);
+=======
+    final textColor = accentColor;
+    final fontWeight = FontWeight.w500;
+>>>>>>> week10
 
     return Material(
       color: const Color(0xFFF7F3E8),
       borderRadius: BorderRadius.circular(10),
       child: InkWell(
         borderRadius: BorderRadius.circular(10),
+<<<<<<< HEAD
         onTap: () {
           print('SelectionButton tapped: $hint');
           onTap();
         },
+=======
+        onTap: onTap,
+>>>>>>> week10
         child: Container(
           height: 43,
           padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -596,7 +947,11 @@ class _SelectionButton extends StatelessWidget {
                   color: textColor,
                   fontSize: 16,
                   fontFamily: 'Poppins',
+<<<<<<< HEAD
                   fontWeight: isDefaultHint ? FontWeight.w400 : FontWeight.w500,
+=======
+                  fontWeight: fontWeight,
+>>>>>>> week10
                 ),
               ),
             ],
@@ -706,12 +1061,20 @@ class _CalendarOverlay extends StatelessWidget {
           child: GestureDetector(
             onTap: () {},
             child: CalendarCard(
+<<<<<<< HEAD
               focusedDay: focusedDay,
               rangeStart: rangeStart,
               rangeEnd: rangeEnd,
               onDaySelected: onDaySelected,
               onPageChanged: onPageChanged,
               onClose: onClose,
+=======
+                focusedDay: focusedDay,
+                initialRangeStart: rangeStart,
+                initialRangeEnd: rangeEnd,
+                onClose: onClose,
+                accentColor: const Color(0xFFB99668)
+>>>>>>> week10
             ),
           ),
         ),

@@ -1,12 +1,16 @@
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 // list_group_feedback.dart
 >>>>>>> 3ee7efe (done all groupapis)
+=======
+>>>>>>> week10
 import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
 import '../../models/feedback_models.dart';
 import '../../services/feedback_service.dart';
 import '../../services/auth_service.dart';
+<<<<<<< HEAD
 <<<<<<< HEAD
 import '../../services/group_service.dart'; // <--- Import GroupService
 import 'feedback_screen.dart';
@@ -14,6 +18,10 @@ import 'feedback_screen.dart';
 import 'feedback_screen.dart';
 // import 'login_screen.dart'; // Import màn hình login nếu cần chuyển hướng
 >>>>>>> 3ee7efe (done all groupapis)
+=======
+import '../../services/group_service.dart'; // <--- Import GroupService
+import 'feedback_screen.dart';
+>>>>>>> week10
 
 class ListGroupFeedbackScreen extends StatefulWidget {
   const ListGroupFeedbackScreen({super.key});
@@ -25,6 +33,7 @@ class ListGroupFeedbackScreen extends StatefulWidget {
 class _ListGroupFeedbackScreenState extends State<ListGroupFeedbackScreen> {
   final FeedbackService _service = FeedbackService();
 <<<<<<< HEAD
+<<<<<<< HEAD
   Future<List<PendingReviewGroup>>? _pendingGroupsFuture;
   String? _accessToken;
   bool _isCheckingToken = true;
@@ -34,11 +43,19 @@ class _ListGroupFeedbackScreenState extends State<ListGroupFeedbackScreen> {
   String? _accessToken;
   bool _isCheckingToken = true; // Biến để hiện loading lúc đang check token
 >>>>>>> 3ee7efe (done all groupapis)
+=======
+  Future<List<PendingReviewGroup>>? _pendingGroupsFuture;
+  String? _accessToken;
+  bool _isCheckingToken = true;
+>>>>>>> week10
 
   @override
   void initState() {
     super.initState();
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> week10
     _loadDataWithAuth();
   }
 
@@ -54,6 +71,7 @@ class _ListGroupFeedbackScreenState extends State<ListGroupFeedbackScreen> {
       } else {
         setState(() => _isCheckingToken = false);
         _showLoginRequired();
+<<<<<<< HEAD
 =======
     _initData();
   }
@@ -80,10 +98,13 @@ class _ListGroupFeedbackScreenState extends State<ListGroupFeedbackScreen> {
         });
         _showLoginRequiredDialog();
 >>>>>>> 3ee7efe (done all groupapis)
+=======
+>>>>>>> week10
       }
     }
   }
 
+<<<<<<< HEAD
 <<<<<<< HEAD
   void _showLoginRequired() { /* ... Giữ nguyên ... */ }
 
@@ -115,6 +136,11 @@ class _ListGroupFeedbackScreenState extends State<ListGroupFeedbackScreen> {
     _initData();
   }
 >>>>>>> 3ee7efe (done all groupapis)
+=======
+  void _showLoginRequired() { /* ... Giữ nguyên ... */ }
+
+  void _refreshData() { _loadDataWithAuth(); }
+>>>>>>> week10
 
   @override
   Widget build(BuildContext context) {
@@ -122,10 +148,14 @@ class _ListGroupFeedbackScreenState extends State<ListGroupFeedbackScreen> {
       extendBodyBehindAppBar: true,
       appBar: AppBar(
 <<<<<<< HEAD
+<<<<<<< HEAD
         title: Text("Nhận xét".tr(), style: const TextStyle(color: Colors.white, fontFamily: 'Alumni Sans', fontSize: 28, fontWeight: FontWeight.bold)),
 =======
         title: Text("Đánh giá chuyến đi".tr(), style: const TextStyle(color: Colors.white, fontFamily: 'Alumni Sans', fontSize: 28, fontWeight: FontWeight.bold)),
 >>>>>>> 3ee7efe (done all groupapis)
+=======
+        title: Text("Nhận xét".tr(), style: const TextStyle(color: Colors.white, fontFamily: 'Alumni Sans', fontSize: 28, fontWeight: FontWeight.bold)),
+>>>>>>> week10
         backgroundColor: Colors.transparent,
         elevation: 0,
         centerTitle: true,
@@ -137,9 +167,12 @@ class _ListGroupFeedbackScreenState extends State<ListGroupFeedbackScreen> {
       body: Stack(
         children: [
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
           // 1. Ảnh nền local
 >>>>>>> 3ee7efe (done all groupapis)
+=======
+>>>>>>> week10
           Container(
             decoration: const BoxDecoration(
               image: DecorationImage(
@@ -148,6 +181,7 @@ class _ListGroupFeedbackScreenState extends State<ListGroupFeedbackScreen> {
               ),
             ),
           ),
+<<<<<<< HEAD
 <<<<<<< HEAD
           SafeArea(
             child: _isCheckingToken
@@ -159,6 +193,11 @@ class _ListGroupFeedbackScreenState extends State<ListGroupFeedbackScreen> {
             child: _isCheckingToken
                 ? const Center(child: CircularProgressIndicator(color: Colors.white)) // Đang check token
 >>>>>>> 3ee7efe (done all groupapis)
+=======
+          SafeArea(
+            child: _isCheckingToken
+                ? const Center(child: CircularProgressIndicator(color: Colors.white))
+>>>>>>> week10
                 : _accessToken == null
                 ? Center(child: Text("Vui lòng đăng nhập".tr(), style: const TextStyle(color: Colors.white)))
                 : FutureBuilder<List<PendingReviewGroup>>(
@@ -168,12 +207,16 @@ class _ListGroupFeedbackScreenState extends State<ListGroupFeedbackScreen> {
                   return const Center(child: CircularProgressIndicator(color: Colors.white));
                 } else if (snapshot.hasError) {
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> week10
                   return Center(child: Text('Lỗi: ${snapshot.error}', style: const TextStyle(color: Colors.white)));
                 } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
                   return Center(child: Text('Bạn đã đánh giá hết các chuyến đi!'.tr(), style: const TextStyle(color: Colors.white, fontSize: 18)));
                 }
 
                 final groups = snapshot.data!;
+<<<<<<< HEAD
 =======
                   return Center(
                     child: Column(
@@ -209,21 +252,29 @@ class _ListGroupFeedbackScreenState extends State<ListGroupFeedbackScreen> {
                 final groups = snapshot.data!;
 
 >>>>>>> 3ee7efe (done all groupapis)
+=======
+>>>>>>> week10
                 return ListView.builder(
                   padding: const EdgeInsets.all(16),
                   itemCount: groups.length,
                   itemBuilder: (context, index) {
                     final group = groups[index];
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> week10
                     // Dùng Widget mới để tự load ảnh
                     return _PendingGroupCard(
                       group: group,
                       accessToken: _accessToken!,
                       onFeedbackComplete: _refreshData,
                     );
+<<<<<<< HEAD
 =======
                     return _buildGroupCard(group);
 >>>>>>> 3ee7efe (done all groupapis)
+=======
+>>>>>>> week10
                   },
                 );
               },
@@ -234,6 +285,9 @@ class _ListGroupFeedbackScreenState extends State<ListGroupFeedbackScreen> {
     );
   }
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> week10
 }
 
 // === WIDGET MỚI: TỰ ĐỘNG LOAD ẢNH NẾU THIẾU ===
@@ -284,6 +338,7 @@ class _PendingGroupCardState extends State<_PendingGroupCard> {
     String? displayImage = _fetchedImageUrl ?? widget.group.groupImageUrl;
     bool hasImage = displayImage != null && displayImage.isNotEmpty;
 
+<<<<<<< HEAD
 =======
 
   Widget _buildGroupCard(PendingReviewGroup group) {
@@ -301,17 +356,36 @@ class _PendingGroupCardState extends State<_PendingGroupCard> {
 
           // Chuyển sang màn hình FeedbackScreen với token thật
 >>>>>>> 3ee7efe (done all groupapis)
+=======
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFEFE7DA),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: const Color(0xFFB29079),
+          width: 1.5,
+        ),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: () async {
+>>>>>>> week10
           final result = await Navigator.push(
             context,
             MaterialPageRoute(
               builder: (context) => FeedbackScreen(
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> week10
                 groupData: widget.group,
                 accessToken: widget.accessToken,
               ),
             ),
           );
           if (result == true) widget.onFeedbackComplete();
+<<<<<<< HEAD
 =======
                 groupData: group,
                 accessToken: _accessToken!, // Truyền token thật vào đây
@@ -323,23 +397,31 @@ class _PendingGroupCardState extends State<_PendingGroupCard> {
             _refreshData();
           }
 >>>>>>> 3ee7efe (done all groupapis)
+=======
+>>>>>>> week10
         },
         child: Container(
           height: 180,
           decoration: BoxDecoration(
             image: DecorationImage(
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> week10
               image: hasImage
                   ? NetworkImage(displayImage!) as ImageProvider
                   : const AssetImage('assets/images/default_group.jpg'),
               fit: BoxFit.cover,
               onError: (_, __) {},
+<<<<<<< HEAD
 =======
               image: (group.groupImageUrl != null && group.groupImageUrl!.isNotEmpty)
                   ? NetworkImage(group.groupImageUrl!) as ImageProvider
                   : const AssetImage('assets/images/default_group.jpg'),
               fit: BoxFit.cover,
 >>>>>>> 3ee7efe (done all groupapis)
+=======
+>>>>>>> week10
             ),
           ),
           child: Container(
@@ -357,6 +439,7 @@ class _PendingGroupCardState extends State<_PendingGroupCard> {
               children: [
                 Text(
 <<<<<<< HEAD
+<<<<<<< HEAD
                   widget.group.groupName,
                   style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold, fontFamily: 'Alumni Sans'),
 =======
@@ -368,6 +451,10 @@ class _PendingGroupCardState extends State<_PendingGroupCard> {
                     fontFamily: 'Alumni Sans',
                   ),
 >>>>>>> 3ee7efe (done all groupapis)
+=======
+                  widget.group.groupName,
+                  style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold, fontFamily: 'Alumni Sans'),
+>>>>>>> week10
                 ),
                 const SizedBox(height: 4),
                 Row(
@@ -376,10 +463,14 @@ class _PendingGroupCardState extends State<_PendingGroupCard> {
                     const SizedBox(width: 4),
                     Text(
 <<<<<<< HEAD
+<<<<<<< HEAD
                       '${widget.group.unreviewedMembers.length} thành viên cần đánh giá'.tr(),
 =======
                       '${group.unreviewedMembers.length} thành viên cần đánh giá'.tr(),
 >>>>>>> 3ee7efe (done all groupapis)
+=======
+                      '${widget.group.unreviewedMembers.length} thành viên cần đánh giá'.tr(),
+>>>>>>> week10
                       style: const TextStyle(color: Colors.white70, fontSize: 14),
                     ),
                   ],

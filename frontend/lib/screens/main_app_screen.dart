@@ -6,18 +6,24 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 =======
 import 'package:http/http.dart' as http; // THÊM MỚI
 import 'dart:convert'; // THÊM MỚI
 >>>>>>> 274291d (update)
+=======
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+>>>>>>> week10
 import 'home_page.dart';
 import 'messages_screen.dart';
 import '../widgets/custom_bottom_nav_bar.dart';
 import '../widgets/notification_permission_dialog.dart';
 import '../services/background_notification_service.dart';
 import '../services/notification_service.dart'; // Import service để xử lý badge
+<<<<<<< HEAD
 <<<<<<< HEAD
 import '../services/auth_service.dart'; // === THÊM MỚI: Import auth service ===
 import '../config/api_config.dart'; // === THÊM MỚI: Import API config ===
@@ -33,6 +39,10 @@ import '../services/notification_service.dart'; // === THÊM MỚI: Notification
 import '../services/auth_service.dart'; // THÊM MỚI: Import auth service
 import '../config/api_config.dart'; // THÊM MỚI: Import API config
 >>>>>>> 274291d (update)
+=======
+import '../services/auth_service.dart'; // === THÊM MỚI: Import auth service ===
+import '../config/api_config.dart'; // === THÊM MỚI: Import API config ===
+>>>>>>> week10
 import '../models/destination.dart';
 import 'destination_detail_screen.dart';
 import 'destination_explore_screen.dart';
@@ -87,11 +97,123 @@ class _MainAppScreenState extends State<MainAppScreen> {
     _selectedIndex = widget.initialIndex;
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 >>>>>>> 274291d (update)
     _startBackgroundNotificationService();
     _requestNotificationPermission();
     _preloadProfileData(); // === THÊM MỚI: Pre-load data ngay khi app start ===
+=======
+    _startBackgroundNotificationService();
+    _requestNotificationPermission();
+    _preloadProfileData(); // === THÊM MỚI: Pre-load data ngay khi app start ===
+    _checkInitialNotifications(); // === THÊM MỚI: Kiểm tra thông báo khi app khởi động ===
+  }
+
+  // === THÊM MỚI: Kiểm tra thông báo ban đầu để hiện badge ===
+  Future<void> _checkInitialNotifications() async {
+    try {
+      final token = await AuthService.getValidAccessToken();
+      if (token == null) return;
+
+      final prefs = await SharedPreferences.getInstance();
+      final currentUserId = prefs.getString('user_id');
+      bool hasUnreadNotifications = false;
+
+      // 1. Check tin nhắn chưa đọc từ các nhóm
+      final groupsUrl = ApiConfig.getUri(ApiConfig.myGroup);
+      final groupsRes = await http.get(
+        groupsUrl,
+        headers: {'Authorization': 'Bearer $token'},
+      );
+
+      if (groupsRes.statusCode == 200) {
+        final List<dynamic> groups = jsonDecode(utf8.decode(groupsRes.bodyBytes));
+
+        for (var group in groups) {
+          final String groupId = (group['id'] ?? group['group_id']).toString();
+
+          try {
+            final historyRes = await http.get(
+              Uri.parse('${ApiConfig.baseUrl}/chat/$groupId/history'),
+              headers: {'Authorization': 'Bearer $token'},
+            );
+
+            if (historyRes.statusCode == 200) {
+              final List<dynamic> messages = jsonDecode(utf8.decode(historyRes.bodyBytes));
+              final lastSeenId = prefs.getString('last_seen_message_id_$groupId');
+
+              int lastSeenIndex = -1;
+              if (lastSeenId != null) {
+                for (int i = 0; i < messages.length; i++) {
+                  if (messages[i]['id'].toString() == lastSeenId) {
+                    lastSeenIndex = i;
+                    break;
+                  }
+                }
+              }
+
+              // Check có tin nhắn chưa đọc từ người khác không
+              for (int i = lastSeenIndex + 1; i < messages.length; i++) {
+                final senderId = messages[i]['sender_id']?.toString();
+                if (senderId != currentUserId) {
+                  hasUnreadNotifications = true;
+                  break;
+                }
+              }
+
+              if (hasUnreadNotifications) break;
+            }
+          } catch (e) {
+            debugPrint('⚠️ Error checking chat for group $groupId: $e');
+          }
+        }
+      }
+
+      // 2. Check pending group requests (nếu là host)
+      if (!hasUnreadNotifications) {
+        final profileUrl = Uri.parse('${ApiConfig.baseUrl}/users/me');
+        final profileRes = await http.get(
+          profileUrl,
+          headers: {'Authorization': 'Bearer $token'},
+        );
+
+        if (profileRes.statusCode == 200) {
+          final profileData = jsonDecode(utf8.decode(profileRes.bodyBytes));
+          final List<dynamic> ownedGroups = profileData['owned_groups'] ?? [];
+
+          for (var group in ownedGroups) {
+            final groupId = group['group_id'] ?? group['id'];
+            if (groupId != null) {
+              final requestUrl = Uri.parse('${ApiConfig.baseUrl}/groups/$groupId/requests');
+              final requestRes = await http.get(
+                requestUrl,
+                headers: {'Authorization': 'Bearer $token'},
+              );
+
+              if (requestRes.statusCode == 200) {
+                final List<dynamic> requests = jsonDecode(utf8.decode(requestRes.bodyBytes));
+                if (requests.isNotEmpty) {
+                  hasUnreadNotifications = true;
+                  break;
+                }
+              }
+            }
+          }
+        }
+      }
+
+      // 3. Cập nhật badge
+      if (hasUnreadNotifications) {
+        NotificationService().showBadge();
+        debugPrint('🔔 Initial notifications check: Has unread notifications - Badge shown');
+      } else {
+        debugPrint('✅ Initial notifications check: No unread notifications');
+      }
+    } catch (e) {
+      debugPrint('⚠️ Error checking initial notifications: $e');
+    }
+>>>>>>> week10
   }
 
   // === THÊM MỚI: Pre-load profile data ngay từ đầu ===
@@ -113,16 +235,20 @@ class _MainAppScreenState extends State<MainAppScreen> {
         _cachedProfileData = jsonDecode(utf8.decode(response.bodyBytes));
         debugPrint('✅ Profile data pre-loaded successfully');
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
       } else {
         debugPrint('⚠️ Error pre-loading profile data: Status ${response.statusCode}');
 >>>>>>> 274291d (update)
+=======
+>>>>>>> week10
       }
     } catch (e) {
       debugPrint('⚠️ Error pre-loading profile data: $e');
     }
   }
 
+<<<<<<< HEAD
 <<<<<<< HEAD
 =======
     // === THÊM MỚI: Khởi động background notification service ===
@@ -135,6 +261,8 @@ class _MainAppScreenState extends State<MainAppScreen> {
 >>>>>>> 3ee7efe (done all groupapis)
 =======
 >>>>>>> 274291d (update)
+=======
+>>>>>>> week10
   Future<void> _startBackgroundNotificationService() async {
     try {
       await BackgroundNotificationService().start();
@@ -146,6 +274,7 @@ class _MainAppScreenState extends State<MainAppScreen> {
 
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
   Future<void> _requestNotificationPermission() async {
 =======
   /// Xin quyền thông báo lần đầu
@@ -155,18 +284,25 @@ class _MainAppScreenState extends State<MainAppScreen> {
 =======
   Future<void> _requestNotificationPermission() async {
 >>>>>>> 274291d (update)
+=======
+  Future<void> _requestNotificationPermission() async {
+>>>>>>> week10
     await Future.delayed(const Duration(milliseconds: 1000));
 
     if (!mounted) return;
 
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 >>>>>>> 274291d (update)
+=======
+>>>>>>> week10
     final hasPermission = await NotificationService().checkPermission();
 
     if (!hasPermission) {
       final granted = await NotificationPermissionDialog.show(context);
+<<<<<<< HEAD
 <<<<<<< HEAD
 =======
     // === SỬA MỚI: Kiểm tra permission thực tế thay vì chỉ dựa vào flag ===
@@ -181,6 +317,8 @@ class _MainAppScreenState extends State<MainAppScreen> {
 >>>>>>> 3ee7efe (done all groupapis)
 =======
 >>>>>>> 274291d (update)
+=======
+>>>>>>> week10
       if (granted) {
         final prefs = await SharedPreferences.getInstance();
         await prefs.setBool('notification_permission_asked', true);
@@ -272,12 +410,16 @@ class _MainAppScreenState extends State<MainAppScreen> {
   }
 
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> week10
 
   // === SỬA MỚI: Pre-load data THỰC SỰ trước khi mở Settings ===
   Future<void> _openSettings() async {
     // Hiện loading ngay lập tức
     setState(() => _isPreLoading = true);
 
+<<<<<<< HEAD
 =======
   // === SỬA MỚI: Pre-load data THỰC SỰ trước khi mở Settings ===
   Future<void> _openSettings() async {
@@ -285,6 +427,8 @@ class _MainAppScreenState extends State<MainAppScreen> {
     setState(() => _isPreLoading = true);
 
 >>>>>>> 274291d (update)
+=======
+>>>>>>> week10
     // Load data nếu chưa có cache hoặc cache cũ
     if (_cachedProfileData == null) {
       await _preloadProfileData();
@@ -549,9 +693,13 @@ class _MainAppScreenState extends State<MainAppScreen> {
       mainContent = ProfilePage(
         onBack: _onProfileBack, // === SỬA: Dùng callback đặc biệt để refresh cache ===
 <<<<<<< HEAD
+<<<<<<< HEAD
         cachedData: _cachedProfileData, // === THÊM MỚI: Truyền cached data ===
 =======
 >>>>>>> 274291d (update)
+=======
+        cachedData: _cachedProfileData, // === THÊM MỚI: Truyền cached data ===
+>>>>>>> week10
       );
     } else if (_showSettings) {
       mainContent = SettingsScreen(
@@ -593,6 +741,7 @@ class _MainAppScreenState extends State<MainAppScreen> {
           onTabChangeRequest: (index) {
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
             _onItemTapped(index);
 =======
             _onItemTapped(index); // Gọi hàm chuyển tab của MainAppScreen
@@ -604,6 +753,13 @@ class _MainAppScreenState extends State<MainAppScreen> {
         ),
         NotificationScreen(),
         MessagesScreen(accessToken: widget.accessToken),
+=======
+            _onItemTapped(index);
+          },
+        ),
+        NotificationScreen(),
+        MessagesScreen(),
+>>>>>>> week10
         PersonalSection(
           onGroupStateTap: _openGroupState,
           onTravelPlanTap: _openTravelPlan,

@@ -44,6 +44,11 @@ class _JoinGroupScreenState extends State<JoinGroupScreen> {
 
   final List<GroupData> _groups = [];
   bool _isLoadingSuggestions = true;
+<<<<<<< HEAD
+=======
+  bool _hasSelectedDates = true; // === THÊM MỚI: Kiểm tra user đã chọn ngày chưa ===
+  String _emptyReason = ''; // === THÊM MỚI: Lý do không tìm thấy nhóm ===
+>>>>>>> week10
 
   Future<GroupData> _enrichWithPublicPlan(GroupData g) async {
     if (g.id == null) return g;
@@ -105,9 +110,44 @@ class _JoinGroupScreenState extends State<JoinGroupScreen> {
 
   Future<void> _loadSuggestedGroups() async {
     if (!mounted) return;
+<<<<<<< HEAD
     setState(() => _isLoadingSuggestions = true);
     try {
       final accessToken = await AuthService.getValidAccessToken();
+=======
+    setState(() {
+      _isLoadingSuggestions = true;
+      _emptyReason = '';
+    });
+
+    try {
+      final accessToken = await AuthService.getValidAccessToken();
+
+      // === THÊM MỚI: Kiểm tra user đã chọn ngày chưa bằng cách lấy profile ===
+      bool hasDates = false;
+      try {
+        final profileUrl = ApiConfig.getUri('${ApiConfig.baseUrl}/user/profile');
+        final profileResp = await http.get(
+          profileUrl,
+          headers: {
+            'Content-Type': 'application/json',
+            if (accessToken != null) 'Authorization': 'Bearer $accessToken',
+          },
+        );
+
+        if (profileResp.statusCode == 200) {
+          final profileData = jsonDecode(utf8.decode(profileResp.bodyBytes));
+          final travelDates = profileData['travel_dates']?.toString() ?? '';
+          hasDates = travelDates.isNotEmpty && travelDates != 'null' && travelDates != '[]' && travelDates != '(,)';
+          print('📅 User travel_dates: $travelDates, hasDates: $hasDates');
+        }
+      } catch (e) {
+        print('Error checking user dates: $e');
+      }
+
+      _hasSelectedDates = hasDates;
+
+>>>>>>> week10
       final url = ApiConfig.getUri('${ApiConfig.baseUrl}/groups/suggest');
 
       final response = await http.get(
@@ -147,6 +187,19 @@ class _JoinGroupScreenState extends State<JoinGroupScreen> {
             _groups.clear();
             _groups.addAll(enriched);
             _isLoadingSuggestions = false;
+<<<<<<< HEAD
+=======
+
+            // === THÊM MỚI: Set empty reason ===
+            if (_groups.isEmpty) {
+              if (!_hasSelectedDates) {
+                _emptyReason = 'no_travel_dates'.tr();
+              } else {
+                _emptyReason = 'no_matching_groups'.tr();
+              }
+            }
+
+>>>>>>> week10
             final int multiplier = 1000;
             final int centerIndex = multiplier * (_groups.isEmpty ? 1 : _groups.length) ~/ 2;
             _pageController.jumpToPage(centerIndex + _currentPage);
@@ -154,11 +207,29 @@ class _JoinGroupScreenState extends State<JoinGroupScreen> {
         }
       } else {
         print('Failed to load suggestions: ${response.statusCode}');
+<<<<<<< HEAD
         if (mounted) setState(() => _isLoadingSuggestions = false);
       }
     } catch (e) {
       print('Error loading group suggestions: $e');
       if (mounted) setState(() => _isLoadingSuggestions = false);
+=======
+        if (mounted) {
+          setState(() {
+            _isLoadingSuggestions = false;
+            _emptyReason = 'Không thể tải danh sách nhóm. Vui lòng thử lại.';
+          });
+        }
+      }
+    } catch (e) {
+      print('Error loading group suggestions: $e');
+      if (mounted) {
+        setState(() {
+          _isLoadingSuggestions = false;
+          _emptyReason = 'Có lỗi xảy ra. Vui lòng thử lại.';
+        });
+      }
+>>>>>>> week10
     }
   }
 
@@ -287,6 +358,7 @@ class _JoinGroupScreenState extends State<JoinGroupScreen> {
               ),
             ),
           ),
+<<<<<<< HEAD
           // Main content
           SafeArea(
             child: Column(
@@ -306,6 +378,9 @@ class _JoinGroupScreenState extends State<JoinGroupScreen> {
             ),
           ),
           // CHỈ GIỮ LẠI PHẦN NÀY - Ảnh Group 7.png
+=======
+          // === ĐÃ DI CHUYỂN: Ảnh Group 7.png LÊN TRƯỚC để không che popup ===
+>>>>>>> week10
           Positioned(
             bottom: 0,
             left: 0,
@@ -325,6 +400,121 @@ class _JoinGroupScreenState extends State<JoinGroupScreen> {
               ),
             ),
           ),
+<<<<<<< HEAD
+=======
+          // Main content - NOW ON TOP
+          SafeArea(
+            child: Column(
+              children: [
+                const SizedBox(height: 70),
+                const SizedBox(height: 30),
+                _isLoadingSuggestions
+                    ? const Expanded(
+                        child: Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              CircularProgressIndicator(
+                                color: Color(0xFFB99668),
+                              ),
+                              SizedBox(height: 16),
+                              Text(
+                                'Đang tìm nhóm phù hợp...',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      )
+                    : _groups.isEmpty
+                        ? Expanded(
+                            child: Center(
+                              child: Container(
+                                margin: const EdgeInsets.symmetric(horizontal: 32),
+                                padding: const EdgeInsets.all(24),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(20),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withAlpha(26),
+                                      blurRadius: 10,
+                                      offset: const Offset(0, 4),
+                                    ),
+                                  ],
+                                ),
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      _hasSelectedDates ? Icons.search_off : Icons.calendar_today,
+                                      size: 64,
+                                      color: const Color(0xFFB99668),
+                                    ),
+                                    const SizedBox(height: 16),
+                                    Text(
+                                      _hasSelectedDates
+                                        ? 'no_matching_groups_found'.tr()
+                                        : 'no_travel_dates'.tr().split('\n').first,
+                                      style: const TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold,
+                                        color: Color(0xFF1B1E28),
+                                      ),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Text(
+                                      _emptyReason.isNotEmpty
+                                        ? _emptyReason
+                                        : (_hasSelectedDates
+                                            ? 'Hãy thử lại sau hoặc tạo nhóm mới'
+                                            : 'Vui lòng cập nhật ngày đi trong hồ sơ'),
+                                      style: const TextStyle(
+                                        fontSize: 14,
+                                        color: Color(0xFF7C838D),
+                                      ),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                    const SizedBox(height: 20),
+                                    ElevatedButton(
+                                      onPressed: _loadSuggestedGroups,
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: const Color(0xFFB99668),
+                                        foregroundColor: Colors.white,
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 32,
+                                          vertical: 12,
+                                        ),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(25),
+                                        ),
+                                      ),
+                                      child: const Text(
+                                        'Thử lại',
+                                        style: TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          )
+                        : Expanded(
+                            child: _buildCarousel(),
+                          ),
+              ],
+            ),
+          ),
+          // Back button
+>>>>>>> week10
           Positioned(
             top: MediaQuery.of(context).padding.top + 15, // Dưới status bar
             left: 26,
@@ -367,7 +557,11 @@ class _JoinGroupScreenState extends State<JoinGroupScreen> {
               _currentPage = index % _groups.length;
             });
           },
+<<<<<<< HEAD
           itemCount: _groups.length * multiplier,
+=======
+          itemCount: _groups.length,
+>>>>>>> week10
           itemBuilder: (context, index) {
             final int actualIndex = index % _groups.length;
             final GroupData group = _groups[actualIndex];

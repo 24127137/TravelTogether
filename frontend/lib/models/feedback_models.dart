@@ -1,3 +1,14 @@
+<<<<<<< HEAD
+=======
+// Hàm tiện ích giúp chuyển đổi số an toàn (tránh lỗi crash khi server trả String)
+double _parseDouble(dynamic value) {
+  if (value == null) return 0.0;
+  if (value is num) return value.toDouble();
+  if (value is String) return double.tryParse(value) ?? 0.0;
+  return 0.0;
+}
+
+>>>>>>> week10
 class UnreviewedMember {
   final int profileId;
   final String fullname;
@@ -11,8 +22,12 @@ class UnreviewedMember {
 
   factory UnreviewedMember.fromJson(Map<String, dynamic> json) {
     return UnreviewedMember(
+<<<<<<< HEAD
       profileId: json['profile_id'],
       // Fallback nếu tên null thì hiển thị default
+=======
+      profileId: json['profile_id'] is int ? json['profile_id'] : int.tryParse(json['profile_id'].toString()) ?? 0,
+>>>>>>> week10
       fullname: json['fullname'] ?? 'Thành viên',
       email: json['email'] ?? '',
     );
@@ -37,7 +52,11 @@ class PendingReviewGroup {
     List<UnreviewedMember> membersList = list.map((i) => UnreviewedMember.fromJson(i)).toList();
 
     return PendingReviewGroup(
+<<<<<<< HEAD
       groupId: json['group_id'],
+=======
+      groupId: json['group_id'] is int ? json['group_id'] : int.tryParse(json['group_id'].toString()) ?? 0,
+>>>>>>> week10
       groupName: json['group_name'] ?? 'Nhóm du lịch',
       groupImageUrl: json['group_image_url'],
       unreviewedMembers: membersList,
@@ -45,7 +64,11 @@ class PendingReviewGroup {
   }
 }
 
+<<<<<<< HEAD
 // --- CÁC MODEL MỚI CHO REPUTATION ---
+=======
+// --- CÁC MODEL CHO REPUTATION (Đã sửa lỗi parse số) ---
+>>>>>>> week10
 
 class FeedbackDetail {
   final int id;
@@ -64,8 +87,14 @@ class FeedbackDetail {
 
   factory FeedbackDetail.fromJson(Map<String, dynamic> json) {
     return FeedbackDetail(
+<<<<<<< HEAD
       id: json['id'],
       rating: (json['rating'] ?? 0).toDouble(),
+=======
+      id: json['id'] is int ? json['id'] : int.tryParse(json['id'].toString()) ?? 0,
+      // SỬA: Dùng hàm _parseDouble an toàn
+      rating: _parseDouble(json['rating']),
+>>>>>>> week10
       content: (json['content'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [],
       senderName: json['sender_name'],
       anonymous: json['anonymous'] ?? false,
@@ -91,7 +120,11 @@ class GroupReputationSummary {
     List<FeedbackDetail> fbList = list.map((i) => FeedbackDetail.fromJson(i)).toList();
 
     return GroupReputationSummary(
+<<<<<<< HEAD
       groupId: json['group_id'],
+=======
+      groupId: json['group_id'] is int ? json['group_id'] : int.tryParse(json['group_id'].toString()) ?? 0,
+>>>>>>> week10
       groupName: json['group_name'] ?? 'Nhóm',
       groupImageUrl: json['group_image_url'],
       feedbacks: fbList,
@@ -115,8 +148,14 @@ class MyReputationResponse {
     List<GroupReputationSummary> groupList = list.map((i) => GroupReputationSummary.fromJson(i)).toList();
 
     return MyReputationResponse(
+<<<<<<< HEAD
       averageRating: (json['average_rating'] ?? 0).toDouble(),
       totalFeedbacks: json['total_feedbacks'] ?? 0,
+=======
+      // SỬA: Dùng hàm _parseDouble an toàn
+      averageRating: _parseDouble(json['average_rating']),
+      totalFeedbacks: json['total_feedbacks'] is int ? json['total_feedbacks'] : int.tryParse(json['total_feedbacks'].toString()) ?? 0,
+>>>>>>> week10
       groups: groupList,
     );
   }

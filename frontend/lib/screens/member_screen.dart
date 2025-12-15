@@ -1,11 +1,19 @@
 import 'package:flutter/material.dart';
 import '../widgets/out_group_dialog.dart';
 <<<<<<< HEAD
+<<<<<<< HEAD
 import '../services/auth_service.dart';
 =======
 >>>>>>> 3ee7efe (done all groupapis)
 
 class MemberScreenMember extends StatefulWidget {
+=======
+import 'main_app_screen.dart';
+import '../services/auth_service.dart';
+
+class MemberScreenMember extends StatefulWidget {
+  final String groupId;
+>>>>>>> week10
   final String groupName;
   final int currentMembers;
   final int maxMembers;
@@ -13,6 +21,10 @@ class MemberScreenMember extends StatefulWidget {
 
   const MemberScreenMember({
     super.key,
+<<<<<<< HEAD
+=======
+    required this.groupId,
+>>>>>>> week10
     required this.groupName,
     required this.currentMembers,
     required this.maxMembers,
@@ -118,6 +130,7 @@ class _MemberScreenMemberState extends State<MemberScreenMember> {
 
           // Exit button
           GestureDetector(
+<<<<<<< HEAD
             onTap: () {
               OutGroupDialog.show(
                 context,
@@ -135,6 +148,43 @@ class _MemberScreenMemberState extends State<MemberScreenMember> {
                 },
 =======
 >>>>>>> 3ee7efe (done all groupapis)
+=======
+            onTap: () async {
+              // Lấy tên user hiện tại để gửi system message
+              final memberName = await AuthService.getCurrentUserName();
+              print('🔍 DEBUG: Got memberName for leave group: "$memberName"');
+
+              if (!context.mounted) return;
+
+              OutGroupDialog.show(
+                context,
+                groupId: widget.groupId,
+                isHost: false,
+                memberName: memberName,
+                onSuccess: () async {
+                  // Lấy accessToken để navigate về MainAppScreen
+                  final accessToken = await AuthService.getValidAccessToken() ?? '';
+
+                  // Navigate về MessagesScreen (index 2) và refresh
+                  if (context.mounted) {
+                    Navigator.of(context).pushAndRemoveUntil(
+                      MaterialPageRoute(
+                        builder: (context) => MainAppScreen(
+                          initialIndex: 2,
+                          accessToken: accessToken,
+                        ),
+                      ),
+                      (route) => false, // Remove tất cả routes cũ
+                    );
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Đã rời nhóm thành công'),
+                        backgroundColor: Colors.green,
+                      ),
+                    );
+                  }
+                },
+>>>>>>> week10
               );
             },
             child: Container(
@@ -215,10 +265,19 @@ class _MemberScreenMemberState extends State<MemberScreenMember> {
       margin: const EdgeInsets.only(bottom: 15),
       padding: const EdgeInsets.all(16),
       height: 120,
+<<<<<<< HEAD
       decoration: ShapeDecoration(
         color: const Color(0xFFB99668),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
+=======
+      decoration: BoxDecoration(
+        color: const Color(0xFFEFE7DA),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: const Color(0xFFB29079),
+          width: 1.5,
+>>>>>>> week10
         ),
       ),
       child: Row(
@@ -280,4 +339,8 @@ class Member {
     required this.email,
     required this.avatarUrl,
   });
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> week10

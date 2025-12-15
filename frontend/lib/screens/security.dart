@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+<<<<<<< HEAD
+=======
+import 'package:easy_localization/easy_localization.dart';
+>>>>>>> week10
 
 class OldPinPage extends StatefulWidget {
   const OldPinPage({super.key});
@@ -19,7 +23,11 @@ class _OldPinPageState extends State<OldPinPage> {
   void _nextStep() {
     // pin test = 123456
     if (pin != "123456") {
+<<<<<<< HEAD
       _showError("Mã PIN không đúng! Vui lòng thử lại.");
+=======
+      _showError('pin_incorrect'.tr());
+>>>>>>> week10
       return;
     }
     Navigator.push(
@@ -71,9 +79,15 @@ class _OldPinPageState extends State<OldPinPage> {
     return Scaffold(
       backgroundColor: const Color(0xFFF5EFE6),
       appBar: AppBar(
+<<<<<<< HEAD
         title: const Text(
           "Bảo mật",
           style: TextStyle(fontSize: 25, fontWeight: FontWeight.w600, fontFamily: 'WorkSans'),
+=======
+        title: Text(
+          'security_title'.tr(),
+          style: const TextStyle(fontSize: 25, fontWeight: FontWeight.w600, fontFamily: 'Alumni Sans'),
+>>>>>>> week10
         ),
         centerTitle: true,
         backgroundColor: const Color(0xFFF5EFE6),
@@ -99,6 +113,7 @@ class _OldPinPageState extends State<OldPinPage> {
                     child: const Icon(
                       Icons.pin_outlined,
                       size: 60,
+<<<<<<< HEAD
                       color: const Color(0xFF8A724C),
                     ),
                   ),
@@ -111,6 +126,20 @@ class _OldPinPageState extends State<OldPinPage> {
                   const Text(
                     "Mã giúp bảo mật tài khoản của bạn",
                     style: TextStyle(fontSize: 15, color: Colors.black54, fontFamily: 'WorkSans'),
+=======
+                      color: Color(0xFF8A724C),
+                    ),
+                  ),
+                  const SizedBox(height: 32),
+                  Text(
+                    'enter_current_pin'.tr(),
+                    style: const TextStyle(fontSize: 25, fontWeight: FontWeight.w600, fontFamily: 'Alumni Sans'),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'pin_security_note'.tr(),
+                    style: const TextStyle(fontSize: 15, color: Colors.black54, fontFamily: 'Alegreya'),
+>>>>>>> week10
                   ),
                   const SizedBox(height: 40),
                   GestureDetector(
@@ -131,11 +160,19 @@ class _OldPinPageState extends State<OldPinPage> {
                           borderRadius: BorderRadius.circular(30),
                         ),
                       ),
+<<<<<<< HEAD
                       child: const Text(
                         "Tiếp tục",
                         style: TextStyle(
                           fontSize: 22,
                           fontFamily: 'WorkSans',
+=======
+                      child: Text(
+                        'continue_button'.tr(),
+                        style: const TextStyle(
+                          fontSize: 22,
+                          fontFamily: 'Alegreya',
+>>>>>>> week10
                           fontWeight: FontWeight.w600,
                           color: Colors.white,
                         ),
@@ -219,9 +256,15 @@ class _NewPinPageState extends State<NewPinPage> {
     return Scaffold(
       backgroundColor: const Color(0xFFF5EFE6),
       appBar: AppBar(
+<<<<<<< HEAD
         title: const Text(
           "Bảo mật",
           style: TextStyle(fontSize: 25, fontWeight: FontWeight.w500, fontFamily: 'WorkSans'),
+=======
+        title: Text(
+          'security_title'.tr(),
+          style: const TextStyle(fontSize: 25, fontWeight: FontWeight.w500, fontFamily: 'Alumni Sans'),
+>>>>>>> week10
         ),
         centerTitle: true,
         backgroundColor: const Color(0xFFF5EFE6),
@@ -235,6 +278,7 @@ class _NewPinPageState extends State<NewPinPage> {
           child: Column(
             children: [
               const Spacer(flex: 2),
+<<<<<<< HEAD
               const Text(
                 "Nhập mã PIN mới",
                 style: TextStyle(fontSize: 25, fontWeight: FontWeight.w600, fontFamily: 'WorkSans'),
@@ -243,6 +287,16 @@ class _NewPinPageState extends State<NewPinPage> {
               const Text(
                 "Tạo mã PIN bảo mật mới",
                 style: TextStyle(fontSize: 15, color: Colors.black54, fontFamily: 'WorkSans'),
+=======
+              Text(
+                'enter_new_pin'.tr(),
+                style: const TextStyle(fontSize: 25, fontWeight: FontWeight.w600, fontFamily: 'Alumni Sans'),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'create_new_pin'.tr(),
+                style: const TextStyle(fontSize: 15, color: Colors.black54, fontFamily: 'Alegreya'),
+>>>>>>> week10
               ),
               const SizedBox(height: 40),
               GestureDetector(
@@ -263,11 +317,19 @@ class _NewPinPageState extends State<NewPinPage> {
                       borderRadius: BorderRadius.circular(30),
                     ),
                   ),
+<<<<<<< HEAD
                   child: const Text(
                     "Tiếp tục",
                     style: TextStyle(
                       fontSize: 22,
                       fontFamily: 'WorkSans',
+=======
+                  child: Text(
+                    'continue_button'.tr(),
+                    style: const TextStyle(
+                      fontSize: 22,
+                      fontFamily: 'Alegreya',
+>>>>>>> week10
                       fontWeight: FontWeight.w600,
                       color: Colors.white,
                     ),
@@ -316,7 +378,11 @@ class _ConfirmPinPageState extends State<ConfirmPinPage> {
 
   void _nextStep() {
     if (pin != widget.newPin) {
+<<<<<<< HEAD
       _showError("Xác nhận mã PIN không khớp!");
+=======
+      _showError('pin_mismatch'.tr());
+>>>>>>> week10
       controller.clear();
       setState(() {
         pin = "";
@@ -372,9 +438,15 @@ class _ConfirmPinPageState extends State<ConfirmPinPage> {
     return Scaffold(
       backgroundColor: const Color(0xFFF5EFE6),
       appBar: AppBar(
+<<<<<<< HEAD
         title: const Text(
           "Bảo mật",
           style: TextStyle(fontSize: 25, fontWeight: FontWeight.w500, fontFamily: 'WorkSans'),
+=======
+        title: Text(
+          'security_title'.tr(),
+          style: const TextStyle(fontSize: 25, fontWeight: FontWeight.w500, fontFamily: 'Alumni Sans'),
+>>>>>>> week10
         ),
         centerTitle: true,
         backgroundColor: const Color(0xFFF5EFE6),
@@ -390,6 +462,7 @@ class _ConfirmPinPageState extends State<ConfirmPinPage> {
               child: Column(
                 children: [
                   const Spacer(flex: 2),
+<<<<<<< HEAD
                   const Text(
                     "Xác nhận mã PIN mới",
                     style: TextStyle(fontSize: 25, fontWeight: FontWeight.w600, fontFamily: 'WorkSans'),
@@ -398,6 +471,16 @@ class _ConfirmPinPageState extends State<ConfirmPinPage> {
                   const Text(
                     "Nhập lại mã PIN để xác nhận",
                     style: TextStyle(fontSize: 15, color: Colors.black54, fontFamily: 'WorkSans'),
+=======
+                  Text(
+                    'confirm_new_pin'.tr(),
+                    style: const TextStyle(fontSize: 25, fontWeight: FontWeight.w600, fontFamily: 'Alumni Sans'),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'reenter_pin'.tr(),
+                    style: const TextStyle(fontSize: 15, color: Colors.black54, fontFamily: 'Alegreya'),
+>>>>>>> week10
                   ),
                   const SizedBox(height: 40),
                   GestureDetector(
@@ -418,11 +501,19 @@ class _ConfirmPinPageState extends State<ConfirmPinPage> {
                           borderRadius: BorderRadius.circular(30),
                         ),
                       ),
+<<<<<<< HEAD
                       child: const Text(
                         "Tiếp tục",
                         style: TextStyle(
                           fontSize: 22,
                           fontFamily: 'WorkSans',
+=======
+                      child: Text(
+                        'continue_button'.tr(),
+                        style: const TextStyle(
+                          fontSize: 22,
+                          fontFamily: 'Alegreya',
+>>>>>>> week10
                           fontWeight: FontWeight.w600,
                           color: Colors.white,
                         ),
@@ -473,18 +564,31 @@ class SuccessPage extends StatelessWidget {
               const Spacer(flex: 2),
               const Icon(Icons.lock_open_rounded, size: 100, color: Color(0xFF8A724C)),
               const SizedBox(height: 20),
+<<<<<<< HEAD
               const Text(
                 "Đổi mã PIN thành công!",
                 style: TextStyle(
                   fontFamily: "WorkSans",
+=======
+              Text(
+                'pin_changed_success'.tr(),
+                style: const TextStyle(
+                  fontFamily: "Alumni Sans",
+>>>>>>> week10
                   fontSize: 25,
                   fontWeight: FontWeight.bold,
                 ),
               ),
               const SizedBox(height: 10),
+<<<<<<< HEAD
               const Text(
                 "Bạn có thể sử dụng mã PIN mới",
                 style: TextStyle(fontFamily: "WorkSans", fontSize: 16),
+=======
+              Text(
+                'pin_security_note'.tr(),
+                style: const TextStyle(fontFamily: "Alegreya", fontSize: 16),
+>>>>>>> week10
               ),
               const SizedBox(height: 40),
               SizedBox(
@@ -500,10 +604,17 @@ class SuccessPage extends StatelessWidget {
                   onPressed: () {
                     Navigator.of(context).popUntil((route) => route.isFirst);
                   },
+<<<<<<< HEAD
                   child: const Text(
                     "Hoàn tất",
                     style: TextStyle(
                       fontFamily: "WorkSans",
+=======
+                  child: Text(
+                    'complete'.tr(),
+                    style: const TextStyle(
+                      fontFamily: "Alegreya",
+>>>>>>> week10
                       fontSize: 22,
                       fontWeight: FontWeight.w600,
                       color: Colors.white,
@@ -667,7 +778,11 @@ class _ErrorNotificationState extends State<ErrorNotification>
                       color: Colors.white,
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
+<<<<<<< HEAD
                       fontFamily: 'WorkSans',
+=======
+                      fontFamily: 'Alegreya',
+>>>>>>> week10
                     ),
                   ),
                 ),

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:timezone/timezone.dart' as tz;
 import 'package:timezone/data/latest_all.dart' as tz;
+<<<<<<< HEAD
 import 'dart:convert'; // === THÊM MỚI: Để parse JSON payload ===
 
 import '../main.dart' show navigatorKey; // === THÊM MỚI: Import global navigator key ===
@@ -17,28 +18,74 @@ import '../screens/notification_screen.dart'; // === THÊM MỚI: Import màn h�
 
 =======
 >>>>>>> 3ee7efe (done all groupapis)
+=======
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:async';
+import 'package:firebase_messaging/firebase_messaging.dart';
+
+import '../main.dart' show navigatorKey;
+import '../screens/chatbox_screen.dart';
+import '../screens/ai_chatbot_screen.dart';
+import '../screens/notification_screen.dart';
+import '../screens/host_member_screen.dart';
+import '../config/api_config.dart';
+import 'auth_service.dart';
+
+>>>>>>> week10
 /// Service quản lý Local Notifications
 /// Hỗ trợ cả Android và iOS
 class NotificationService {
   static final NotificationService _instance = NotificationService._internal();
 <<<<<<< HEAD
+<<<<<<< HEAD
   final ValueNotifier<bool> showBadgeNotifier = ValueNotifier(false);
 =======
 >>>>>>> 3ee7efe (done all groupapis)
   factory NotificationService() => _instance;
+=======
+  final ValueNotifier<bool> showBadgeNotifier = ValueNotifier(false);
+  
+  factory NotificationService() => _instance;
+  
+>>>>>>> week10
   NotificationService._internal();
 
   final FlutterLocalNotificationsPlugin _notifications = FlutterLocalNotificationsPlugin();
   bool _initialized = false;
 
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+  final _onMessageStreamController = StreamController<RemoteMessage>.broadcast();
+  Stream<RemoteMessage> get onMessageReceived => _onMessageStreamController.stream;
+
+>>>>>>> week10
   // === THÊM MỚI: Hàm xóa chấm đỏ (gọi khi user vào màn hình thông báo) ===
   void clearBadge() {
     showBadgeNotifier.value = false;
   }
 
+<<<<<<< HEAD
 =======
 >>>>>>> 3ee7efe (done all groupapis)
+=======
+  // === THÊM MỚI: Hàm bật chấm đỏ (gọi khi có thông báo mới) ===
+  void showBadge() {
+    showBadgeNotifier.value = true;
+  }
+
+  // === THÊM MỚI: Cập nhật badge dựa trên số lượng notifications ===
+  void updateBadge(int notificationCount) {
+    showBadgeNotifier.value = notificationCount > 0;
+  }
+
+  void dispose() {
+    _onMessageStreamController.close();
+  }
+
+>>>>>>> week10
   /// Khởi tạo notification service
   /// Phải gọi hàm này trước khi sử dụng
   Future<void> initialize() async {
@@ -62,12 +109,17 @@ class NotificationService {
       iOS: iosSettings,
     );
 
+<<<<<<< HEAD
     // Initialize
+=======
+    // Initialize Local Notifications
+>>>>>>> week10
     await _notifications.initialize(
       initSettings,
       onDidReceiveNotificationResponse: _onNotificationTapped,
     );
 
+<<<<<<< HEAD
     _initialized = true;
     debugPrint('✅ NotificationService initialized');
 
@@ -75,6 +127,67 @@ class NotificationService {
     // Thay vào đó, app sẽ hiển thị NotificationPermissionDialog (custom UI)
     // để giải thích tại sao cần permission trước khi gọi requestPermission()
     // Xem: widgets/notification_permission_dialog.dart
+=======
+    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+      debugPrint("🔔 FCM received in foreground: ${message.notification?.title}");
+      
+      // 1. Bắn data vào stream để UI (NotificationScreen) cập nhật ngay lập tức
+      _onMessageStreamController.add(message);
+      
+      // 2. Bật chấm đỏ
+      showBadge();
+
+      // 3. Hiện thông báo pop-up (Local Notification)
+      // Chỉ hiện nếu có title/body, tránh hiện notification rỗng
+      if (message.notification != null) {
+        showNotification(
+          id: message.hashCode, // Dùng hashcode làm ID tạm
+          title: message.notification!.title ?? 'Thông báo mới',
+          body: message.notification!.body ?? '',
+          payload: jsonEncode(message.data), // Quan trọng: Truyền data payload để navigate
+        );
+      }
+    });
+
+    // === Tạo notification channel với độ ưu tiên cao cho Android ===
+    if (defaultTargetPlatform == TargetPlatform.android) {
+      final androidPlugin = _notifications.resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin>();
+
+      if (androidPlugin != null) {
+        // Tạo channel cho tin nhắn
+        await androidPlugin.createNotificationChannel(
+          const AndroidNotificationChannel(
+            'travel_together_channel',
+            'Travel Together Notifications',
+            description: 'Thông báo từ Travel Together',
+            importance: Importance.max,
+            playSound: true,
+            enableVibration: true,
+            showBadge: true,
+          ),
+        );
+
+        // Tạo channel riêng cho group requests
+        await androidPlugin.createNotificationChannel(
+          const AndroidNotificationChannel(
+            'group_request_channel',
+            'Group Request Notifications',
+            description: 'Thông báo yêu cầu tham gia nhóm',
+            importance: Importance.max,
+            playSound: true,
+            enableVibration: true,
+            showBadge: true,
+          ),
+        );
+
+        debugPrint('✅ Android notification channels created');
+      }
+    }
+
+    _initialized = true;
+    debugPrint('✅ NotificationService initialized');
+>>>>>>> week10
   }
 
   /// Xử lý khi user tap vào notification
@@ -86,15 +199,23 @@ class NotificationService {
       return;
     }
 
+<<<<<<< HEAD
     final context = navigatorKey.currentContext;
     if (context == null) {
       debugPrint('⚠️ Navigator context is null, cannot navigate');
+=======
+    // Sử dụng navigatorKey thay vì context để tránh lỗi "No Material widget found"
+    final navigator = navigatorKey.currentState;
+    if (navigator == null) {
+      debugPrint('⚠️ Navigator state is null, cannot navigate');
+>>>>>>> week10
       return;
     }
 
     // Parse payload để biết loại notification và navigate tới màn hình tương ứng
     try {
       final payload = response.payload!;
+<<<<<<< HEAD
 
       debugPrint('🔍 Processing payload: $payload');
 
@@ -107,30 +228,95 @@ class NotificationService {
             MaterialPageRoute(
               builder: (context) => const ChatboxScreen(),
             ),
+=======
+      debugPrint('🔍 Processing payload: $payload');
+
+      // Thử parse JSON payload trước
+      try {
+        final jsonData = jsonDecode(payload);
+        final type = jsonData['type'] as String?;
+
+        debugPrint('📋 Notification type: $type');
+
+        if (type == 'group_request') {
+          final groupId = jsonData['group_id']?.toString();
+          final groupName = jsonData['group_name']?.toString() ?? 'Nhóm';
+
+          debugPrint('🚀 Opening MemberScreenHost for group: $groupId - $groupName');
+
+          // Navigate trực tiếp đến MemberScreenHost với tab pending
+          _navigateToMemberScreenHost(navigator, groupId, groupName);
+          return;
+        } else if (type == 'message') {
+          final groupId = jsonData['group_id']?.toString();
+          debugPrint('🚀 Navigating to ChatboxScreen with groupId: $groupId');
+
+          // Lưu groupId vào SharedPreferences để ChatboxScreen biết mở nhóm nào
+          if (groupId != null) {
+            SharedPreferences.getInstance().then((prefs) {
+              prefs.setString('cached_group_id', groupId);
+            });
+          }
+
+          navigator.push(
+            MaterialPageRoute(builder: (context) => const ChatboxScreen()),
+          );
+          return;
+        } else if (type == 'ai_chat') {
+          navigator.push(
+            MaterialPageRoute(builder: (context) => const AiChatbotScreen()),
+          );
+          return;
+        }
+      } catch (e) {
+        debugPrint('⚠️ Payload is not JSON, trying simple string match');
+      }
+
+      // Fallback: xử lý payload đơn giản (string)
+      switch (payload) {
+        case 'message':
+          debugPrint('🚀 Navigating to ChatboxScreen');
+          navigator.push(
+            MaterialPageRoute(builder: (context) => const ChatboxScreen()),
+>>>>>>> week10
           );
           break;
 
         case 'ai_chat':
+<<<<<<< HEAD
           // Navigate tới màn hình AI chatbot
           debugPrint('🚀 Navigating to AiChatbotScreen');
           Navigator.of(context).push(
             MaterialPageRoute(
               builder: (context) => const AiChatbotScreen(),
             ),
+=======
+          debugPrint('🚀 Navigating to AiChatbotScreen');
+          navigator.push(
+            MaterialPageRoute(builder: (context) => const AiChatbotScreen()),
+>>>>>>> week10
           );
           break;
 
         case 'group_request':
+<<<<<<< HEAD
           // Navigate tới màn hình notifications để xem yêu cầu
           debugPrint('🚀 Navigating to NotificationScreen');
           Navigator.of(context).push(
             MaterialPageRoute(
               builder: (context) => const NotificationScreen(),
             ),
+=======
+          // Fallback: mở NotificationScreen để user tự chọn
+          debugPrint('🚀 Navigating to NotificationScreen (fallback)');
+          navigator.push(
+            MaterialPageRoute(builder: (context) => const NotificationScreen()),
+>>>>>>> week10
           );
           break;
 
         default:
+<<<<<<< HEAD
           // Nếu payload có format khác (ví dụ JSON), có thể parse thêm
           debugPrint('⚠️ Unknown payload type: $payload');
           // Thử parse JSON nếu có
@@ -162,12 +348,96 @@ class NotificationService {
           } catch (e) {
             debugPrint('⚠️ Failed to parse JSON payload: $e');
           }
+=======
+          debugPrint('⚠️ Unknown payload type: $payload');
+>>>>>>> week10
       }
     } catch (e) {
       debugPrint('❌ Error handling notification tap: $e');
     }
   }
 
+<<<<<<< HEAD
+=======
+  /// Navigate đến MemberScreenHost với thông tin nhóm
+  Future<void> _navigateToMemberScreenHost(
+    NavigatorState navigator,
+    String? groupId,
+    String groupName,
+  ) async {
+    if (groupId == null) {
+      debugPrint('⚠️ No groupId, navigating to NotificationScreen');
+      navigator.push(
+        MaterialPageRoute(builder: (context) => const NotificationScreen()),
+      );
+      return;
+    }
+
+    try {
+      // Lấy token
+      final token = await AuthService.getValidAccessToken();
+      if (token == null) {
+        debugPrint('❌ No token, cannot fetch group detail');
+        navigator.push(
+          MaterialPageRoute(builder: (context) => const NotificationScreen()),
+        );
+        return;
+      }
+
+      // Gọi API lấy chi tiết nhóm
+      final url = Uri.parse('${ApiConfig.baseUrl}/groups/$groupId/detail');
+      final response = await http.get(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(utf8.decode(response.bodyBytes));
+
+        // Parse danh sách thành viên
+        final List<dynamic> memberListJson = data['members'] ?? [];
+        final List<Member> members = memberListJson.map((m) => Member(
+          id: m['profile_uuid'] ?? '',
+          name: m['fullname'] ?? 'Thành viên',
+          email: m['email'] ?? '',
+          avatarUrl: m['avatar_url'],
+        )).toList();
+
+        debugPrint('✅ Loaded ${members.length} members, navigating to MemberScreenHost');
+
+        // Navigate đến MemberScreenHost với tab Chờ Duyệt mở sẵn
+        navigator.push(
+          MaterialPageRoute(
+            builder: (context) => MemberScreenHost(
+              groupId: groupId,
+              groupName: data['name'] ?? groupName,
+              currentMembers: members.length,
+              maxMembers: data['max_members'] ?? 10,
+              members: members,
+              openPendingTab: true, // Mở sẵn tab Chờ Duyệt
+            ),
+          ),
+        );
+      } else {
+        debugPrint('❌ Failed to get group detail: ${response.statusCode}');
+        // Fallback to NotificationScreen
+        navigator.push(
+          MaterialPageRoute(builder: (context) => const NotificationScreen()),
+        );
+      }
+    } catch (e) {
+      debugPrint('❌ Error navigating to MemberScreenHost: $e');
+      // Fallback to NotificationScreen
+      navigator.push(
+        MaterialPageRoute(builder: (context) => const NotificationScreen()),
+      );
+    }
+  }
+
+>>>>>>> week10
   /// Xin quyền thông báo (chủ yếu cho iOS)
   /// Trả về true nếu được cấp quyền
   Future<bool> requestPermission() async {
@@ -175,10 +445,17 @@ class NotificationService {
       final granted = await _notifications
           .resolvePlatformSpecificImplementation<IOSFlutterLocalNotificationsPlugin>()
           ?.requestPermissions(
+<<<<<<< HEAD
             alert: true,
             badge: true,
             sound: true,
           );
+=======
+        alert: true,
+        badge: true,
+        sound: true,
+      );
+>>>>>>> week10
       return granted ?? false;
     } else if (defaultTargetPlatform == TargetPlatform.android) {
       // Android 13+ cần xin quyền thông báo
@@ -195,10 +472,17 @@ class NotificationService {
       final granted = await _notifications
           .resolvePlatformSpecificImplementation<IOSFlutterLocalNotificationsPlugin>()
           ?.requestPermissions(
+<<<<<<< HEAD
             alert: true,
             badge: true,
             sound: true,
           );
+=======
+        alert: true,
+        badge: true,
+        sound: true,
+      );
+>>>>>>> week10
       return granted ?? false;
     } else if (defaultTargetPlatform == TargetPlatform.android) {
       final androidImplementation = _notifications.resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
@@ -220,17 +504,46 @@ class NotificationService {
       await initialize();
     }
 
+<<<<<<< HEAD
+=======
+    debugPrint('🔔 ===== SHOWING NOTIFICATION =====');
+    debugPrint('   Title: $title');
+    debugPrint('   Body: $body');
+    debugPrint('   Payload: $payload');
+
+    // Kiểm tra permission trước
+    final hasPermission = await checkPermission();
+    debugPrint('   Permission granted: $hasPermission');
+
+    if (!hasPermission) {
+      debugPrint('   ⚠️ Notification permission NOT granted, skipping notification');
+      // Vẫn bật badge để user biết có thông báo
+      showBadgeNotifier.value = true;
+      return;
+    }
+
+>>>>>>> week10
     // Android notification details
     final androidDetails = AndroidNotificationDetails(
       'travel_together_channel', // channel ID
       'Travel Together Notifications', // channel name
       channelDescription: 'Thông báo từ Travel Together',
       importance: Importance.max,
+<<<<<<< HEAD
       priority: priority == NotificationPriority.high ? Priority.high : Priority.defaultPriority,
+=======
+      priority: Priority.max,
+>>>>>>> week10
       showWhen: true,
       enableVibration: true,
       playSound: true,
       icon: '@mipmap/ic_launcher',
+<<<<<<< HEAD
+=======
+      fullScreenIntent: true, // === THÊM: Hiện trên lock screen ===
+      category: AndroidNotificationCategory.message,
+      visibility: NotificationVisibility.public, // === THÊM: Hiện trên lock screen ===
+>>>>>>> week10
     );
 
     // iOS notification details
@@ -238,6 +551,10 @@ class NotificationService {
       presentAlert: true,
       presentBadge: true,
       presentSound: true,
+<<<<<<< HEAD
+=======
+      interruptionLevel: InterruptionLevel.timeSensitive, // === THÊM: Ưu tiên cao ===
+>>>>>>> week10
     );
 
     final details = NotificationDetails(
@@ -253,6 +570,11 @@ class NotificationService {
       payload: payload,
     );
 
+<<<<<<< HEAD
+=======
+    debugPrint('✅ Notification shown successfully with ID: $id');
+
+>>>>>>> week10
     debugPrint('📬 Notification sent: $title - $body');
   }
 
@@ -264,10 +586,15 @@ class NotificationService {
     String? groupId, // === THÊM MỚI: ID của nhóm để navigate chính xác ===
   }) async {
 <<<<<<< HEAD
+<<<<<<< HEAD
     // === THÊM MỚI: Bật chấm đỏ lên khi có tin nhắn ===
     showBadgeNotifier.value = true;
 =======
 >>>>>>> 3ee7efe (done all groupapis)
+=======
+    // === THÊM MỚI: Bật chấm đỏ lên khi có tin nhắn ===
+    showBadgeNotifier.value = true;
+>>>>>>> week10
     // Tạo payload JSON để lưu thêm thông tin
     final payloadData = {
       'type': 'message',
@@ -279,8 +606,13 @@ class NotificationService {
       id: 1, // ID cố định cho message notifications
       title: groupName,
       body: unreadCount > 1
+<<<<<<< HEAD
         ? '$unreadCount tin nhắn mới'
         : message,
+=======
+          ? '$unreadCount tin nhắn mới'
+          : message,
+>>>>>>> week10
       payload: jsonEncode(payloadData), // === SỬA: Dùng JSON payload ===
       priority: NotificationPriority.high,
     );
@@ -293,9 +625,18 @@ class NotificationService {
     String? groupId, // === THÊM MỚI: ID của nhóm ===
   }) async {
 <<<<<<< HEAD
+<<<<<<< HEAD
     showBadgeNotifier.value = true;
 =======
 >>>>>>> 3ee7efe (done all groupapis)
+=======
+    if (!_initialized) {
+      await initialize();
+    }
+
+    showBadgeNotifier.value = true;
+
+>>>>>>> week10
     // Tạo payload JSON
     final payloadData = {
       'type': 'group_request',
@@ -304,6 +645,7 @@ class NotificationService {
       'user_name': userName,
     };
 
+<<<<<<< HEAD
     await showNotification(
       id: 2,
       title: 'Yêu cầu tham gia nhóm',
@@ -311,6 +653,48 @@ class NotificationService {
       payload: jsonEncode(payloadData), // === SỬA: Dùng JSON payload ===
       priority: NotificationPriority.high,
     );
+=======
+    // === SỬA: Dùng channel riêng và cấu hình chi tiết hơn ===
+    final androidDetails = AndroidNotificationDetails(
+      'group_request_channel', // Channel ID riêng
+      'Group Request Notifications',
+      channelDescription: 'Thông báo yêu cầu tham gia nhóm',
+      importance: Importance.max,
+      priority: Priority.max,
+      showWhen: true,
+      enableVibration: true,
+      playSound: true,
+      icon: '@mipmap/ic_launcher',
+      fullScreenIntent: true, // Hiện trên lock screen
+      category: AndroidNotificationCategory.message,
+      visibility: NotificationVisibility.public,
+    );
+
+    const iosDetails = DarwinNotificationDetails(
+      presentAlert: true,
+      presentBadge: true,
+      presentSound: true,
+      interruptionLevel: InterruptionLevel.timeSensitive,
+    );
+
+    final details = NotificationDetails(
+      android: androidDetails,
+      iOS: iosDetails,
+    );
+
+    // Dùng timestamp để tạo unique ID
+    final notificationId = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+
+    await _notifications.show(
+      notificationId,
+      'Yêu cầu tham gia nhóm',
+      '$userName muốn tham gia nhóm "$groupName"',
+      details,
+      payload: jsonEncode(payloadData),
+    );
+
+    debugPrint('🔔 Group request notification shown with ID: $notificationId');
+>>>>>>> week10
   }
 
   /// Hiển thị notification AI chatbot
@@ -391,5 +775,9 @@ class NotificationService {
 enum NotificationPriority {
   normal,
   high,
+<<<<<<< HEAD
 }
 
+=======
+}
+>>>>>>> week10

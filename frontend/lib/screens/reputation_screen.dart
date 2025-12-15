@@ -4,12 +4,18 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../services/feedback_service.dart';
 import '../models/feedback_models.dart';
 <<<<<<< HEAD
+<<<<<<< HEAD
 import '../services/user_service.dart';
 import '../services/group_service.dart'; // Import GroupService để lấy ảnh
 import '../services/auth_service.dart';  // Import AuthService để lấy token
 =======
 import '../services/user_service.dart'; // <--- 1. Import UserService
 >>>>>>> 3ee7efe (done all groupapis)
+=======
+import '../services/user_service.dart';
+import '../services/group_service.dart'; // Import GroupService để lấy ảnh
+import '../services/auth_service.dart';  // Import AuthService để lấy token
+>>>>>>> week10
 
 class ReputationScreen extends StatefulWidget {
   const ReputationScreen({super.key});
@@ -21,20 +27,29 @@ class ReputationScreen extends StatefulWidget {
 class _ReputationScreenState extends State<ReputationScreen> {
   final FeedbackService _feedbackService = FeedbackService();
 <<<<<<< HEAD
+<<<<<<< HEAD
   final UserService _userService = UserService();
 =======
   final UserService _userService = UserService(); // <--- 2. Khởi tạo UserService
 >>>>>>> 3ee7efe (done all groupapis)
+=======
+  final UserService _userService = UserService();
+>>>>>>> week10
 
   bool _isLoading = true;
   MyReputationResponse? _reputationData;
 
+<<<<<<< HEAD
 <<<<<<< HEAD
   // Biến lưu thông tin User
   String _userName = "User";
 =======
   String _userName = "User"; // Mặc định
 >>>>>>> 3ee7efe (done all groupapis)
+=======
+  // Biến lưu thông tin User
+  String _userName = "User";
+>>>>>>> week10
   String _userEmail = "";
   String? _userAvatar;
 
@@ -47,10 +62,14 @@ class _ReputationScreenState extends State<ReputationScreen> {
   Future<void> _loadData() async {
     final prefs = await SharedPreferences.getInstance();
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> week10
     final token = await AuthService.getValidAccessToken(); // Lấy token chuẩn
 
     if (token != null) {
       // Gọi song song 2 API: Lấy uy tín & Lấy thông tin cá nhân
+<<<<<<< HEAD
 =======
     final token = prefs.getString('access_token');
 
@@ -59,6 +78,8 @@ class _ReputationScreenState extends State<ReputationScreen> {
     if (token != null) {
       // Chạy cả 2 API cùng lúc
 >>>>>>> 3ee7efe (done all groupapis)
+=======
+>>>>>>> week10
       final results = await Future.wait([
         _feedbackService.getMyReputation(token), // index 0
         _userService.getUserProfile(),           // index 1
@@ -72,6 +93,9 @@ class _ReputationScreenState extends State<ReputationScreen> {
           _reputationData = reputationData;
 
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> week10
           // Cập nhật thông tin User từ API
           if (profileData != null) {
             _userName = profileData['fullname'] ?? "User";
@@ -79,6 +103,7 @@ class _ReputationScreenState extends State<ReputationScreen> {
             _userAvatar = profileData['avatar_url'];
 
             // Cache lại để dùng cho lần sau
+<<<<<<< HEAD
 =======
           // Cập nhật thông tin User từ API /users/me
           if (profileData != null) {
@@ -88,16 +113,22 @@ class _ReputationScreenState extends State<ReputationScreen> {
 
             // Lưu lại vào cache để lần sau mở app lên hiện nhanh hơn
 >>>>>>> 3ee7efe (done all groupapis)
+=======
+>>>>>>> week10
             prefs.setString('user_fullname', _userName);
             if (_userAvatar != null) {
               prefs.setString('user_avatar', _userAvatar!);
             }
           } else {
 <<<<<<< HEAD
+<<<<<<< HEAD
             // Fallback: Dùng cache cũ nếu API lỗi
 =======
             // Nếu API lỗi thì dùng tạm cache cũ
 >>>>>>> 3ee7efe (done all groupapis)
+=======
+            // Fallback: Dùng cache cũ nếu API lỗi
+>>>>>>> week10
             _userName = prefs.getString('user_fullname') ?? "User";
             _userEmail = prefs.getString('user_email') ?? "";
             _userAvatar = prefs.getString('user_avatar');
@@ -114,11 +145,15 @@ class _ReputationScreenState extends State<ReputationScreen> {
   @override
   Widget build(BuildContext context) {
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
     // ... (Phần UI giữ nguyên như cũ) ...
 >>>>>>> 3ee7efe (done all groupapis)
     return Scaffold(
       // Copy y nguyên phần build cũ của bạn
+=======
+    return Scaffold(
+>>>>>>> week10
       resizeToAvoidBottomInset: false,
       body: Stack(
         children: [
@@ -161,10 +196,14 @@ class _ReputationScreenState extends State<ReputationScreen> {
                 return Column(
                   children: [
 <<<<<<< HEAD
+<<<<<<< HEAD
                     // Header (Back Button)
 =======
                     // Header
 >>>>>>> 3ee7efe (done all groupapis)
+=======
+                    // Header (Back Button)
+>>>>>>> week10
                     Padding(
                       padding: EdgeInsets.symmetric(horizontal: 26, vertical: headerVerticalPadding),
                       child: Row(
@@ -188,10 +227,14 @@ class _ReputationScreenState extends State<ReputationScreen> {
                         clipBehavior: Clip.none,
                         children: [
 <<<<<<< HEAD
+<<<<<<< HEAD
                           // Card Nội dung chính
 =======
                           // Card Nội dung
 >>>>>>> 3ee7efe (done all groupapis)
+=======
+                          // Card Nội dung chính
+>>>>>>> week10
                           Positioned(
                             top: contentTopPosition,
                             left: 20, right: 20, bottom: 20 * scaleFactor,
@@ -207,6 +250,7 @@ class _ReputationScreenState extends State<ReputationScreen> {
                                 padding: EdgeInsets.fromLTRB(listPaddingH, contentTopPadding, listPaddingH, 24 * scaleFactor),
                                 children: [
 <<<<<<< HEAD
+<<<<<<< HEAD
                                   // 1. Thông tin User & Rating tổng
                                   _UserInfoCard(
                                       userName: _userName,
@@ -215,6 +259,11 @@ class _ReputationScreenState extends State<ReputationScreen> {
                                   _UserInfoCard(
                                       userName: _userName, // <--- Giờ biến này đã chứa tên thật
 >>>>>>> 3ee7efe (done all groupapis)
+=======
+                                  // 1. Thông tin User & Rating tổng
+                                  _UserInfoCard(
+                                      userName: _userName,
+>>>>>>> week10
                                       userEmail: _userEmail,
                                       avatarUrl: _userAvatar,
                                       userRating: _reputationData?.averageRating ?? 0.0,
@@ -225,17 +274,23 @@ class _ReputationScreenState extends State<ReputationScreen> {
                                   SizedBox(height: userCardGap),
 
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> week10
                                   // 2. Danh sách đánh giá các nhóm
                                   if (_reputationData != null && _reputationData!.groups.isNotEmpty)
                                     ..._reputationData!.groups.map((group) => Padding(
                                       padding: EdgeInsets.only(bottom: 16 * scaleFactor),
                                       // Sử dụng Widget mới có khả năng tự load ảnh
+<<<<<<< HEAD
 =======
                                   // 2. List Group Ratings
                                   if (_reputationData != null && _reputationData!.groups.isNotEmpty)
                                     ..._reputationData!.groups.map((group) => Padding(
                                       padding: EdgeInsets.only(bottom: 16 * scaleFactor),
 >>>>>>> 3ee7efe (done all groupapis)
+=======
+>>>>>>> week10
                                       child: _GroupRatingCard(groupData: group, scaleFactor: scaleFactor),
                                     ))
                                   else
@@ -251,10 +306,14 @@ class _ReputationScreenState extends State<ReputationScreen> {
                           ),
 
 <<<<<<< HEAD
+<<<<<<< HEAD
                           // Tiêu đề "UY TÍN" (Reputation)
 =======
                           // Title UY TÍN
 >>>>>>> 3ee7efe (done all groupapis)
+=======
+                          // Tiêu đề "UY TÍN" (Reputation)
+>>>>>>> week10
                           Positioned(
                             top: 0, left: 0, right: 0,
                             child: Transform.translate(
@@ -300,6 +359,7 @@ class _ReputationScreenState extends State<ReputationScreen> {
 }
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 // Widget hiển thị thông tin User (Stateless)
 class _UserInfoCard extends StatelessWidget {
 =======
@@ -307,6 +367,10 @@ class _UserInfoCard extends StatelessWidget {
 class _UserInfoCard extends StatelessWidget {
   // ... code cũ của bạn
 >>>>>>> 3ee7efe (done all groupapis)
+=======
+// Widget hiển thị thông tin User (Stateless)
+class _UserInfoCard extends StatelessWidget {
+>>>>>>> week10
   final String userName;
   final String userEmail;
   final String? avatarUrl;
@@ -323,6 +387,7 @@ class _UserInfoCard extends StatelessWidget {
     this.scaleFactor = 1.0
   });
 
+<<<<<<< HEAD
   // ... build method cũ ...
   @override
   Widget build(BuildContext context) {
@@ -332,6 +397,12 @@ class _UserInfoCard extends StatelessWidget {
 =======
     // ...
 >>>>>>> 3ee7efe (done all groupapis)
+=======
+  @override
+  Widget build(BuildContext context) {
+    final avatarSize = 77.0 * scaleFactor;
+
+>>>>>>> week10
     return Column(
         children: [
           Row(
@@ -357,10 +428,14 @@ class _UserInfoCard extends StatelessWidget {
                         children: [
                           Text(
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> week10
                             userName,
                             style: TextStyle(color: Colors.white, fontSize: 24 * scaleFactor, fontFamily: 'Alegreya', fontWeight: FontWeight.w800),
                             maxLines: 1, overflow: TextOverflow.ellipsis,
                           ),
+<<<<<<< HEAD
 =======
                             userName, // Hiển thị tên thật
                             style: TextStyle(color: Colors.white, fontSize: 24 * scaleFactor, fontFamily: 'Alegreya', fontWeight: FontWeight.w800),
@@ -368,6 +443,8 @@ class _UserInfoCard extends StatelessWidget {
                           ),
                           // ... (phần còn lại giữ nguyên)
 >>>>>>> 3ee7efe (done all groupapis)
+=======
+>>>>>>> week10
                           SizedBox(height: 4 * scaleFactor),
                           Text(
                             userEmail,
@@ -384,9 +461,12 @@ class _UserInfoCard extends StatelessWidget {
               ]
           ),
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
           // ... Star rating bar code ...
 >>>>>>> 3ee7efe (done all groupapis)
+=======
+>>>>>>> week10
           SizedBox(height: 20 * scaleFactor),
           // Total Rating Bar
           Container(
@@ -425,16 +505,24 @@ class _UserInfoCard extends StatelessWidget {
 }
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 // Widget hiển thị từng Nhóm đánh giá (Stateful để tự load ảnh)
 class _GroupRatingCard extends StatefulWidget {
 =======
 class _GroupRatingCard extends StatelessWidget {
 >>>>>>> 3ee7efe (done all groupapis)
+=======
+// Widget hiển thị từng Nhóm đánh giá (Stateful để tự load ảnh)
+class _GroupRatingCard extends StatefulWidget {
+>>>>>>> week10
   final GroupReputationSummary groupData;
   final double scaleFactor;
 
   const _GroupRatingCard({required this.groupData, this.scaleFactor = 1.0});
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> week10
 
   @override
   State<_GroupRatingCard> createState() => _GroupRatingCardState();
@@ -478,12 +566,15 @@ class _GroupRatingCardState extends State<_GroupRatingCard> {
     final displayImage = _fetchedImageUrl ?? groupData.groupImageUrl;
     final hasImage = displayImage != null && displayImage.isNotEmpty;
 
+<<<<<<< HEAD
 =======
 
   @override
   Widget build(BuildContext context) {
     // ... Copy code cũ của bạn vào đây, không thay đổi gì ...
 >>>>>>> 3ee7efe (done all groupapis)
+=======
+>>>>>>> week10
     final containerHeight = 128.0 * scaleFactor;
     final avatarSize = 105.0 * scaleFactor;
     final nameFontSize = 15.0 * scaleFactor;
@@ -515,6 +606,7 @@ class _GroupRatingCardState extends State<_GroupRatingCard> {
       height: containerHeight,
       padding: EdgeInsets.all(10 * scaleFactor),
       decoration: BoxDecoration(
+<<<<<<< HEAD
         color: const Color(0xFFDCC9A7),
         borderRadius: BorderRadius.circular(20),
       ),
@@ -524,6 +616,18 @@ class _GroupRatingCardState extends State<_GroupRatingCard> {
           // Ảnh nhóm
 =======
 >>>>>>> 3ee7efe (done all groupapis)
+=======
+        color: const Color(0xFFEFE7DA),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: const Color(0xFFB29079),
+          width: 1.5,
+        ),
+      ),
+      child: Row(
+        children: [
+          // Ảnh nhóm
+>>>>>>> week10
           Container(
             width: avatarSize,
             height: avatarSize,
@@ -531,12 +635,17 @@ class _GroupRatingCardState extends State<_GroupRatingCard> {
               borderRadius: BorderRadius.circular(10),
               image: DecorationImage(
 <<<<<<< HEAD
+<<<<<<< HEAD
                 image: hasImage
                     ? NetworkImage(displayImage!) as ImageProvider
 =======
                 image: (groupData.groupImageUrl != null && groupData.groupImageUrl!.isNotEmpty)
                     ? NetworkImage(groupData.groupImageUrl!) as ImageProvider
 >>>>>>> 3ee7efe (done all groupapis)
+=======
+                image: hasImage
+                    ? NetworkImage(displayImage!) as ImageProvider
+>>>>>>> week10
                     : const AssetImage("assets/images/default_group.jpg"),
                 fit: BoxFit.cover,
                 onError: (_, __) {}, // Bắt lỗi load ảnh để không crash
@@ -603,10 +712,14 @@ class _GroupRatingCardState extends State<_GroupRatingCard> {
                         ),
                         child: Text(
 <<<<<<< HEAD
+<<<<<<< HEAD
                           tag.tr(), // Dịch tag nếu cần
 =======
                           tag.tr(),
 >>>>>>> 3ee7efe (done all groupapis)
+=======
+                          tag.tr(), // Dịch tag nếu cần
+>>>>>>> week10
                           style: TextStyle(
                             color: Colors.black87,
                             fontSize: tagFontSize,

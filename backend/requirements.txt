@@ -8,3 +8,4 @@ pydantic-settings
 pydantic[email]
 fastapi-mail
 apscheduler
+firebase_admin

@@ -1,5 +1,9 @@
 // Screen ĐĂNG NHẬP KÝ
 import 'package:flutter/material.dart';
+<<<<<<< HEAD
+=======
+import 'package:easy_localization/easy_localization.dart';
+>>>>>>> week10
 import 'signup.dart';
 import 'login.dart';
 
@@ -67,9 +71,15 @@ class WelcomeScreen extends StatelessWidget {
                           ),
                         ),
                       ),
+<<<<<<< HEAD
                       child: const Text(
                         'Đăng ký',
                         style: TextStyle(
+=======
+                      child: Text(
+                        'signup_title'.tr(),
+                        style: const TextStyle(
+>>>>>>> week10
                             color: const Color(0xFFDCC9A7),
                             fontSize: 16,
                             fontFamily: 'Alegreya',
@@ -92,9 +102,15 @@ class WelcomeScreen extends StatelessWidget {
                           borderRadius: BorderRadius.circular(7.83),
                         ),
                       ),
+<<<<<<< HEAD
                       child: const Text(
                         'Đăng nhập',
                         style: TextStyle(
+=======
+                      child: Text(
+                        'login_title'.tr(),
+                        style: const TextStyle(
+>>>>>>> week10
                             fontSize: 16,
                             color: const Color(0xFFF7F3E8),
                             fontFamily: 'Alegreya',

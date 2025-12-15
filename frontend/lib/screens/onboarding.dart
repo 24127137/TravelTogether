@@ -1,5 +1,9 @@
 // Onboarding thay cho Trang đầu
 import 'package:flutter/material.dart';
+<<<<<<< HEAD
+=======
+import 'package:easy_localization/easy_localization.dart';
+>>>>>>> week10
 import 'package:shared_preferences/shared_preferences.dart';
 import 'welcome.dart';
 
@@ -17,6 +21,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   final List<Map<String, String>> _onboardingData = [
     {
       "image": "assets/images/onboarding/1.png",
+<<<<<<< HEAD
       "title": "Không còn đi một mình nữa",
       "desc":
       "Mỗi chuyến đi sẽ tuyệt hơn khi có người hiểu bạn.\nGặp gỡ những người cùng đam mê khám phá và bắt đầu hành trình cùng nhau.",
@@ -32,6 +37,20 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       "title": "Cùng nhau tạo nên ký ức",
       "desc":
       "Lên kế hoạch, khám phá và chia sẻ trải nghiệm đáng nhớ.\nNhững chuyến đi tuyệt vời luôn được kể lại... cùng người khác.",
+=======
+      "titleKey": "onboarding_title_1",
+      "descKey": "onboarding_desc_1",
+    },
+    {
+      "image": "assets/images/onboarding/2.png",
+      "titleKey": "onboarding_title_2",
+      "descKey": "onboarding_desc_2",
+    },
+    {
+      "image": "assets/images/onboarding/3.png",
+      "titleKey": "onboarding_title_3",
+      "descKey": "onboarding_desc_3",
+>>>>>>> week10
     },
   ];
 
@@ -88,12 +107,20 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                             const SizedBox(height: 30),
 
                             Text(
+<<<<<<< HEAD
                               data["title"]!,
+=======
+                              data["titleKey"]!.tr(),
+>>>>>>> week10
                               textAlign: TextAlign.center,
                               style: const TextStyle(
                                 fontSize: 36,
                                 fontWeight: FontWeight.w700,
+<<<<<<< HEAD
                                 fontFamily: 'WorkSans',
+=======
+                                fontFamily: 'Alumni Sans',
+>>>>>>> week10
                                 color: Colors.black87,
                                 height: 1.3,
                               ),
@@ -101,12 +128,20 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                             const SizedBox(height: 18),
 
                             Text(
+<<<<<<< HEAD
                               data["desc"]!,
+=======
+                              data["descKey"]!.tr(),
+>>>>>>> week10
                               textAlign: TextAlign.center,
                               style: const TextStyle(
                                 fontSize: 16,
                                 height: 1.6,
+<<<<<<< HEAD
                                 fontFamily: 'WorkSans',
+=======
+                                fontFamily: 'Alegreya',
+>>>>>>> week10
                                 color: Colors.black54,
                               ),
                             ),
@@ -164,6 +199,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                         transitionBuilder: (child, animation) =>
                             FadeTransition(opacity: animation, child: child),
                         child: _currentPage == 2
+<<<<<<< HEAD
                             ? const Text(
                           "Bắt đầu",
                           key: ValueKey('start'),
@@ -172,6 +208,16 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                             fontSize: 20,
                             fontWeight: FontWeight.w600,
                             fontFamily: 'WorkSans',
+=======
+                            ? Text(
+                          'start_button'.tr(),
+                          key: const ValueKey('start'),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 20,
+                            fontWeight: FontWeight.w600,
+                            fontFamily: 'Alegreya',
+>>>>>>> week10
                           ),
                         )
                             : const Icon(

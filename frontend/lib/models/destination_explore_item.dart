@@ -8,6 +8,10 @@ class DestinationExploreItem {
   final String location;
   final String imageUrl;
   final double rating;
+<<<<<<< HEAD
+=======
+  final String description;
+>>>>>>> week10
   bool isFavorite;
 
   DestinationExploreItem({
@@ -20,6 +24,10 @@ class DestinationExploreItem {
     required this.imageUrl,
     required this.rating,
     this.isFavorite = false,
+<<<<<<< HEAD
+=======
+    this.description = "Thông tin chi tiết đang được cập nhật...",
+>>>>>>> week10
   });
 
   // Getter để lấy subtitle theo ngôn ngữ hiện tại

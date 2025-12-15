@@ -1,18 +1,25 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
+<<<<<<< HEAD
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+=======
+>>>>>>> week10
 import '../models/destination.dart';
 import '../data/mock_destinations.dart';
 import '../screens/destination_explore_screen.dart';
 import '../widgets/enter_bar.dart';
+<<<<<<< HEAD
 <<<<<<< HEAD
 import '../services/user_service.dart';
 =======
 import '../config/api_config.dart';
 import '../services/auth_service.dart';
 >>>>>>> 3ee7efe (done all groupapis)
+=======
+import '../services/user_service.dart';
+>>>>>>> week10
 
 class DestinationDetailScreen extends StatefulWidget {
   final Destination? destination;
@@ -54,10 +61,14 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
       } else {
         print("⚠️ [Detail] Update thất bại hoặc ID thành phố sai map. Vẫn tiếp tục chuyển trang.");
       }
+<<<<<<< HEAD
 
       // 4. Mẹo: Thêm delay 300ms để đảm bảo DB bên Backend đã commit transaction xong
       // Tránh trường hợp trang sau gọi API quá nhanh khi DB chưa kịp lưu
       await Future.delayed(const Duration(milliseconds: 300));
+=======
+      
+>>>>>>> week10
 
       if (!mounted) return;
       setState(() => _isSaving = false);
@@ -91,6 +102,7 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
   }
 
   @override
+<<<<<<< HEAD
   State<DestinationDetailScreen> createState() => _DestinationDetailScreenState();
 }
 
@@ -103,11 +115,16 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
     // Logic build giữ nguyên, chỉ thay đổi _handleContinue ở trên
 =======
 >>>>>>> 3ee7efe (done all groupapis)
+=======
+  Widget build(BuildContext context) {
+    // Logic build giữ nguyên, chỉ thay đổi _handleContinue ở trên
+>>>>>>> week10
     final dest = widget.destination ?? mockDestinations.firstWhere((d) => d.name == 'Đà Lạt');
     final size = MediaQuery.of(context).size;
     final double imageHeight = size.height * 0.55;
 
     return PopScope(
+<<<<<<< HEAD
 <<<<<<< HEAD
       canPop: !_isSaving && widget.onBack == null, // Không cho back khi đang save
       onPopInvokedWithResult: (didPop, result) {
@@ -117,6 +134,11 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
       onPopInvokedWithResult: (didPop, result) {
         if (!didPop && widget.onBack != null) {
 >>>>>>> 3ee7efe (done all groupapis)
+=======
+      canPop: !_isSaving && widget.onBack == null, // Không cho back khi đang save
+      onPopInvokedWithResult: (didPop, result) {
+        if (!didPop && widget.onBack != null && !_isSaving) {
+>>>>>>> week10
           widget.onBack!();
         }
       },
@@ -152,6 +174,9 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
                   ),
                 ),
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> week10
                 Positioned(
                   top: 12, left: 12,
                   child: CircleAvatar(
@@ -160,6 +185,7 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
                       icon: const Icon(Icons.arrow_back, color: Colors.black),
                       onPressed: _isSaving ? null : (widget.onBack ?? () => Navigator.of(context).pop()),
                     ),
+<<<<<<< HEAD
 =======
               ),
 
@@ -173,6 +199,8 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
                     icon: const Icon(Icons.arrow_back, color: Colors.black),
                     onPressed: widget.onBack ?? () => Navigator.of(context).pop(),
 >>>>>>> 3ee7efe (done all groupapis)
+=======
+>>>>>>> week10
                   ),
                 ),
                 Positioned(
@@ -199,12 +227,16 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
                   ),
                 ),
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> week10
                 Positioned(
                   left: 0, right: 0, bottom: kBottomNavigationBarHeight + 35,
                   child: Center(
                     child: _isSaving
                         ? const CircularProgressIndicator(color: Color(0xFFDCC9A7))
                         : EnterButton(onConfirm: () => _handleContinue(dest)),
+<<<<<<< HEAD
 =======
               ),
 
@@ -223,6 +255,8 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
                       ),
                     ),
 >>>>>>> 3ee7efe (done all groupapis)
+=======
+>>>>>>> week10
                   ),
                 ),
               ],
@@ -232,6 +266,7 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
       ),
     );
   }
+<<<<<<< HEAD
 
   void _handleSelectDestination(Destination dest) async {
     setState(() => _isLoading = true);
@@ -354,4 +389,6 @@ class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
       return false;
     }
   }
+=======
+>>>>>>> week10
 }
