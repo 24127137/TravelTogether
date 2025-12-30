@@ -62,11 +62,11 @@ class _MapRouteScreenState extends State<MapRouteScreen> {
     try {
       if (widget.groupId != null && widget.groupId! > 0) {
         await _fetchSpecificGroupPlan(widget.groupId!);
-      } 
+      }
 
       else if (widget.cityFilter != null) {
         await _fetchMyPersonalRoute(widget.cityFilter!);
-      } 
+      }
 
       else {
         await _fetchGroupPlan();
@@ -245,6 +245,26 @@ class _MapRouteScreenState extends State<MapRouteScreen> {
         if (d < minD) {
           minD = d;
           nearest = candidate;
+        }  while (unvisited.isNotEmpty) {
+          int nearest = -1;
+          double minD = double.infinity;
+
+          for (int candidate in unvisited) {
+            double d = _distanceCalculator.as(LengthUnit.Meter, _selectedPoints[current], _selectedPoints[candidate]);
+            if (d < minD) {
+              minD = d;
+              nearest = candidate;
+            }
+          }
+
+          if (nearest != -1) {
+            pathDistance += minD;
+            path.add(nearest);
+            unvisited.remove(nearest);
+            current = nearest;
+          } else {
+            break;
+          }
         }
       }
 
@@ -280,10 +300,15 @@ class _MapRouteScreenState extends State<MapRouteScreen> {
       double dist = result['distance'];
       List<int> path = result['path'];
 
+      // LOG CHI TIẾT TỪNG LẦN THỬ
+      String startPointName = _locationNames[i];
+      print('[Thử xuất phát từ điểm $i: $startPointName] → ${dist.toStringAsFixed(0)}m');
+
       // So sánh để tìm lộ trình ngắn nhất
       if (dist < bestDistance) {
         bestDistance = dist;
         bestPathIndices = path;
+        print('  ✅ TỐT NHẤT cho đến hiện tại!');
       }
     }
 
@@ -301,49 +326,241 @@ class _MapRouteScreenState extends State<MapRouteScreen> {
       _locationNames = sortedNames;
     });
 
-    print('✅ Tối ưu hoàn tất. Tổng khoảng cách ước tính: ${bestDistance.toStringAsFixed(0)}m');
-    print('📍 Thứ tự tối ưu nhất: ${_locationNames.join(" -> ")}');
+    print('\n════════════════════════════════════════════════════');
+    print('✅ Tối ưu hoàn tất!');
+    print('════════════════════════════════════════════════════');
+    print('📊 Tổng khoảng cách ước tính: ${bestDistance.toStringAsFixed(0)}m (${(bestDistance/1000).toStringAsFixed(1)} km)');
+    print('📍 Thứ tự tối ưu nhất: ${_locationNames.join(" → ")}');
+    print('⏱️  Thời gian tính toán: ${DateTime.now().millisecondsSinceEpoch}ms');
+    print('════════════════════════════════════════════════════\n');
   }
 
   // ===============================================================
-  // PHẦN 3: GỌI OSRM ROUTE API (GIỮ NGUYÊN)
+  // PHẦN 3: GỌI OSRM ROUTE API (ĐÃ SỬA LỖI 504)
   // ===============================================================
 
   Future<void> _fetchRoute() async {
     try {
-      final coordinates = _selectedPoints
-          .map((point) => '${point.longitude},${point.latitude}')
-          .join(';');
+      const maxPointsPerRequest = 10; // GIẢM xuống 10 điểm để tránh timeout
 
-      // Sử dụng Route API để tôn trọng thứ tự đã tối ưu ở trên
-      final url = Uri.parse(
-        'https://router.project-osrm.org/route/v1/driving/$coordinates'
-            '?overview=full&geometries=polyline',
-      );
-
-      print('🚀 Calling OSRM Route: $url');
-      final response = await http.get(url);
-
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-
-        if (data['routes'] != null && (data['routes'] as List).isNotEmpty) {
-          final route = data['routes'][0];
-
-          setState(() {
-            _routePoints = _decodePolyline(route['geometry']);
-            _totalDistance = (route['distance'] as num).toDouble() / 1000;
-            _totalDuration = (route['duration'] as num).toDouble() / 60;
-          });
-        }
+      if (_selectedPoints.length > maxPointsPerRequest) {
+        // Nếu quá nhiều điểm, chia thành nhiều đoạn
+        await _fetchRouteInSegments(maxPointsPerRequest);
       } else {
-        print('❌ OSRM API error: ${response.statusCode}');
+        // Nếu ít điểm, gọi một lần với retry
+        await _fetchRouteSingleWithRetry();
       }
     } catch (e) {
       print('❌ Lỗi vẽ đường: $e');
       setState(() {
         _errorMessage = 'Không thể vẽ lộ trình: $e';
       });
+    }
+  }
+
+  // HÀM MỚI: Thử lại nếu timeout
+  Future<void> _fetchRouteSingleWithRetry({int maxRetries = 3}) async {
+    int attempt = 0;
+
+    while (attempt < maxRetries) {
+      try {
+        attempt++;
+        print('🔄 Thử lần $attempt/$maxRetries...');
+
+        await _fetchRouteSingle();
+        print('✅ Thành công!');
+        return; // Thành công thì thoát
+
+      } catch (e) {
+        print('⚠️ Lần $attempt thất bại: $e');
+
+        if (attempt >= maxRetries) {
+          // Hết lượt thử -> fallback vẽ đường thẳng
+          print('\n════════════════════════════════════════════════════');
+          print('❌ Hết lượt thử. Chuyển sang Fallback Strategy.');
+          print('════════════════════════════════════════════════════');
+          _drawStraightLines();
+          throw Exception('Không thể kết nối OSRM sau $maxRetries lần thử. Đã vẽ đường thẳng thay thế.');
+        }
+
+        // Đợi trước khi thử lại
+        await Future.delayed(Duration(seconds: 2 * attempt));
+      }
+    }
+  }
+
+  // HÀM MỚI: Vẽ đường thẳng giữa các điểm nếu OSRM fail
+  void _drawStraightLines() {
+    print('🔧 Kích hoạt Fallback Strategy: Vẽ đường thẳng');
+
+    List<LatLng> straightRoute = [];
+    double totalDist = 0.0;
+
+    for (int i = 0; i < _selectedPoints.length; i++) {
+      straightRoute.add(_selectedPoints[i]);
+
+      if (i < _selectedPoints.length - 1) {
+        double dist = _distanceCalculator.as(
+            LengthUnit.Meter,
+            _selectedPoints[i],
+            _selectedPoints[i + 1]
+        );
+        totalDist += dist;
+
+        // Log từng đoạn đường
+        print('  Đoạn ${i+1}: ${_locationNames[i]} → ${_locationNames[i+1]}: ${(dist/1000).toStringAsFixed(1)} km');
+      }
+    }
+
+    setState(() {
+      _routePoints = straightRoute;
+      _totalDistance = totalDist / 1000;
+      _totalDuration = (totalDist / 1000) / 40 * 60; // Giả sử 40km/h
+      _errorMessage = '⚠️ Đang hiển thị đường thẳng (OSRM không khả dụng)';
+    });
+
+    print('✅ Fallback hoàn tất: ${_totalDistance.toStringAsFixed(1)} km (ước tính)');
+    print('⏱️  Thời gian ước tính: ${_totalDuration.toStringAsFixed(0)} phút (dựa trên 40km/h)');
+    print('⚠️ Lưu ý: Đây là khoảng cách đường chim bay, thực tế có thể lớn hơn 10-20%');
+    print('════════════════════════════════════════════════════\n');
+  }
+
+  Future<void> _fetchRouteSingle() async {
+    final coordinates = _selectedPoints
+        .map((point) => '${point.longitude},${point.latitude}')
+        .join(';');
+
+    final url = Uri.parse(
+      'https://router.project-osrm.org/route/v1/driving/$coordinates'
+          '?overview=full&geometries=polyline',
+    );
+
+    print('\n════════════════════════════════════════════════════');
+    print('🚀 Gọi OSRM API để vẽ đường đi thực tế...');
+    print('════════════════════════════════════════════════════');
+    print('Request URL: $url');
+    print('⏳ Đang chờ phản hồi từ OSRM...');
+
+    final startTime = DateTime.now();
+    final response = await http.get(url).timeout(
+      const Duration(seconds: 45), // TĂNG timeout lên 45s
+      onTimeout: () {
+        throw Exception('Request timeout - Server OSRM không phản hồi');
+      },
+    );
+    final latency = DateTime.now().difference(startTime).inMilliseconds;
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+
+      if (data['routes'] != null && (data['routes'] as List).isNotEmpty) {
+        final route = data['routes'][0];
+        final geometry = route['geometry'] as String;
+        final decodedPoints = _decodePolyline(geometry);
+
+        print('✅ Response 200 OK (Latency: ${latency}ms)');
+        print('📦 Nhận được:');
+        print('   - Polyline encoding: "${geometry.substring(0, 20)}..." (${decodedPoints.length} điểm GPS)');
+        print('   - Distance: ${route['distance']}m (${(route['distance']/1000).toStringAsFixed(1)} km thực tế trên đường)');
+        print('   - Duration: ${route['duration']}s (${(route['duration']/60).toStringAsFixed(0)} phút)');
+        print('🔧 Giải mã Polyline...');
+        print('   Decoded: ${decodedPoints.length} coordinates');
+
+        setState(() {
+          _routePoints = decodedPoints;
+          _totalDistance = (route['distance'] as num).toDouble() / 1000;
+          _totalDuration = (route['duration'] as num).toDouble() / 60;
+          _errorMessage = ''; // Clear error
+        });
+
+        print('✅ Hoàn tất! Vẽ đường lên bản đồ...');
+        print('════════════════════════════════════════════════════\n');
+      }
+    } else if (response.statusCode == 504) {
+      throw Exception('Server OSRM quá tải (504). Vui lòng thử lại sau hoặc giảm số điểm.');
+    } else if (response.statusCode == 400) {
+      throw Exception('Request không hợp lệ (400). Có thể các điểm quá xa nhau.');
+    } else {
+      throw Exception('OSRM API error: ${response.statusCode}');
+    }
+  }
+
+  Future<void> _fetchRouteInSegments(int maxPoints) async {
+    List<LatLng> allRoutePoints = [];
+    double totalDist = 0.0;
+    double totalDur = 0.0;
+    int successfulSegments = 0;
+
+    print('📦 Chia thành nhiều đoạn: ${_selectedPoints.length} điểm, mỗi đoạn tối đa $maxPoints điểm');
+
+    for (int i = 0; i < _selectedPoints.length - 1; i += maxPoints - 1) {
+      int end = (i + maxPoints < _selectedPoints.length)
+          ? i + maxPoints
+          : _selectedPoints.length;
+
+      List<LatLng> segment = _selectedPoints.sublist(i, end);
+
+      print('🔄 Đang xử lý đoạn ${(i ~/ (maxPoints - 1)) + 1}: từ điểm $i đến $end');
+
+      final coordinates = segment
+          .map((point) => '${point.longitude},${point.latitude}')
+          .join(';');
+
+      final url = Uri.parse(
+        'https://router.project-osrm.org/route/v1/driving/$coordinates'
+            '?overview=full&geometries=polyline',
+      );
+
+      try {
+        final response = await http.get(url).timeout(
+          const Duration(seconds: 45), // TĂNG timeout lên 45s
+          onTimeout: () {
+            throw Exception('Timeout ở đoạn ${(i ~/ (maxPoints - 1)) + 1}');
+          },
+        );
+
+        if (response.statusCode == 200) {
+          final data = jsonDecode(response.body);
+          if (data['routes'] != null && (data['routes'] as List).isNotEmpty) {
+            final route = data['routes'][0];
+            allRoutePoints.addAll(_decodePolyline(route['geometry']));
+            totalDist += (route['distance'] as num).toDouble() / 1000;
+            totalDur += (route['duration'] as num).toDouble() / 60;
+            successfulSegments++;
+            print('✅ Đoạn ${(i ~/ (maxPoints - 1)) + 1} hoàn thành');
+          }
+        } else {
+          print('⚠️ Lỗi ở đoạn ${(i ~/ (maxPoints - 1)) + 1}: ${response.statusCode}');
+        }
+      } catch (e) {
+        print('❌ Lỗi xử lý đoạn ${(i ~/ (maxPoints - 1)) + 1}: $e');
+        // Nếu fail, vẽ đường thẳng cho đoạn này
+        for (var point in segment) {
+          allRoutePoints.add(point);
+        }
+      }
+
+      // Delay LÂUU HƠN giữa các request để tránh rate limit
+      if (i + maxPoints < _selectedPoints.length) {
+        await Future.delayed(const Duration(seconds: 2)); // TĂNG delay lên 2s
+      }
+    }
+
+    if (allRoutePoints.isNotEmpty) {
+      setState(() {
+        _routePoints = allRoutePoints;
+        _totalDistance = totalDist;
+        _totalDuration = totalDur;
+
+        if (successfulSegments == 0) {
+          _errorMessage = '⚠️ Không thể kết nối OSRM. Đang hiển thị đường thẳng.';
+        } else {
+          _errorMessage = '';
+        }
+      });
+      print('✅ Hoàn thành $successfulSegments đoạn. Tổng: ${totalDist.toStringAsFixed(2)}km');
+    } else {
+      throw Exception('Không thể vẽ được bất kỳ đoạn nào của lộ trình');
     }
   }
 
@@ -567,7 +784,36 @@ class _MapRouteScreenState extends State<MapRouteScreen> {
                 ),
             ],
           ),
-          if (_locationNames.isNotEmpty && _routePoints.isNotEmpty)
+
+          // Hiển thị error message nếu có
+          if (_errorMessage.isNotEmpty)
+            Positioned(
+              top: 16, left: 16, right: 16,
+              child: Card(
+                color: Colors.red[100],
+                child: Padding(
+                  padding: const EdgeInsets.all(12.0),
+                  child: Row(
+                    children: [
+                      Icon(Icons.error_outline, color: Colors.red[900]),
+                      SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          _errorMessage,
+                          style: TextStyle(color: Colors.red[900], fontSize: 12),
+                        ),
+                      ),
+                      IconButton(
+                        icon: Icon(Icons.close, size: 18),
+                        onPressed: () => setState(() => _errorMessage = ''),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+
+          if (_locationNames.isNotEmpty && _routePoints.isNotEmpty && _errorMessage.isEmpty)
             Positioned(
               top: 16, left: 16, right: 16,
               child: Card(

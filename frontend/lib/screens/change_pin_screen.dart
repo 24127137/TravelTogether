@@ -46,7 +46,7 @@ class _ChangePinScreenState extends State<ChangePinScreen> {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (_) => NewPinForChange(oldPin: pin), 
+            builder: (_) => NewPinForChange(oldPin: pin),
           ),
         );
       }
@@ -76,30 +76,32 @@ class _ChangePinScreenState extends State<ChangePinScreen> {
         backgroundColor: const Color(0xFFF5EFE6),
         elevation: 0,
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          children: [
-            const SizedBox(height: 60),
-            const Icon(Icons.lock_outline, size: 100, color: Color(0xFF8A724C)),
-            const SizedBox(height: 40),
-            const Text(
-              "Nhập mã PIN hiện tại",
-              style: TextStyle(fontSize: 25, fontWeight: FontWeight.w600, fontFamily: 'WorkSans'),
-            ),
-            const SizedBox(height: 60),
-            PinGrid(pin: pin),
-            const SizedBox(height: 100),
-            Offstage(
-              child: TextField(
-                controller: controller,
-                focusNode: focusNode,
-                keyboardType: TextInputType.number,
-                maxLength: 6,
-                autofocus: true,
+      body: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            children: [
+              const SizedBox(height: 60),
+              const Icon(Icons.lock_outline, size: 100, color: Color(0xFF8A724C)),
+              const SizedBox(height: 40),
+              const Text(
+                "Nhập mã PIN hiện tại",
+                style: TextStyle(fontSize: 25, fontWeight: FontWeight.w600, fontFamily: 'WorkSans'),
               ),
-            ),
-          ],
+              const SizedBox(height: 60),
+              PinGrid(pin: pin),
+              const SizedBox(height: 100),
+              Offstage(
+                child: TextField(
+                  controller: controller,
+                  focusNode: focusNode,
+                  keyboardType: TextInputType.number,
+                  maxLength: 6,
+                  autofocus: true,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -137,30 +139,73 @@ class _NewPinForChangeState extends State<NewPinForChange> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF5EFE6),
-      appBar: AppBar(title: const Text("Mã PIN mới"), backgroundColor: const Color(0xFFF5EFE6), elevation: 0, centerTitle: true,),
-      body: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          children: [
-            const Spacer(flex: 2),
-            const Text("Nhập mã PIN mới", style: TextStyle(fontSize: 25, fontWeight: FontWeight.w600)),
-            const SizedBox(height: 40),
-            PinGrid(pin: pin),
-            const SizedBox(height: 60),
-            SizedBox(
-              width: double.infinity,
-              height: 60,
-              child: ElevatedButton(
-                onPressed: pin.length == 6
-                    ? () => Navigator.push(context, MaterialPageRoute(builder: (_) => ConfirmNewPinPage(newPin: pin)))
-                    : null,
-                style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF8A724C), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30))),
-                child: const Text("Tiếp tục", style: TextStyle(fontSize: 22, color: Colors.white, fontWeight: FontWeight.w600)),
+      appBar: AppBar(
+        title: const Text("Mã PIN mới"),
+        backgroundColor: const Color(0xFFF5EFE6),
+        elevation: 0,
+        centerTitle: true,
+      ),
+      body: SingleChildScrollView(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            minHeight: MediaQuery.of(context).size.height -
+                AppBar().preferredSize.height -
+                MediaQuery.of(context).padding.top,
+          ),
+          child: IntrinsicHeight(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                children: [
+                  const Spacer(flex: 2),
+                  const Text(
+                      "Nhập mã PIN mới",
+                      style: TextStyle(fontSize: 25, fontWeight: FontWeight.w600)
+                  ),
+                  const SizedBox(height: 40),
+                  PinGrid(pin: pin),
+                  const SizedBox(height: 60),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 60,
+                    child: ElevatedButton(
+                      onPressed: pin.length == 6
+                          ? () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (_) => ConfirmNewPinPage(newPin: pin)
+                          )
+                      )
+                          : null,
+                      style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF8A724C),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(30)
+                          )
+                      ),
+                      child: const Text(
+                          "Tiếp tục",
+                          style: TextStyle(
+                              fontSize: 22,
+                              color: Colors.white,
+                              fontWeight: FontWeight.w600
+                          )
+                      ),
+                    ),
+                  ),
+                  const Spacer(flex: 3),
+                  Offstage(
+                      child: TextField(
+                          controller: controller,
+                          focusNode: focusNode,
+                          keyboardType: TextInputType.number,
+                          maxLength: 6
+                      )
+                  ),
+                ],
               ),
             ),
-            const Spacer(flex: 3),
-            Offstage(child: TextField(controller: controller, focusNode: focusNode, keyboardType: TextInputType.number, maxLength: 6)),
-          ],
+          ),
         ),
       ),
     );
@@ -189,7 +234,9 @@ class _ConfirmNewPinPageState extends State<ConfirmNewPinPage> {
 
   void _complete() async {
     if (pin != widget.newPin) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Mã PIN không khớp!')));
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Mã PIN không khớp!'))
+      );
       controller.clear();
       pin = '';
       return;
@@ -201,11 +248,13 @@ class _ConfirmNewPinPageState extends State<ConfirmNewPinPage> {
         Navigator.pushAndRemoveUntil(
           context,
           MaterialPageRoute(builder: (_) => const SuccessPage()),
-          (route) => false,
+              (route) => false,
         );
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Lỗi: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Lỗi: $e'))
+      );
     }
   }
 
@@ -213,28 +262,66 @@ class _ConfirmNewPinPageState extends State<ConfirmNewPinPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF5EFE6),
-      appBar: AppBar(title: const Text("Xác nhận mã PIN mới"), backgroundColor: const Color(0xFFF5EFE6), elevation: 0, centerTitle: true,),
-      body: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          children: [
-            const Spacer(flex: 2),
-            const Text("Xác nhận mã PIN mới", style: TextStyle(fontSize: 25, fontWeight: FontWeight.w600)),
-            const SizedBox(height: 40),
-            PinGrid(pin: pin),
-            const SizedBox(height: 60),
-            SizedBox(
-              width: double.infinity,
-              height: 60,
-              child: ElevatedButton(
-                onPressed: pin.length == 6 ? _complete : null,
-                style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF8A724C), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30))),
-                child: const Text("Hoàn tất", style: TextStyle(fontSize: 22, color: Colors.white, fontWeight: FontWeight.w600)),
+      appBar: AppBar(
+        title: const Text("Xác nhận mã PIN mới"),
+        backgroundColor: const Color(0xFFF5EFE6),
+        elevation: 0,
+        centerTitle: true,
+      ),
+      body: SingleChildScrollView(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            minHeight: MediaQuery.of(context).size.height -
+                AppBar().preferredSize.height -
+                MediaQuery.of(context).padding.top,
+          ),
+          child: IntrinsicHeight(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                children: [
+                  const Spacer(flex: 2),
+                  const Text(
+                      "Xác nhận mã PIN mới",
+                      style: TextStyle(fontSize: 25, fontWeight: FontWeight.w600)
+                  ),
+                  const SizedBox(height: 40),
+                  PinGrid(pin: pin),
+                  const SizedBox(height: 60),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 60,
+                    child: ElevatedButton(
+                      onPressed: pin.length == 6 ? _complete : null,
+                      style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF8A724C),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(30)
+                          )
+                      ),
+                      child: const Text(
+                          "Hoàn tất",
+                          style: TextStyle(
+                              fontSize: 22,
+                              color: Colors.white,
+                              fontWeight: FontWeight.w600
+                          )
+                      ),
+                    ),
+                  ),
+                  const Spacer(flex: 3),
+                  Offstage(
+                      child: TextField(
+                          controller: controller,
+                          focusNode: focusNode,
+                          keyboardType: TextInputType.number,
+                          maxLength: 6
+                      )
+                  ),
+                ],
               ),
             ),
-            const Spacer(flex: 3),
-            Offstage(child: TextField(controller: controller, focusNode: focusNode, keyboardType: TextInputType.number, maxLength: 6)),
-          ],
+          ),
         ),
       ),
     );
@@ -248,58 +335,71 @@ class SuccessPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF5EFE6),
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            children: [
-              const Spacer(flex: 2),
-              const Icon(Icons.lock_open_rounded, size: 100, color: Color(0xFF8A724C)),
-              const SizedBox(height: 20),
-              const Text(
-                "Đổi mã PIN thành công!",
-                style: TextStyle(
-                  fontFamily: "WorkSans",
-                  fontSize: 25,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 10),
-              const Text(
-                "Bạn có thể sử dụng mã PIN mới",
-                style: TextStyle(fontFamily: "WorkSans", fontSize: 16),
-              ),
-              const SizedBox(height: 40),
-              SizedBox(
-                width: double.infinity,
-                height: 60,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF8A724C),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(30),
-                    ),
+      body: SingleChildScrollView(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            minHeight: MediaQuery.of(context).size.height,
+          ),
+          child: IntrinsicHeight(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                children: [
+                  const Spacer(flex: 2),
+                  const Icon(
+                      Icons.lock_open_rounded,
+                      size: 100,
+                      color: Color(0xFF8A724C)
                   ),
-                  onPressed: () async {
-                    final token = await AuthService.getValidAccessToken();
-                    Navigator.of(context).pushAndRemoveUntil(
-                      MaterialPageRoute(builder: (_) => MainAppScreen(accessToken: token!)),
-                      (route) => false,
-                    );
-                  },
-                  child: const Text(
-                    "Hoàn tất",
+                  const SizedBox(height: 20),
+                  const Text(
+                    "Đổi mã PIN thành công!",
                     style: TextStyle(
                       fontFamily: "WorkSans",
-                      fontSize: 22,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.white,
+                      fontSize: 25,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
-                ),
+                  const SizedBox(height: 10),
+                  const Text(
+                    "Bạn có thể sử dụng mã PIN mới",
+                    style: TextStyle(fontFamily: "WorkSans", fontSize: 16),
+                  ),
+                  const SizedBox(height: 40),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 60,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF8A724C),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(30),
+                        ),
+                      ),
+                      onPressed: () async {
+                        final token = await AuthService.getValidAccessToken();
+                        Navigator.of(context).pushAndRemoveUntil(
+                          MaterialPageRoute(
+                              builder: (_) => MainAppScreen(accessToken: token!)
+                          ),
+                              (route) => false,
+                        );
+                      },
+                      child: const Text(
+                        "Hoàn tất",
+                        style: TextStyle(
+                          fontFamily: "WorkSans",
+                          fontSize: 22,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const Spacer(flex: 3),
+                ],
               ),
-              const Spacer(flex: 3),
-            ],
+            ),
           ),
         ),
       ),
