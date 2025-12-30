@@ -95,12 +95,6 @@
 - 🧭 Geocoding & Reverse Geocoding
 - 🎯 Định vị realtime với Geolocator
 
-### 🎁 **Gamification & Rewards**
-- 🎊 Hiệu ứng Confetti khi hoàn thành milestone
-- 🏆 Hệ thống điểm thưởng và huy hiệu
-- 📊 Thống kê hoạt động cá nhân
-- 🎯 Thử thách du lịch hàng tháng
-
 ### 🔔 **Thông Báo Thông Minh**
 - 📱 Push notification với Firebase Messaging
 - ⏰ Thông báo hẹn giờ (Scheduled notifications)
