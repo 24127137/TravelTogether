@@ -15,7 +15,6 @@
 ### 🎓 **ĐẠI HỌC KHOA HỌC TỰ NHIÊN**
 ### 💻 **KHOA CÔNG NGHỆ THÔNG TIN**
 
-**BÁO CÁO CUỐI KỲ**  
 **Môn học:** Tư duy tính toán  
 **Học kỳ:** 1 - Năm học 2025
 
