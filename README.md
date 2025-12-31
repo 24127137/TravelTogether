@@ -440,5 +440,5 @@ Nếu dự án này hữu ích với bạn, hãy cho chúng tôi một ⭐ trên
 [🌟 Star](https://github.com/24127137/TravelTogether) | [🐛 Report Bug](https://github.com/24127337tuduytinhtoan) | [💡 Request Feature](https://github.com/24127337tuduytinhtoan)
 
 ---
-![Thanks](https://readme-typing-svg.demolab.com?font=Fira+Code&weight=500&duration=4000&pause=1000&color=45A1FF&center=true&vCenter=true&width=600&lines=C%E1%BA%A3m+%C6%A1n+b%E1%BA%A1n+%C4%91%C3%A3+gh%C3%A9+th%C4%83m+project+nh%C3%B3m+ch%C3%BAng+t%C3%B4i!;%43%C3%B9%6E%67+kh%C3%A1m+ph%C3%A1+v%C3%A0+tr%E1%BA%A3i+nghi%E1%BB%87m+du+l%E1%BB%8Bch+th%C3%B4ng+minh.+%F0%9F%9A%80)
+![Thanks](https://readme-typing-svg.demolab.com?font=Fira+Code&weight=500&duration=4000&pause=1000&color=45A1FF&center=true&vCenter=true&width=600&lines=Ch%C3%A2n+th%C3%A0nh+c%E1%BA%A3m+%C6%A1n+b%E1%BA%A1n+v%C3%AC+%C4%91%C3%A3+gh%C3%A9+th%C4%83m!;K%E1%BA%BFt+n%E1%BB%91i+v%C3%A0+du+l%E1%BB%8Bch+th%C3%B4ng+minh+c%C3%B9ng+nh%C3%B3m.+%F0%9F%9A%80)
 </div>
