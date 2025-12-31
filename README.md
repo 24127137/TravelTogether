@@ -10,9 +10,9 @@
 
 ---
 
-### 📚 **ĐẠI HỌC QUỐC GIA TP.HCM**
-### 🎓 **ĐẠI HỌC KHOA HỌC TỰ NHIÊN**
-### 💻 **KHOA CÔNG NGHỆ THÔNG TIN**
+### **ĐẠI HỌC QUỐC GIA TP.HCM**
+### **ĐẠI HỌC KHOA HỌC TỰ NHIÊN**
+### **KHOA CÔNG NGHỆ THÔNG TIN**
 
 **Môn học:** Tư duy tính toán  
 **Học kỳ:** 1 - Năm học 2025
@@ -50,62 +50,58 @@
 **Travel Together** là ứng dụng di động thông minh giúp kết nối những người đam mê du lịch, hỗ trợ lập kế hoạch hành trình nhóm và chia sẻ trải nghiệm. Với sự kết hợp giữa công nghệ AI tiên tiến và giao diện thân thiện, Travel Together mang đến trải nghiệm du lịch hoàn hảo cho mọi người.
 
 ### 🎯 **Mục Tiêu Dự Án**
-- 🤝 **Kết nối cộng đồng:** Tìm kiếm và kết nối với những người có cùng sở thích du lịch
-- 🗺️ **Lập kế hoạch thông minh:** Công cụ lập lịch trình, quản lý chi phí và định vị GPS
-- 💬 **Giao tiếp realtime:** Chat nhóm, thông báo đẩy và chia sẻ hình ảnh ngay lập tức
-- 🤖 **Trợ lý AI:** Chatbot thông minh hỗ trợ gợi ý địa điểm, lên kế hoạch tự động
-
+- **Kết nối cộng đồng:** Tìm kiếm và kết nối với những người có cùng sở thích du lịch
+- **Lập kế hoạch thông minh:** Công cụ lập lịch trình, tối ưu hoá lộ trình và định vị GPS
+- **Giao tiếp realtime:** Chat nhóm, thông báo đẩy và chia sẻ hình ảnh ngay lập tức
+- **Trợ lý AI:** Chatbot thông minh hỗ trợ gợi ý địa điểm, lên kế hoạch 
+- **An toàn bảo mật:** Tăng cường bảo vệ người dùng và tài khoản với cơ chế mã PIN kép (Dual PIN)
+- 
 ---
 
 ## ✨ **Tính Năng Chính**
 
 ### 🔐 **Xác Thực & Bảo Mật**
-- ✅ Đăng ký/Đăng nhập với Email + Password
-- ✅ Xác thực 2 yếu tố (2FA) qua Email OTP
-- ✅ Đăng nhập bằng Apple Sign-In
-- ✅ JWT Token Authentication với Firebase Admin SDK
-- ✅ Quản lý phiên đăng nhập an toàn
+- Đăng ký/Đăng nhập với Email + Password
+- JWT Token Authentication với Firebase Admin SDK
+- Quản lý phiên đăng nhập an toàn
+- Cơ chế mã PIN kép: Nếu không nhập mã PIN sau 36 giờ, hệ thống tự động gửi định vị khẩn cấp đến email của người thân
 
 ### 👥 **Quản Lý Nhóm Du Lịch**
-- 📋 Tạo và tham gia nhóm du lịch
-- 🔍 Khám phá nhóm theo địa điểm, thời gian
-- 👤 Phân quyền Host/Member với các chức năng riêng biệt
-- 📅 Lịch trình nhóm với Table Calendar
-- 💰 Quản lý chi phí chung
+- Tạo và tham gia nhóm du lịch
+- Khám phá nhóm theo địa điểm, thời gian
+- Phân quyền Host/Member với các chức năng riêng biệt
+- Lịch trình nhóm với Table Calendar
+- Quản lý chi phí chung
+- Deep Semantic Matching AI: Sử dụng AI để so sánh lịch trình cá nhân của người dùng với các nhóm hiện có dựa trên "ngữ nghĩa" (ví dụ: hiểu rằng "Bờ Hồ" và "Hồ Hoàn Kiếm" là một) để đưa ra gợi ý gia nhập nhóm chính xác nhất
+- Cơ chế Phê duyệt Thành viên: Quản lý danh sách yêu cầu gia nhập, cho phép Host duyệt hoặc từ chối thành viên mới
+- Reputation & Review System: Hệ thống đánh giá thành viên sau mỗi chuyến đi, tính toán điểm uy tín (Average Rating) dựa trên phản hồi của các thành viên khác trong nhóm
 
 ### 💬 **Chat Realtime**
-- ⚡ WebSocket chat realtime trong nhóm
-- 📷 Gửi/nhận hình ảnh với Supabase Storage
-- ✅ Trạng thái đã xem tin nhắn (Read receipts)
-- 🔔 Thông báo đẩy với Firebase Cloud Messaging
-- 📜 Lưu trữ lịch sử chat không giới hạn
+- WebSocket chat realtime trong nhóm
+- Gửi/nhận hình ảnh với Supabase Storage
+- Trạng thái đã xem tin nhắn (Read receipts)
+- Thông báo đẩy với Firebase Cloud Messaging
+- Lưu trữ lịch sử chat không giới hạn
 
-### 🤖 **AI Chatbot Du Lịch**
-- 🧠 Tích hợp Google Gemini AI
-- 💡 Gợi ý địa điểm, nhà hàng, khách sạn
-- 🗺️ Lập kế hoạch hành trình tự động
-- 📸 Phân tích hình ảnh và đề xuất địa điểm tương tự
-- 💾 Lưu session chat cho mỗi người dùng
+### 🤖 **AI Chatbot Du Lịch và thuật toán AI**
+- Tích hợp Google Gemini AI
+- Gợi ý địa điểm, nhà hàng, khách sạn
+- Lập kế hoạch hành trình tự động
+- Phân tích hình ảnh và đề xuất địa điểm tương tự
+- Lưu session chat cho mỗi người dùng
+- AI Destination Ranking: AI chấm điểm (0-100) các địa điểm dựa trên sự phù hợp trực tiếp về sở thích, độ tuổi, giới tính của người dùng
 
 ### 🗺️ **Bản Đồ & Định Vị**
-- 📍 Tích hợp Flutter Map với OpenStreetMap
-- 🛣️ Vẽ tuyến đường với Polyline Points
-- 📌 Đánh dấu địa điểm quan trọng
-- 🧭 Geocoding & Reverse Geocoding
-- 🎯 Định vị realtime với Geolocator
-
-### 🔔 **Thông Báo Thông Minh**
-- 📱 Push notification với Firebase Messaging
-- ⏰ Thông báo hẹn giờ (Scheduled notifications)
-- 🔕 Tùy chỉnh thông báo cho từng nhóm
-- 📍 Thông báo dựa trên vị trí
+- Tích hợp Flutter Map với OpenStreetMap
+- Vẽ tuyến đường với Polyline Points
+- Đánh dấu địa điểm quan trọng
+- Geocoding & Reverse Geocoding
+- Tích hợp lớp Layer tùy chỉnh hiển thị đầy đủ quần đảo Hoàng Sa và Trường Sa của Việt Nam
 
 ### 🎨 **Giao Diện Người Dùng**
-- 🌈 Material Design 3
-- 🌓 Hỗ trợ Dark Mode (sắp ra mắt)
-- 🎬 Animations với Flutter Animate
-- 📱 Responsive design cho mọi kích thước màn hình
-- 🌐 Đa ngôn ngữ với Easy Localization
+- Material Design 3
+- Animations với Flutter Animate
+- Chuyển đổi ngôn ngữ tiếng việt <-> tiếng anh với Easy Localization
 
 ---
 
@@ -150,8 +146,7 @@
 
 - **🗄️ Supabase (PostgreSQL):** Database chính, Authentication, Storage
 - **🔥 Firebase:** Push notifications, Analytics
-- **🗺️ Google Maps API:** Geocoding, Places [Link API: *Chờ thêm*]
-- **🤖 Google Gemini AI:** AI Chatbot service [Link API: *Chờ thêm*]
+- **🤖 Google Gemini AI:** AI Chatbot service
 
 ### **DevOps & Tools**
 
@@ -185,7 +180,7 @@
 
 ---
 
-### **🚀 BƯỚC 1: Clone Repository**
+### **BƯỚC 1: Clone Repository**
 
 ```bash
 git clone https://github.com/yourusername/TravelTogether.git
@@ -194,7 +189,7 @@ cd TravelTogether
 
 ---
 
-### **🐍 BƯỚC 2: Thiết Lập Backend**
+### **BƯỚC 2: Thiết Lập Backend**
 
 #### 2.1. Tạo Virtual Environment
 
@@ -230,8 +225,6 @@ JWT_SECRET_KEY=your_jwt_secret_key_here
 JWT_ALGORITHM=HS256
 ACCESS_TOKEN_EXPIRE_MINUTES=30
 
-# Google AI
-GOOGLE_API_KEY=your_gemini_api_key
 
 # Email Service
 MAIL_USERNAME=your_email@gmail.com
@@ -244,7 +237,7 @@ MAIL_PORT=587
 FIREBASE_CREDENTIALS_PATH=./firebase-admin-sdk.json
 ```
 
-> ⚠️ **Lưu ý:** File `.env` chứa thông tin nhạy cảm, không commit lên Git!
+> ⚠️ **Lưu ý:** File `.env` liên lạc với cn20378@gmail.com để lấy!
 
 #### 2.4. Thêm Firebase Service Account
 
@@ -267,7 +260,7 @@ Mở browser và truy cập: `http://localhost:8000/docs` để xem API document
 
 ---
 
-### **📱 BƯỚC 3: Thiết Lập Frontend**
+### **BƯỚC 3: Thiết Lập Frontend**
 
 #### 3.1. Cài Đặt Flutter Dependencies
 
@@ -313,7 +306,6 @@ Tạo file `.env` trong thư mục `frontend/`:
 ```env
 SUPABASE_URL=your_supabase_url
 SUPABASE_ANON_KEY=your_supabase_anon_key
-GOOGLE_MAPS_API_KEY=your_google_maps_api_key
 ```
 
 #### 3.5. Chạy Ứng Dụng
@@ -342,7 +334,7 @@ flutter run --release
 
 ---
 
-### **🔥 BƯỚC 4: Mở Firewall (Windows Only)**
+### **BƯỚC 4: Mở Firewall (Windows Only)**
 
 Mở **PowerShell với quyền Administrator** và chạy:
 
@@ -357,7 +349,7 @@ Get-NetFirewallRule -DisplayName "Travel Backend API"
 
 ---
 
-### **✅ BƯỚC 5: Kiểm Tra Kết Nối**
+### **BƯỚC 5: Kiểm Tra Kết Nối**
 
 #### Từ máy tính:
 ```bash
@@ -374,13 +366,12 @@ Nếu thấy giao diện Swagger UI → Thành công! 🎉
 
 ---
 
-## 📱 **Hướng Dẫn Sử Dụng**
+## **Hướng Dẫn Sử Dụng**
 
 ### **1️⃣ Đăng Ký Tài Khoản**
 1. Mở app Travel Together
 2. Chọn "Đăng ký" → Nhập email, mật khẩu
-3. Xác thực email qua OTP code
-4. Hoàn thiện hồ sơ (tên, avatar, sở thích)
+3. Hoàn thiện hồ sơ (tên, avatar, sở thích)
 
 ### **2️⃣ Tạo Nhóm Du Lịch**
 1. Vào tab "Khám phá" → Nhấn nút "+"
@@ -408,211 +399,19 @@ Nếu thấy giao diện Swagger UI → Thành công! 🎉
 
 ---
 
-## 🔧 **Xử Lý Sự Cố**
-
-### ❌ **Lỗi: Connection Refused**
-
-**Nguyên nhân:**
-- Backend chưa chạy hoặc chạy sai IP
-- Firewall chặn port 8000
-- Không cùng WiFi
-
-**Giải pháp:**
-```bash
-# 1. Kiểm tra backend đang chạy
-netstat -a -n -o | Select-String ":8000"
-
-# 2. Kiểm tra IP máy
-ipconfig
-
-# 3. Cập nhật IP trong api_config.dart
-# 4. Tắt firewall tạm thời để test
-```
-
----
-
-### ❌ **Lỗi: API Key Invalid**
-
-**Nguyên nhân:** Chưa cấu hình `.env` hoặc key sai
-
-**Giải pháp:**
-1. Kiểm tra file `.env` trong `backend/` và `frontend/`
-2. Đảm bảo các key được copy chính xác (không có khoảng trắng)
-3. Restart cả backend và frontend
-
----
-
-### ❌ **Lỗi: Firebase Error**
-
-**Nguyên nhân:** Chưa thêm file Firebase config
-
-**Giải pháp:**
-1. Tải `google-services.json` từ Firebase Console
-2. Đặt vào `android/app/`
-3. Chạy `flutter clean` và `flutter pub get`
-4. Rebuild app
-
----
-
-### ❌ **Lỗi: Flutter Build Failed**
-
-**Giải pháp:**
-```bash
-# Clean project
-flutter clean
-
-# Get dependencies
-flutter pub get
-
-# Repair pub cache
-flutter pub cache repair
-
-# Upgrade Flutter
-flutter upgrade
-```
-
----
-
-### ❌ **Lỗi: Supabase Connection Timeout**
-
-**Giải pháp:**
-1. Kiểm tra kết nối internet
-2. Verify Supabase URL và keys trong `.env`
-3. Check Supabase project có active không
-4. Thử ping Supabase endpoint
-
----
-
-## 🤝 **Đóng Góp**
-
-Chúng tôi rất hoan nghênh mọi đóng góp cho dự án! 
-
-### **Cách Đóng Góp:**
-
-1. **Fork repository** này
-2. **Clone** về máy: `git clone https://github.com/yourusername/TravelTogether.git`
-3. **Tạo branch** mới: `git checkout -b feature/ten-tinh-nang`
-4. **Commit** thay đổi: `git commit -m "Add: Tính năng ABC"`
-5. **Push** lên GitHub: `git push origin feature/ten-tinh-nang`
-6. Tạo **Pull Request**
-
-### **Quy Tắc Đóng Góp:**
-- Code phải tuân thủ style guide của Flutter/Dart và Python
-- Viết test cho các tính năng mới
-- Cập nhật documentation nếu cần
-- Commit message rõ ràng theo format: `[Type] Description`
-  - Types: `Add`, `Fix`, `Update`, `Remove`, `Refactor`, `Docs`
-
-### **Báo Lỗi:**
-Nếu phát hiện bug, hãy [tạo issue](https://github.com/yourusername/TravelTogether/issues) với:
-- Mô tả chi tiết lỗi
-- Các bước tái hiện
-- Screenshots/logs nếu có
-- Thông tin môi trường (OS, Flutter version, v.v.)
-
----
-
 ## 📄 **Giấy Phép**
-
 Dự án này được phát hành dưới giấy phép **MIT License**.
-
-```
-MIT License
-
-Copyright (c) 2025 Travel Together Team
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-[Full license text...]
-```
 
 Xem file [LICENSE](LICENSE) để biết thêm chi tiết.
 
 ---
-
-## 👥 **Nhóm Phát Triển**
-
-<table>
-  <tr>
-    <td align="center">
-      <img src="[Link avatar]" width="100px;" alt=""/>
-      <br />
-      <sub><b>Team Lead</b></sub>
-      <br />
-      <a href="mailto:cn20378@gmail.com">📧 Email</a>
-    </td>
-    <td align="center">
-      <img src="[Link avatar]" width="100px;" alt=""/>
-      <br />
-      <sub><b>Frontend Dev</b></sub>
-    </td>
-    <td align="center">
-      <img src="[Link avatar]" width="100px;" alt=""/>
-      <br />
-      <sub><b>Backend Dev</b></sub>
-    </td>
-    <td align="center">
-      <img src="[Link avatar]" width="100px;" alt=""/>
-      <br />
-      <sub><b>UI/UX Designer</b></sub>
-    </td>
-  </tr>
-</table>
-
----
-
 ## 📞 **Liên Hệ & Hỗ Trợ**
 
-- 📧 **Email:** cn20378@gmail.com
-- 🌐 **Website:** [Link website]
-- 💬 **Discord:** [Link Discord server]
-- 📱 **Facebook:** [Link fanpage]
-- 🐦 **Twitter:** [Link Twitter]
+- **Email:** cn20378@gmail.com
+- **Facebook:** https://www.facebook.com/nguyenntc352
+- **Github:** https://github.com/24127337tuduytinhtoan
 
-**Nếu gặp vấn đề:**
-1. ✅ Đọc phần [Xử Lý Sự Cố](#-xử-lý-sự-cố)
-2. ✅ Xem [Issues](https://github.com/yourusername/TravelTogether/issues)
-3. ✅ Tham gia Discord để hỏi cộng đồng
-4. ✅ Gửi email cho team
-
----
-
-## 📊 **Thống Kê Dự Án**
-
-![GitHub stars](https://img.shields.io/github/stars/yourusername/TravelTogether?style=social)
-![GitHub forks](https://img.shields.io/github/forks/yourusername/TravelTogether?style=social)
-![GitHub issues](https://img.shields.io/github/issues/yourusername/TravelTogether)
-![GitHub pull requests](https://img.shields.io/github/issues-pr/yourusername/TravelTogether)
-
----
-
-## 🗓️ **Roadmap**
-
-### **✅ Version 11.0 (Hiện tại)**
-- ✅ Authentication với JWT & Firebase
-- ✅ Realtime chat với WebSocket
-- ✅ AI Chatbot với Google Gemini
-- ✅ Group management
-- ✅ Map integration
-
-### **🚧 Version 12.0 (Q1 2026)**
-- 🔲 Dark mode
-- 🔲 Voice messages
-- 🔲 Video calls
-- 🔲 Expense splitting
-- 🔲 Trip diary
-
-### **🔮 Version 13.0 (Q2 2026)**
-- 🔲 Social feed
-- 🔲 Story sharing
-- 🔲 Live location sharing
-- 🔲 Hotel/flight booking integration
-- 🔲 AR navigation
+> ⚠️ **Lưu ý:** Nếu gặp sự cố hãy liên lạc với cn20378@gmail.com để hỏi đáp!
 
 ---
 
@@ -647,38 +446,15 @@ Xem file [LICENSE](LICENSE) để biết thêm chi tiết.
 
 ---
 
-## 🎯 **Quick Start - TL;DR**
-
-```bash
-# Clone
-git clone https://github.com/yourusername/TravelTogether.git
-
-# Backend
-cd backend
-pip install -r requirements.txt
-# Tạo file .env với các keys cần thiết
-uvicorn main:app --reload --host 0.0.0.0 --port 8000
-
-# Frontend (terminal mới)
-cd frontend
-flutter pub get
-# Cập nhật IP trong lib/config/api_config.dart
-flutter run
-```
-
----
-
 <div align="center">
 
 ## ⭐ **Star Project Nếu Bạn Thích!**
 
 Nếu dự án này hữu ích với bạn, hãy cho chúng tôi một ⭐ trên GitHub!
 
-[🌟 Star](https://github.com/yourusername/TravelTogether) | [🐛 Report Bug](https://github.com/yourusername/TravelTogether/issues) | [💡 Request Feature](https://github.com/yourusername/TravelTogether/issues)
+[🌟 Star](https://github.com/24127137/TravelTogether) | [🐛 Report Bug](https://github.com/24127337tuduytinhtoan) | [💡 Request Feature](https://github.com/24127337tuduytinhtoan)
 
 ---
 
-**Made with ❤️ by Travel Together Team**
-
-
+![Thanks](https://readme-typing-svg.demolab.com?font=Fira+Code&weight=500&duration=4000&pause=1000&color=45A1FF&center=true&vCenter=true&width=600&lines=C%E1%BA%A3m+%C6%A1n+b%E1%BA%A1n+%C4%91%C3%A3+gh%C3%A9+th%C4%83m+project+c%E1%BB%A7a+t%C3%B4i!;C%C3%B9ng+kh%C3%A1m+ph%C3%A1+v%C3%A0+tr%E1%BA%A3i+nghi%E1%BB%87m+du+l%E1%BB%8Bch+th%C3%B4ng+minh.+%F0%9F%9A%80)
 </div>
