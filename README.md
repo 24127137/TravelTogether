@@ -415,21 +415,6 @@ Xem file [LICENSE](LICENSE) để biết thêm chi tiết.
 
 ---
 
-## 🌟 **Các Tính Năng Nổi Bật**
-
-| Tính năng | Mô tả | Status |
-|-----------|-------|--------|
-| 🔐 **2FA Authentication** | Xác thực 2 lớp với OTP | ✅ Hoàn thành |
-| 💬 **WebSocket Chat** | Chat realtime không độ trễ | ✅ Hoàn thành |
-| 🤖 **AI Travel Assistant** | Chatbot Gemini AI | ✅ Hoàn thành |
-| 🗺️ **Smart Maps** | Bản đồ tương tác, routing | ✅ Hoàn thành |
-| 🔔 **Push Notifications** | Thông báo đẩy Firebase | ✅ Hoàn thành |
-| 📸 **Image Upload** | Upload ảnh lên Supabase Storage | ✅ Hoàn thành |
-| 🌐 **Multi-language** | Hỗ trợ đa ngôn ngữ | ✅ Hoàn thành |
-| 🎨 **Animations** | UI/UX smooth với Flutter Animate | ✅ Hoàn thành |
-
----
-
 ## 📚 **Tài Liệu Tham Khảo**
 
 ### **Official Documentation:**
@@ -456,5 +441,5 @@ Nếu dự án này hữu ích với bạn, hãy cho chúng tôi một ⭐ trên
 
 ---
 
-![Thanks](https://readme-typing-svg.demolab.com?font=Fira+Code&weight=500&duration=4000&pause=1000&color=45A1FF&center=true&vCenter=true&width=600&lines=C%E1%BA%A3m+%C6%A1n+b%E1%BA%A1n+%C4%91%C3%A3+gh%C3%A9+th%C4%83m+project+c%E1%BB%A7a+t%C3%B4i!;C%C3%B9ng+kh%C3%A1m+ph%C3%A1+v%C3%A0+tr%E1%BA%A3i+nghi%E1%BB%87m+du+l%E1%BB%8Bch+th%C3%B4ng+minh.+%F0%9F%9A%80)
+![Thanks](https://readme-typing-svg.demolab.com?font=Fira+Code&weight=500&duration=4000&pause=1000&color=45A1FF&center=true&vCenter=true&width=600&lines=C%E1%BA%A3m+%C6%A1n+b%E1%BA%A1n+%C4%91%C3%A3+gh%C3%A9+th%C4%83m+project+nh%C3%B3m+ch%C3%BAng+t%C3%B4i!;C%C3%B9ng+kh%C3%A1m+ph%C3%A1+v%C3%A0+tr%E1%BA%A3i+nghi%E1%BB%87m+du+l%E1%BB%8Bch+th%C3%B4ng+minh.+%F0%9F%9A%80)
 </div>
