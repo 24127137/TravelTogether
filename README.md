@@ -373,29 +373,37 @@ Nếu thấy giao diện Swagger UI → Thành công! 🎉
 2. Chọn "Đăng ký" → Nhập email, mật khẩu
 3. Hoàn thiện hồ sơ (tên, avatar, sở thích)
 
-### **2️⃣ Tạo Nhóm Du Lịch**
-1. Vào tab "Khám phá" → Nhấn nút "+"
-2. Điền thông tin: Tên nhóm, địa điểm, thời gian
-3. Thiết lập quyền riêng tư (Public/Private)
-4. Chia sẻ link hoặc mã nhóm cho bạn bè
+### **2️⃣ Tạo Nhóm Và Tham Gia Nhóm Du Lịch**
+1. Chọn thời gian đi
+2. Chọn thành phố du lịch
+3. Chọn địa điểm du lịch trong thành phố đó
+4. **Tạo nhóm**:
+- Điền thông tin: Tên nhóm, avatar nhóm (optional)
+5. **Tham gia nhóm**:
+- Chọn nhóm mình muốn dựa trên % tương thích
+- Gửi lời mời, đợi xét duyệt
+- Vào tab "Cá Nhân" -> "Tình Trạng" để xem tình trạng xét duyệt
 
 ### **3️⃣ Chat Với Nhóm**
 1. Vào nhóm → Tab "Chat"
-2. Gửi tin nhắn, ảnh, location
-3. @mention thành viên để thông báo
-4. Pin tin nhắn quan trọng
+2. Gửi tin nhắn, ảnh
 
 ### **4️⃣ Sử Dụng AI Chatbot**
-1. Nhấn biểu tượng robot 🤖 ở góc phải
-2. Hỏi: "Gợi ý 3 địa điểm du lịch ở Đà Nẵng"
-3. Upload ảnh để AI phân tích và gợi ý
-4. Lưu lại các gợi ý vào lịch trình
+1. Hỏi: "Gợi ý 3 địa điểm du lịch ở Đà Nẵng"
+2. Upload ảnh để AI phân tích và gợi ý
 
-### **5️⃣ Lập Kế Hoạch**
-1. Tab "Lịch trình" → Chọn ngày
-2. Thêm địa điểm, giờ, ghi chú
-3. Xem bản đồ tuyến đường
-4. Phân công nhiệm vụ cho thành viên
+### **5️⃣ Xem Lộ Trình tối ưu**
+1. Vào tab "Tin Nhắn" -> bấm vào nhóm muốn xem lịch trình
+2. Bấm vào icon Lộ Trình góc trên phải
+3. Xem lộ trình tối ưu gồm thời gian, tổng quảng đường, thứ tự chuyến đi tối ưu
+
+### **6️⃣ Cài Đặt & Tùy Chỉnh**
+1. **Chỉnh sửa Profile:** Vào tab **Cá nhân** -> **Chỉnh sửa hồ sơ** để thay đổi thông tin cá nhân, Avatar, cập nhật lại sở thích, mô tả bản thân.
+2. **Đa ngôn ngữ:** Vào phần **Cài đặt** -> Chọn **Ngôn ngữ** để chuyển đổi giao diện giữa Tiếng Anh và Tiếng Việt.
+3. **Bảo mật:** - **Đổi mật khẩu:** Chọn **Cài đặt mật khẩu** để cập nhật mật khẩu mới.
+   - **Mã PIN kép:** Thiết lập hoặc thay đổi mã PIN bảo vệ để đảm bảo an toàn cho tài khoản.
+4. **Phản hồi nhóm (Member Rating):** Sau mỗi chuyến đi, bạn có thể vào tab **Phản hồi nhóm** để thực hiện đánh giá các thành viên khác. Điều này giúp cộng đồng lọc ra những người bạn đồng hành tích cực.
+5. **Hệ thống Uy tín (Reputation):** Truy cập tab **Uy tín** để xem điểm số tín nhiệm cá nhân của bạn. Điểm này được tổng hợp từ các đánh giá thực tế của những người đã từng đi du lịch cùng bạn.
 
 ---
 
