@@ -55,7 +55,6 @@
 - **Giao tiếp realtime:** Chat nhóm, thông báo đẩy và chia sẻ hình ảnh ngay lập tức
 - **Trợ lý AI:** Chatbot thông minh hỗ trợ gợi ý địa điểm, lên kế hoạch 
 - **An toàn bảo mật:** Tăng cường bảo vệ người dùng và tài khoản với cơ chế mã PIN kép (Dual PIN)
-- 
 ---
 
 ## ✨ **Tính Năng Chính**
