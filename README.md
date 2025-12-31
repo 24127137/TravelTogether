@@ -1,4 +1,4 @@
-<div align="center">
+  <div align="center">
 
 # 🌍 **TRAVEL TOGETHER**
 ### *SMART TOURISM SYSTEM - Kết nối người du lịch thông minh*
@@ -6,8 +6,7 @@
 [![Flutter](https://img.shields.io/badge/Flutter-3.0+-02569B?logo=flutter)](https://flutter.dev)
 [![FastAPI](https://img.shields.io/badge/FastAPI-11.0.0-009688?logo=fastapi)](https://fastapi.tiangolo.com)
 [![Python](https://img.shields.io/badge/Python-3.13-blue?logo=python)](https://python.org)
-[![License](https://img.shields.io/badge/License-Academic-yellow.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-11.0.0-blue.svg)](https://github.com/yourusername/traveltogether)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 ---
 
@@ -681,7 +680,5 @@ Nếu dự án này hữu ích với bạn, hãy cho chúng tôi một ⭐ trên
 
 **Made with ❤️ by Travel Together Team**
 
-_Last updated: December 30, 2025_
 
 </div>
-
